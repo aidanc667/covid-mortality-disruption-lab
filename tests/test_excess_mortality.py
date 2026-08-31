@@ -145,6 +145,33 @@ def test_benjamini_hochberg_returns_all_original_keys():
     assert set(result.keys()) == {"cancer", "overdose"}
 
 
+def test_classify_persistence_explicit_acute_significant_overrides_per_year_flags():
+    # Per-year flags say NOT significant (borderline case, like the real
+    # cerebrovascular-disease pipeline run that surfaced this), but the
+    # combined-period test (computed externally, e.g. via
+    # compute_acute_pvalue) says it IS significant -- the explicit
+    # override must win, since it's the same test driving the p-value
+    # used for FDR correction, and the two must not silently disagree.
+    deviations = [
+        _dev(2020, 1.0, False), _dev(2021, 1.2, False),
+        _dev(2022, 0.9, True), _dev(2023, 1.1, True), _dev(2024, 1.0, True),
+    ]
+    result = classify_persistence(
+        deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024),
+        acute_significant=True,
+    )
+    assert result == "Persisted"
+
+
+def test_classify_persistence_explicit_acute_significant_false_short_circuits():
+    deviations = [_dev(2020, 5.0, True), _dev(2021, 6.0, True)]
+    result = classify_persistence(
+        deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024),
+        acute_significant=False,
+    )
+    assert result == "No significant disruption"
+
+
 from src.analysis.excess_mortality import compute_acute_pvalue
 
 

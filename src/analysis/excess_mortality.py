@@ -98,7 +98,10 @@ def compute_deviations(
 
 
 def classify_persistence(
-    deviations: list[DeviationResult], acute_years: tuple[int, int], post_acute_years: tuple[int, int]
+    deviations: list[DeviationResult],
+    acute_years: tuple[int, int],
+    post_acute_years: tuple[int, int],
+    acute_significant: bool | None = None,
 ) -> str:
     """Three-way persistence classification per design spec section 5.2:
     "Persisted", "Resolved", or "Reversed" for causes with a significant
@@ -106,15 +109,29 @@ def classify_persistence(
     the acute phase itself never cleared significance. A binary
     persisted/resolved scheme would flatten a reversal pattern (e.g.
     overdose spiking, then declining below its pre-pandemic trend) into
-    a false "resolved," which is why this is three-way, not two."""
+    a false "resolved," which is why this is three-way, not two.
+
+    `acute_significant`: by default (None), derived from whether any
+    individual acute year's per-year prediction-interval flag is True.
+    Pass this explicitly (e.g. from compute_acute_pvalue < alpha) when a
+    combined-period test should gate the classification instead --
+    otherwise a borderline cause can end up with a persistence_class of
+    "No significant disruption" while its own p-value (from the same
+    acute period, via the combined test) is reported as significant
+    elsewhere, which is a real contradiction, not just a stylistic one:
+    both numbers claim to answer "was the acute-period disruption real,"
+    and they must agree when both are shown together, e.g. in the
+    orchestration pipeline that feeds this project's app."""
     acute = [d for d in deviations if acute_years[0] <= d.year <= acute_years[1]]
     post_acute = [d for d in deviations if post_acute_years[0] <= d.year <= post_acute_years[1]]
 
-    acute_significant = [d for d in acute if d.significant]
+    if acute_significant is None:
+        acute_significant = any(d.significant for d in acute)
     if not acute_significant:
         return "No significant disruption"
 
-    acute_sign = np.sign(np.mean([d.deviation for d in acute_significant]))
+    acute_with_deviation = [d for d in acute if not np.isnan(d.deviation)]
+    acute_sign = np.sign(np.mean([d.deviation for d in acute_with_deviation]))
 
     post_significant = [d for d in post_acute if d.significant]
     if not post_significant:

@@ -139,7 +139,7 @@ Replaces the current 6-page structure:
 - Unit tests for `excess_mortality.py` against synthetic series with known injected deviations (analogous to the existing `test_changepoints.py` ground-truth tests)
 - Unit test confirming the negative-control series (synthetic, no injected deviation) returns "not significant"
 - Unit tests for the three-way persistence classification (persisted/resolved/reversed cases)
-- Unit tests for FDR correction across the 7-cause family
+- Unit tests for FDR correction across the 6-cause family
 - Extend `test_cdc_wonder_ingestion.py` for the multi-cause export format once a real multi-cause file is available
 
 ## 11. Limitations specific to this design (to carry into the final report)
