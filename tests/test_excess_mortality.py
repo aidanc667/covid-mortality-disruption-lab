@@ -143,3 +143,33 @@ def test_benjamini_hochberg_returns_all_original_keys():
     p_values = {"cancer": 0.3, "overdose": 0.001}
     result = benjamini_hochberg(p_values)
     assert set(result.keys()) == {"cancer", "overdose"}
+
+
+from src.analysis.excess_mortality import compute_acute_pvalue
+
+
+def test_compute_acute_pvalue_large_for_no_deviation():
+    years = np.arange(1999, 2020)
+    values = 20.0 + np.array([0.1, -0.1, 0.05, -0.05, 0.0] * 4 + [0.02])
+    trend = fit_baseline_trend(years, values)
+    deviations = compute_deviations(trend, np.array([2020, 2021]), np.array([20.0, 20.05]))
+    p = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
+    assert p > 0.5
+
+
+def test_compute_acute_pvalue_small_for_large_deviation():
+    years = np.arange(1999, 2020)
+    values = 20.0 + np.array([0.1, -0.1, 0.05, -0.05, 0.0] * 4 + [0.02])
+    trend = fit_baseline_trend(years, values)
+    deviations = compute_deviations(trend, np.array([2020, 2021]), np.array([35.0, 36.0]))
+    p = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
+    assert p < 0.001
+
+
+def test_compute_acute_pvalue_returns_one_when_all_acute_years_missing():
+    years = np.arange(1999, 2020)
+    values = 20.0 + np.array([0.1, -0.1, 0.05, -0.05, 0.0] * 4 + [0.02])
+    trend = fit_baseline_trend(years, values)
+    deviations = compute_deviations(trend, np.array([2020, 2021]), np.array([np.nan, np.nan]))
+    p = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
+    assert p == 1.0

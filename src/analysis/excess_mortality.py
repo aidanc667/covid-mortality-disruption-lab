@@ -124,6 +124,44 @@ def classify_persistence(
     return "Persisted" if post_sign == acute_sign else "Reversed"
 
 
+def compute_acute_pvalue(
+    trend: BaselineTrend, deviations: list[DeviationResult], acute_years: tuple[int, int]
+) -> float:
+    """Two-tailed p-value testing whether the mean deviation across
+    acute_years is significantly different from zero, via a one-sample
+    t-test against the trend's model-based prediction standard error
+    (averaged across the acute years, since extrapolation distance
+    varies slightly year to year). This is what feeds
+    src.analysis.excess_mortality.benjamini_hochberg for the 6-cause FDR
+    correction (design spec section 5.5) -- compute_deviations only
+    flags per-year significance, it doesn't produce a single per-cause
+    p-value for ranking causes against each other.
+
+    Returns 1.0 (not significant) if every acute year is missing, rather
+    than raising -- a cause with fully suppressed acute-period data
+    should not be treated as automatically significant or crash the
+    6-cause family test."""
+    acute = [
+        d for d in deviations
+        if acute_years[0] <= d.year <= acute_years[1] and not np.isnan(d.deviation)
+    ]
+    if not acute:
+        return 1.0
+
+    mean_deviation = float(np.mean([d.deviation for d in acute]))
+    avg_year = float(np.mean([d.year for d in acute]))
+    se_pred = trend.residual_std * np.sqrt(
+        1 + 1 / trend.n + (avg_year - trend.x_mean) ** 2 / trend.sxx
+    )
+    se_of_mean = se_pred / np.sqrt(len(acute))
+    if se_of_mean == 0:
+        return 0.0 if mean_deviation != 0 else 1.0
+
+    t_stat = mean_deviation / se_of_mean
+    p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df=trend.n - 2))
+    return float(p_value)
+
+
 def benjamini_hochberg(p_values: dict[str, float], alpha: float = 0.05) -> dict[str, bool]:
     """Standard Benjamini-Hochberg step-up FDR procedure. Sort p-values
     ascending; find the largest rank k where p(k) <= (k/m)*alpha; every
