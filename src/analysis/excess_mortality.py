@@ -122,3 +122,23 @@ def classify_persistence(
 
     post_sign = np.sign(np.mean([d.deviation for d in post_significant]))
     return "Persisted" if post_sign == acute_sign else "Reversed"
+
+
+def benjamini_hochberg(p_values: dict[str, float], alpha: float = 0.05) -> dict[str, bool]:
+    """Standard Benjamini-Hochberg step-up FDR procedure. Sort p-values
+    ascending; find the largest rank k where p(k) <= (k/m)*alpha; every
+    p-value at or below that rank survives correction. Per design spec
+    section 5.5, applied across the 6 substantive test causes (excluding
+    the COVID-19 reference series and the drowning negative control)."""
+    items = sorted(p_values.items(), key=lambda kv: kv[1])
+    m = len(items)
+
+    max_rank_significant = 0
+    for rank, (_, p) in enumerate(items, start=1):
+        if p <= (rank / m) * alpha:
+            max_rank_significant = rank
+
+    survives = {}
+    for rank, (key, _) in enumerate(items, start=1):
+        survives[key] = rank <= max_rank_significant
+    return survives

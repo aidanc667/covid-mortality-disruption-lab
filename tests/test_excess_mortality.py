@@ -112,3 +112,34 @@ def test_classify_persistence_reversed_when_sign_flips():
     ]
     result = classify_persistence(deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024))
     assert result == "Reversed"
+
+
+from src.analysis.excess_mortality import benjamini_hochberg
+
+
+def test_benjamini_hochberg_known_worked_example():
+    # Hand-computed: alpha=0.05, m=5. BH critical value at rank k is
+    # (k/5)*0.05 = 0.01, 0.02, 0.03, 0.04, 0.05 for ranks 1-5.
+    # sorted p: a=.001<=.01 ok, b=.01<=.02 ok, c=.03<=.03 ok, d=.04<=.04 ok, e=.5<=.05 fails
+    # -> a,b,c,d survive; e does not.
+    p_values = {"a": 0.001, "b": 0.01, "c": 0.03, "d": 0.04, "e": 0.5}
+    result = benjamini_hochberg(p_values, alpha=0.05)
+    assert result == {"a": True, "b": True, "c": True, "d": True, "e": False}
+
+
+def test_benjamini_hochberg_all_survive_when_all_tiny():
+    p_values = {"a": 0.0001, "b": 0.0002, "c": 0.0003}
+    result = benjamini_hochberg(p_values, alpha=0.05)
+    assert all(result.values())
+
+
+def test_benjamini_hochberg_none_survive_when_all_large():
+    p_values = {"a": 0.9, "b": 0.8, "c": 0.95}
+    result = benjamini_hochberg(p_values, alpha=0.05)
+    assert not any(result.values())
+
+
+def test_benjamini_hochberg_returns_all_original_keys():
+    p_values = {"cancer": 0.3, "overdose": 0.001}
+    result = benjamini_hochberg(p_values)
+    assert set(result.keys()) == {"cancer", "overdose"}
