@@ -1,58 +1,73 @@
-import pandas as pd
 import streamlit as st
 
-from app.components.data_loading import load_changepoints, load_mortality_panel, load_context, data_available, synthetic_banner
+from app.components.data_loading import (
+    load_disruption_summary, load_negative_control, load_heterogeneity_summary,
+    data_available, synthetic_banner, TEST_CAUSES,
+)
 
 st.title("Data quality")
 synthetic_banner()
-st.caption("Suppression, unreliability, and eligibility are shown directly, not hidden (brief §9).")
+st.caption("The vintage-bridging discontinuity, the negative control, and multiple-testing correction are shown directly, not hidden (research_protocol.md §7a, §9).")
 
 if not data_available():
     st.warning("No precomputed data available yet.", icon=":material/warning:")
     st.stop()
 
-panel = load_mortality_panel()
-changepoints = load_changepoints()
-context = load_context()
+st.subheader("Negative control (hard gate)")
+neg_control = load_negative_control().iloc[0]
+passed = bool(neg_control["passed"])
 
-st.subheader("Mortality panel suppression / reliability")
 with st.container(horizontal=True):
     with st.container(border=True):
-        pct_suppressed = panel["age_adjusted_rate_suppressed"].mean() * 100
-        st.metric("County-years suppressed", f"{pct_suppressed:.1f}%")
-        st.caption("CDC WONDER suppresses death counts < 10")
+        st.metric("Status", "Passed" if passed else "FAILED")
     with st.container(border=True):
-        pct_unreliable = panel["age_adjusted_rate_unreliable"].mean() * 100
-        st.metric("County-years unreliable", f"{pct_unreliable:.1f}%")
-        st.caption("Death count < 20")
+        st.metric("Classification", neg_control["persistence_class"])
     with st.container(border=True):
-        st.metric("Total county-years", f"{len(panel):,}")
+        st.metric("p-value", f"{neg_control['p_value']:.4g}")
 
-st.subheader("Suppression by year")
-by_year = panel.groupby("year").agg(
-    pct_suppressed=("age_adjusted_rate_suppressed", "mean"),
-    pct_unreliable=("age_adjusted_rate_unreliable", "mean"),
-).reset_index()
-by_year["pct_suppressed"] *= 100
-by_year["pct_unreliable"] *= 100
-st.line_chart(by_year, x="year", y=["pct_suppressed", "pct_unreliable"])
+if passed:
+    st.success(
+        "Accidental drowning mortality — a cause with no plausible COVID mechanism — shows "
+        "no significant disruption, as expected. This does not prove the methodology is "
+        "artifact-free, but a failure here would have been strong evidence that it is.",
+        icon=":material/check_circle:",
+    )
+else:
+    st.error(
+        "The negative control shows a significant disruption. Per research_protocol.md §7 "
+        "method 4, this is a hard gate — results on the other 6 causes should not be trusted "
+        "until this is resolved (check for a vintage-bridging artifact or a generic 2020 "
+        "data-quality issue before trusting any other result on this page).",
+        icon=":material/error:",
+    )
 
-st.subheader("County eligibility for change-point modeling")
-elig_counts = changepoints["data_eligible_changepoint"].value_counts().rename({True: "Eligible", False: "Not eligible"})
-st.bar_chart(elig_counts)
+st.subheader("Multiple-testing correction")
+summary = load_disruption_summary()
+with st.container(horizontal=True):
+    with st.container(border=True):
+        st.metric("6-cause family, raw p<0.05", int((summary["p_value"] < 0.05).sum()))
+    with st.container(border=True):
+        st.metric("6-cause family, FDR-significant", int(summary["fdr_significant"].sum()))
 st.caption(
-    "Eligibility requires ≥15 non-suppressed/reliable years and mid-period population ≥ the threshold "
-    "set in research_protocol.md §6 — see the Methods page for exact values."
+    "Benjamini-Hochberg correction is applied across the 6 substantive test causes as one "
+    "family (research_protocol.md §7a) — a stricter bar than testing each cause in isolation."
 )
 
-st.subheader("Missingness in context variables (joined counties)")
-context_vars = [c for c in context.columns if c != "county_fips" and c != "release_year"]
-missingness = context[context_vars].isna().mean().sort_values(ascending=False) * 100
-missingness_df = missingness.reset_index()
-missingness_df.columns = ["Variable", "% missing"]
-st.dataframe(missingness_df, hide_index=True)
+st.subheader("Heterogeneity-stage multiple testing")
+het = load_heterogeneity_summary()
+for cause in het["cause"].unique():
+    cause_het = het[het["cause"] == cause]
+    with st.container(horizontal=True):
+        st.write(f"**{cause}**")
+        st.caption(f"{int(cause_het['fdr_significant'].sum())} of {len(cause_het)} context variables FDR-significant")
 
-st.caption(
-    "Missing values here are never imputed for mortality; context-variable missingness is shown as-is, "
-    "per research_protocol.md §8."
+st.subheader("Vintage-bridging discontinuity")
+st.info(
+    "This synthetic demo run does not exercise the real vintage-bridging check "
+    "(`src/cleaning/bridging.is_bridging_reliable`) since the synthetic national series is "
+    "generated as one continuous fixture, not pulled from two separate CDC WONDER database "
+    "vintages. Once real data is loaded, this section will show the median relative offset "
+    "measured from the 2018–2020 overlap years and flag if it exceeds the 10% reliability "
+    "threshold (research_protocol.md §9).",
+    icon=":material/info:",
 )

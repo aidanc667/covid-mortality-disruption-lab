@@ -1,69 +1,75 @@
 import streamlit as st
 
-from app.components.data_loading import load_changepoints, data_available, synthetic_banner
-from src.utils.config import PRIMARY_WINDOW, MIN_COUNTY_POPULATION
+from app.components.data_loading import (
+    load_disruption_summary, load_negative_control, data_available, synthetic_banner,
+)
 
 st.title("COVID Mortality Disruption Lab")
 st.caption(
-    "Detecting, validating, and investigating structural changes in U.S. disease mortality trajectories"
+    "Which causes of death were most disrupted by the COVID-19 pandemic, "
+    "how persistent were those disruptions, and how did they vary across U.S. counties?"
 )
 
 synthetic_banner()
 
 st.markdown(
-    "> **When and where do U.S. county-level diabetes mortality trajectories undergo statistically "
-    "significant structural changes, and what demographic, socioeconomic, healthcare, behavioral, and "
-    "environmental factors are associated with differences in post-breakpoint trajectories?**"
+    "> **Which causes of death experienced the greatest and most statistically significant "
+    "disruption during the COVID-19 pandemic (2020–2024), how persistent were those "
+    "disruptions through the most recent available data, and how did disruption severity "
+    "vary across U.S. counties by socioeconomic status, healthcare access, and rurality?**"
 )
 
 st.write(
-    "This project investigates structural changes in U.S. county-level diabetes mortality trajectories "
-    f"({PRIMARY_WINDOW[0]}–{PRIMARY_WINDOW[1]}) using public CDC mortality data and complementary "
-    "socioeconomic, healthcare, behavioral, demographic, and environmental datasets."
+    "COVID-19 is treated as a system-wide shock to the healthcare/public-health system, "
+    "not as the disease under study. This project asks *what* changed, *how much*, and "
+    "*where* — not *why* — because mortality data alone cannot cleanly separate direct "
+    "viral effects from deferred care, isolation, or economic-stress mechanisms."
 )
 
 if not data_available():
     st.warning(
-        "No precomputed results found yet. Run `python scripts/run_synthetic_pipeline.py` "
+        "No precomputed results found yet. Run `python scripts/run_covid_disruption_pipeline.py` "
         "(or the real pipeline, once available) to populate outputs/models/.",
         icon=":material/warning:",
     )
 else:
-    df = load_changepoints()
-    eligible = df[df["data_eligible_changepoint"]]
+    summary = load_disruption_summary()
+    neg_control = load_negative_control().iloc[0]
 
     with st.container(horizontal=True):
         with st.container(border=True):
-            st.metric("Counties in panel", f"{len(df):,}")
-            st.caption("Total counties with any mortality data in the primary window")
+            n_disrupted = int((summary["persistence_class"] != "No significant disruption").sum())
+            st.metric("Causes with a significant disruption", f"{n_disrupted} of {len(summary)}")
+            st.caption("6 test causes, FDR-corrected (§7a)")
         with st.container(border=True):
-            st.metric("Eligible for change-point modeling", f"{len(eligible):,}")
-            st.caption(f"Meet minimum data-quality thresholds (§6): population ≥ {MIN_COUNTY_POPULATION:,}")
+            n_fdr = int(summary["fdr_significant"].sum())
+            st.metric("Survive FDR correction", f"{n_fdr} of {len(summary)}")
+            st.caption("Benjamini-Hochberg across the 6-cause family")
         with st.container(border=True):
-            n_break = int(eligible["has_significant_break"].sum())
-            st.metric("Counties with a detected breakpoint", f"{n_break:,}")
-            st.caption("Statistically significant structural change (segmented regression, α=0.05)")
+            reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"]
+            st.metric("Reversed trajectory", reversed_causes.iloc[0] if len(reversed_causes) else "None")
+            st.caption("Spiked, then declined below the pre-pandemic trend")
         with st.container(border=True):
-            pct_improving = (eligible["trajectory_class"] == "Improving").mean() * 100 if len(eligible) else 0
-            st.metric("Improving trajectories", f"{pct_improving:.0f}%")
-            st.caption("Of eligible counties — see Trajectory classification in Methods")
+            passed = bool(neg_control["passed"])
+            st.metric("Negative control", "Passed" if passed else "FAILED", delta=None)
+            st.caption("Accidental drowning — no plausible COVID mechanism")
 
-    st.subheader("What this is")
-    st.write(
-        "A research-grade, reproducible analysis pipeline paired with this interactive application. "
-        "The pipeline detects structural breaks in mortality trajectories using multiple independent "
-        "statistical methods, validates them against each other, and investigates whether contextual "
-        "factors are associated with more or less favorable post-breakpoint outcomes — always in "
-        "associational language, never causal, per the research protocol."
-    )
+    if not passed:
+        st.error(
+            "The negative control did not pass — per research_protocol.md §7 method 4, this "
+            "is a hard gate. Results on the other 6 causes should not be trusted until this "
+            "is resolved.",
+            icon=":material/error:",
+        )
 
 st.subheader("Explore")
 st.write(
-    "**National trends** — the aggregate mortality trajectory and its own, independently estimated breakpoint.\n\n"
-    "**Breakpoint explorer** — filter and sort every eligible county's detected breakpoint and trajectory class.\n\n"
-    "**County deep dive** — inspect one county's full trajectory, model fit, and context.\n\n"
-    "**Data quality** — suppression, unreliability, and eligibility, shown rather than hidden.\n\n"
-    "**Methods** — every statistical choice and threshold, made explicit."
+    "**Disruption overview** — every cause's trajectory against its expected pre-pandemic trend, side by side.\n\n"
+    "**Persistence explorer** — did each disruption persist, resolve, or reverse through 2024?\n\n"
+    "**Geographic heterogeneity** — which county characteristics are associated with disruption size.\n\n"
+    "**County deep dive** — inspect one county's disruption relative to its context.\n\n"
+    "**Data quality** — suppression, the vintage-bridging discontinuity, and the negative control, shown rather than hidden.\n\n"
+    "**Methods** — every statistical choice, threshold, and pre-registered hypothesis, made explicit."
 )
 
 with st.expander("Ethics statement", icon=":material/balance:"):

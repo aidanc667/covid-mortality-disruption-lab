@@ -19,8 +19,9 @@ page = st.navigation(
             st.Page("app_pages/home.py", title="Home", icon=":material/home:"),
         ],
         "Detection": [
-            st.Page("app_pages/national.py", title="National trends", icon=":material/trending_up:"),
-            st.Page("app_pages/breakpoint_explorer.py", title="Breakpoint explorer", icon=":material/query_stats:"),
+            st.Page("app_pages/disruption_overview.py", title="Disruption overview", icon=":material/trending_up:"),
+            st.Page("app_pages/persistence_explorer.py", title="Persistence explorer", icon=":material/query_stats:"),
+            st.Page("app_pages/geographic_heterogeneity.py", title="Geographic heterogeneity", icon=":material/map:"),
             st.Page("app_pages/county_deep_dive.py", title="County deep dive", icon=":material/location_on:"),
         ],
         "Rigor": [
