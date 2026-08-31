@@ -31,7 +31,7 @@ def main():
               "or adjust this script once a real-data path exists.")
 
     print("Loading mortality panel...")
-    mortality = load_manual_export()
+    mortality = load_manual_export(cause_label="Diabetes mellitus")
     df = mortality.df
     print(f"  {mortality.n_rows} county-year rows, {df['county_fips'].nunique()} counties, "
           f"{mortality.n_suppressed} suppressed, {mortality.n_unreliable} unreliable")

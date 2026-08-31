@@ -4,6 +4,7 @@ src/ingestion/cdc_wonder.py). Real WONDER files are not available until the
 manual export step in docs/manual_data_acquisition.md is performed; these
 tests verify the parsing/suppression/validation logic independent of that.
 """
+import pandas as pd
 import pytest
 
 from src.ingestion.cdc_wonder import load_manual_export, _read_wonder_export, _validate_columns
@@ -23,7 +24,7 @@ def test_load_manual_export_parses_basic_rows(tmp_path):
         "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5",
         "Baldwin County, AL\t01003\t2010\t45\t183000\t24.6\t23.1",
     ])
-    result = load_manual_export(subdir_files=[f])
+    result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
     assert result.n_rows == 2
     assert result.n_suppressed == 0
     assert set(result.df["county_fips"]) == {"01001", "01003"}
@@ -33,7 +34,7 @@ def test_load_manual_export_preserves_suppressed_flags_no_zero_coercion(tmp_path
     f = _write_fixture(tmp_path, "export1.txt", [
         "Loving County, TX\t48301\t2010\tSuppressed\t82\tSuppressed\tSuppressed",
     ])
-    result = load_manual_export(subdir_files=[f])
+    result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
     row = result.df.iloc[0]
     assert row["deaths_suppressed"] is True or bool(row["deaths_suppressed"]) is True
     assert pd.isna(row["deaths"])  # never coerced to 0
@@ -44,7 +45,7 @@ def test_load_manual_export_preserves_unreliable_flags(tmp_path):
     f = _write_fixture(tmp_path, "export1.txt", [
         "Some County, AL\t01005\t2010\t15\t9000\t166.7\tUnreliable",
     ])
-    result = load_manual_export(subdir_files=[f])
+    result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
     row = result.df.iloc[0]
     assert row["age_adjusted_rate_unreliable"]
     assert pd.isna(row["age_adjusted_rate"])
@@ -58,7 +59,7 @@ def test_load_manual_export_raises_on_duplicate_county_year(tmp_path):
         "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5",
     ])
     with pytest.raises(ValueError, match="Duplicate"):
-        load_manual_export(subdir_files=[f1, f2])
+        load_manual_export(subdir_files=[f1, f2], cause_label="Diabetes mellitus")
 
 
 def test_load_manual_export_raises_clearly_on_missing_expected_column(tmp_path):
@@ -94,7 +95,7 @@ def test_load_manual_export_parses_real_csv_export_format(tmp_path):
     path = tmp_path / "real_export.csv"
     path.write_text(content)
 
-    result = load_manual_export(subdir_files=[path])
+    result = load_manual_export(subdir_files=[path], cause_label="Diabetes mellitus")
     assert result.n_rows == 3
     assert set(result.df["county_fips"]) == {"01001", "01005", "01009"}
     assert result.n_suppressed == 1
@@ -104,4 +105,54 @@ def test_load_manual_export_parses_real_csv_export_format(tmp_path):
     assert autauga["age_adjusted_rate"] == 41.8
 
 
-import pandas as pd  # noqa: E402  (kept at bottom to mirror fixture usage above)
+def test_load_manual_export_requires_cause_label_for_single_cause_file(tmp_path):
+    f = _write_fixture(tmp_path, "export1.txt", [
+        "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5",
+    ])
+    with pytest.raises(ValueError, match="no cause_label was passed"):
+        load_manual_export(subdir_files=[f])
+
+
+def test_load_manual_export_applies_cause_label_to_single_cause_file(tmp_path):
+    f = _write_fixture(tmp_path, "export1.txt", [
+        "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5",
+    ])
+    result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
+    assert (result.df["cause"] == "Diabetes mellitus").all()
+
+
+def test_load_manual_export_reads_cause_column_from_multi_cause_file(tmp_path):
+    header = FIXTURE_HEADER + "\tCause of death"
+    lines = [header] + [
+        "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5\tDiabetes mellitus (E10-E14)",
+        "Autauga County, AL\t01001\t2010\t45\t54000\t83.3\t80.1\tDiseases of heart (I00-I09,I11,I13,I20-I51)",
+    ]
+    path = tmp_path / "multi_cause.txt"
+    path.write_text("\n".join(lines + ["---", '"Total"']))
+    result = load_manual_export(subdir_files=[path])
+    assert set(result.df["cause"]) == {
+        "Diabetes mellitus (E10-E14)",
+        "Diseases of heart (I00-I09,I11,I13,I20-I51)",
+    }
+    assert len(result.df) == 2  # same county+year, different cause -> not deduped away
+
+
+def test_load_manual_export_rejects_cause_label_when_file_has_own_column(tmp_path):
+    header = FIXTURE_HEADER + "\tCause of death"
+    lines = [header, "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5\tDiabetes mellitus (E10-E14)"]
+    path = tmp_path / "multi_cause.txt"
+    path.write_text("\n".join(lines + ["---", '"Total"']))
+    with pytest.raises(ValueError, match="cause_label"):
+        load_manual_export(subdir_files=[path], cause_label="Diabetes mellitus")
+
+
+def test_load_manual_export_dedup_key_includes_cause(tmp_path):
+    header = FIXTURE_HEADER + "\tCause of death"
+    lines = [header] + [
+        "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5\tDiabetes mellitus (E10-E14)",
+        "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5\tDiabetes mellitus (E10-E14)",
+    ]
+    path = tmp_path / "dup.txt"
+    path.write_text("\n".join(lines + ["---", '"Total"']))
+    with pytest.raises(ValueError, match="Duplicate"):
+        load_manual_export(subdir_files=[path])

@@ -96,10 +96,20 @@ def _validate_columns(df: pd.DataFrame, source: Path) -> None:
         )
 
 
-def load_manual_export(subdir_files: list[Path] | None = None) -> WonderLoadResult:
+def load_manual_export(
+    subdir_files: list[Path] | None = None, cause_label: str | None = None
+) -> WonderLoadResult:
     """Load one or more manually-exported WONDER files (see
     docs/manual_data_acquisition.md), concatenate, de-duplicate on
-    (county_code, year), and standardize suppression/unreliability flags.
+    (county_code, year, cause), and standardize suppression/unreliability
+    flags.
+
+    `cause_label`: required for single-cause exports that have no
+    "Cause of death" column of their own (e.g. the original diabetes-only
+    pull) — every row is labeled with this string. Must be left as None
+    for multi-cause exports, which carry their own "Cause of death"
+    column instead; passing both raises, since only one source of truth
+    for `cause` is allowed per file.
 
     Raw suppressed/unreliable cells are NEVER coerced to zero or dropped —
     they are preserved as explicit boolean flag columns alongside a NaN rate,
@@ -116,6 +126,23 @@ def load_manual_export(subdir_files: list[Path] | None = None) -> WonderLoadResu
     for f in files:
         df = _read_wonder_export(f)
         _validate_columns(df, f)
+        if "Cause of death" in df.columns:
+            if cause_label is not None:
+                raise ValueError(
+                    f"{f}: this file has its own 'Cause of death' column, but "
+                    f"cause_label={cause_label!r} was also passed. Pass cause_label "
+                    "only for single-cause exports that lack that column."
+                )
+            df = df.rename(columns={"Cause of death": "cause"})
+        else:
+            if cause_label is None:
+                raise ValueError(
+                    f"{f}: this file has no 'Cause of death' column and no "
+                    "cause_label was passed. Single-cause exports (like the "
+                    "original diabetes pull) must specify cause_label explicitly, "
+                    "e.g. load_manual_export(cause_label='Diabetes mellitus')."
+                )
+            df["cause"] = cause_label
         df["_source_file"] = f.name
         frames.append(df)
 
@@ -131,10 +158,10 @@ def load_manual_export(subdir_files: list[Path] | None = None) -> WonderLoadResu
         combined[col] = pd.to_numeric(combined[col], errors="coerce")
 
     before = len(combined)
-    combined = combined.drop_duplicates(subset=["county_fips", "year"], keep="first")
+    combined = combined.drop_duplicates(subset=["county_fips", "year", "cause"], keep="first")
     if len(combined) != before:
         raise ValueError(
-            f"Duplicate (county_fips, year) rows found across {[f.name for f in files]} "
+            f"Duplicate (county_fips, year, cause) rows found across {[f.name for f in files]} "
             "after concatenation — check for overlapping year ranges between exports."
         )
 
