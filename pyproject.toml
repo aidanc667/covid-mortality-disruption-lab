@@ -1,0 +1,8 @@
+[project]
+name = "covid-mortality-disruption-lab"
+version = "0.1.0"
+description = "Detecting and validating which causes of death were most disrupted by the COVID-19 pandemic, how persistent those disruptions were, and how they varied across U.S. counties."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
