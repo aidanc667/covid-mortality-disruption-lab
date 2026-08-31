@@ -48,3 +48,50 @@ def fit_baseline_trend(years: np.ndarray, values: np.ndarray) -> BaselineTrend:
         slope=float(slope), intercept=float(intercept),
         residual_std=residual_std, n=n, x_mean=x_mean, sxx=sxx,
     )
+
+
+@dataclass
+class DeviationResult:
+    year: int
+    observed: float
+    expected: float
+    deviation: float
+    pi_low: float
+    pi_high: float
+    significant: bool
+
+
+def compute_deviations(
+    trend: BaselineTrend, years: np.ndarray, observed: np.ndarray, alpha: float = 0.05
+) -> list[DeviationResult]:
+    """Project the baseline trend forward to each post-period year and
+    test whether the observed value falls outside its prediction
+    interval. Uses the standard OLS prediction-interval formula:
+    SE_pred(x0) = residual_std * sqrt(1 + 1/n + (x0 - x_mean)^2 / Sxx),
+    so the interval widens the further a year is extrapolated from the
+    baseline period -- this is standard, not something invented for this
+    project."""
+    t_crit = stats.t.ppf(1 - alpha / 2, df=trend.n - 2)
+    results = []
+    for year, obs in zip(years, observed):
+        expected = trend.slope * year + trend.intercept
+        se_pred = trend.residual_std * np.sqrt(
+            1 + 1 / trend.n + (year - trend.x_mean) ** 2 / trend.sxx
+        )
+        margin = t_crit * se_pred
+        pi_low, pi_high = expected - margin, expected + margin
+
+        obs_is_nan = np.isnan(obs)
+        deviation = np.nan if obs_is_nan else float(obs - expected)
+        significant = False if obs_is_nan else not (pi_low <= obs <= pi_high)
+
+        results.append(DeviationResult(
+            year=int(year),
+            observed=float(obs) if not obs_is_nan else np.nan,
+            expected=float(expected),
+            deviation=deviation,
+            pi_low=float(pi_low),
+            pi_high=float(pi_high),
+            significant=bool(significant),
+        ))
+    return results
