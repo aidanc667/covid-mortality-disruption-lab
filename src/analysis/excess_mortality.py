@@ -95,3 +95,30 @@ def compute_deviations(
             significant=bool(significant),
         ))
     return results
+
+
+def classify_persistence(
+    deviations: list[DeviationResult], acute_years: tuple[int, int], post_acute_years: tuple[int, int]
+) -> str:
+    """Three-way persistence classification per design spec section 5.2:
+    "Persisted", "Resolved", or "Reversed" for causes with a significant
+    acute-phase (2020-2021) disruption; "No significant disruption" if
+    the acute phase itself never cleared significance. A binary
+    persisted/resolved scheme would flatten a reversal pattern (e.g.
+    overdose spiking, then declining below its pre-pandemic trend) into
+    a false "resolved," which is why this is three-way, not two."""
+    acute = [d for d in deviations if acute_years[0] <= d.year <= acute_years[1]]
+    post_acute = [d for d in deviations if post_acute_years[0] <= d.year <= post_acute_years[1]]
+
+    acute_significant = [d for d in acute if d.significant]
+    if not acute_significant:
+        return "No significant disruption"
+
+    acute_sign = np.sign(np.mean([d.deviation for d in acute_significant]))
+
+    post_significant = [d for d in post_acute if d.significant]
+    if not post_significant:
+        return "Resolved"
+
+    post_sign = np.sign(np.mean([d.deviation for d in post_significant]))
+    return "Persisted" if post_sign == acute_sign else "Reversed"

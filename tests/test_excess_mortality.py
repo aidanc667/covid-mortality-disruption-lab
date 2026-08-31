@@ -69,3 +69,46 @@ def test_compute_deviations_prediction_interval_widens_with_extrapolation_distan
     near_width = near.pi_high - near.pi_low
     far_width = far.pi_high - far.pi_low
     assert far_width > near_width
+
+
+from src.analysis.excess_mortality import DeviationResult, classify_persistence
+
+
+def _dev(year, deviation, significant):
+    return DeviationResult(
+        year=year, observed=20.0 + deviation, expected=20.0, deviation=deviation,
+        pi_low=19.0, pi_high=21.0, significant=significant,
+    )
+
+
+def test_classify_persistence_no_significant_acute_disruption():
+    deviations = [_dev(2020, 0.1, False), _dev(2021, -0.2, False), _dev(2022, 0.0, False)]
+    result = classify_persistence(deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024))
+    assert result == "No significant disruption"
+
+
+def test_classify_persistence_persisted_same_direction():
+    deviations = [
+        _dev(2020, 5.0, True), _dev(2021, 6.0, True),
+        _dev(2022, 4.0, True), _dev(2023, 4.5, True), _dev(2024, 5.0, True),
+    ]
+    result = classify_persistence(deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024))
+    assert result == "Persisted"
+
+
+def test_classify_persistence_resolved_when_post_acute_not_significant():
+    deviations = [
+        _dev(2020, 5.0, True), _dev(2021, 6.0, True),
+        _dev(2022, 0.1, False), _dev(2023, -0.1, False), _dev(2024, 0.05, False),
+    ]
+    result = classify_persistence(deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024))
+    assert result == "Resolved"
+
+
+def test_classify_persistence_reversed_when_sign_flips():
+    deviations = [
+        _dev(2020, 8.0, True), _dev(2021, 9.0, True),
+        _dev(2022, -6.0, True), _dev(2023, -7.0, True), _dev(2024, -5.0, True),
+    ]
+    result = classify_persistence(deviations, acute_years=(2020, 2021), post_acute_years=(2022, 2024))
+    assert result == "Reversed"
