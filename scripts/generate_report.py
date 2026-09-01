@@ -23,18 +23,34 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
 
-# Duplicated from app/components/data_loading.py's CONTEXT_VAR_LABELS
-# rather than imported, to keep this standalone script fully decoupled
-# from the Streamlit app runtime. Human-readable labels for the raw CHR&R
-# context-variable column names -- found rendering illegibly as raw
-# column names (e.g. "median_income_chr") in an earlier version.
+# Duplicated from app/components/data_loading.py's CONTEXT_VAR_LABELS/
+# CONTEXT_VAR_DISPLAY_SCALE rather than imported, to keep this standalone
+# script fully decoupled from the Streamlit app runtime. Human-readable
+# labels for the raw CHR&R context-variable column names -- found
+# rendering illegibly as raw column names (e.g. "median_income_chr") in
+# an earlier version.
 CONTEXT_VAR_LABELS = {
     "pct_uninsured_chr": "% uninsured",
     "pct_smokers": "% adult smokers",
     "pct_obese": "% adult obesity",
-    "median_income_chr": "Median household income",
+    "median_income_chr": "Median household income (per $10k)",
     "pct_rural": "% rural",
 }
+
+# median_income_chr's slope is fit against raw dollars, so it's a tiny
+# number (~-0.00005) next to the other four variables' 0-1-proportion
+# slopes (~1-40) -- found rounding to "0.000" in this report's own table
+# and rendering as an invisible flat bar next to the others on
+# make_heterogeneity_chart's shared axis, even though it's highly
+# significant. Scales ONLY the value shown in this report, never the
+# underlying regression.
+CONTEXT_VAR_DISPLAY_SCALE = {
+    "median_income_chr": 10_000,
+}
+
+
+def _scaled_slope(variable: str, slope: float) -> float:
+    return slope * CONTEXT_VAR_DISPLAY_SCALE.get(variable, 1)
 
 OUTPUT_PATH = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
 
@@ -94,16 +110,17 @@ def make_deviation_chart(summary: pd.DataFrame) -> Drawing:
 
 def make_heterogeneity_chart(het_cause_df: pd.DataFrame) -> Drawing:
     ordered = het_cause_df.sort_values("p_value")
+    display_slopes = [_scaled_slope(v, s) for v, s in zip(ordered["variable"], ordered["slope"])]
     drawing = Drawing(460, 180)
     chart = VerticalBarChart()
     chart.x, chart.y = 50, 30
     chart.width, chart.height = 380, 130
-    chart.data = [list(ordered["slope"])]
+    chart.data = [display_slopes]
     chart.categoryAxis.categoryNames = [CONTEXT_VAR_LABELS.get(v, v) for v in ordered["variable"]]
     chart.categoryAxis.labels.fontSize = 7
     chart.categoryAxis.labels.angle = 20
     chart.categoryAxis.labels.dy = -12
-    vmin, vmax = ordered["slope"].min(), ordered["slope"].max()
+    vmin, vmax = min(display_slopes), max(display_slopes)
     pad = max(abs(vmin), abs(vmax)) * 0.15 + 0.01
     chart.valueAxis.valueMin = vmin - pad
     chart.valueAxis.valueMax = vmax + pad
@@ -338,7 +355,8 @@ def build(data: dict) -> list:
         het_table_data = [["Context variable", "Slope", "p-value", "FDR-sig."]]
         for _, r in cause_het.iterrows():
             var_label = CONTEXT_VAR_LABELS.get(r["variable"], r["variable"])
-            het_table_data.append([var_label, f"{r['slope']:.3f}", f"{r['p_value']:.3g}", "Yes" if r["fdr_significant"] else "No"])
+            display_slope = _scaled_slope(r["variable"], r["slope"])
+            het_table_data.append([var_label, f"{display_slope:.3f}", f"{r['p_value']:.3g}", "Yes" if r["fdr_significant"] else "No"])
         het_table = Table(het_table_data, colWidths=[2.2 * inch, 1.1 * inch, 1.0 * inch, 0.9 * inch])
         het_table.setStyle(TABLE_HEADER_STYLE)
         story.append(het_table)

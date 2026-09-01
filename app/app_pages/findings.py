@@ -4,7 +4,7 @@ from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary,
     load_heterogeneity_selection_bias, load_heterogeneity_rurality_robustness,
     load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner, TEST_CAUSES,
-    CONTEXT_VAR_LABELS,
+    CONTEXT_VAR_LABELS, scale_context_slope_for_display,
 )
 from src.utils.config import OUTPUTS_REPORTS
 
@@ -109,7 +109,8 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.metric("Negative control", "Passed" if passed else "FAILED")
     with st.container(border=True):
-        st.metric("Cause tested", neg_control["cause"].split(",")[0])
+        st.caption("Cause tested")
+        st.write(f"**{neg_control['cause'].split(',')[0]}**")
     with st.container(border=True):
         st.metric(
             "p-value", f"{neg_control['p_value_counts']:.3g}",
@@ -169,6 +170,9 @@ st.write(
 )
 for cause in ["Diabetes mellitus", "Drug overdose"]:
     cause_het = het[het["cause"] == cause].sort_values("p_value").copy()
+    cause_het["slope"] = cause_het.apply(
+        lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
+    )
     cause_het["variable"] = cause_het["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het["variable"])
     n_fdr_het = int(cause_het["fdr_significant"].sum())
     st.write(f"**{cause}** — {n_fdr_het} of {len(cause_het)} context variables survive FDR correction:")

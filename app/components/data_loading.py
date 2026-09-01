@@ -49,13 +49,34 @@ CAUSE_BADGE_STYLE = {
 # (found truncating illegibly in st.dataframe cells otherwise, e.g.
 # "median_income_chr" -- widening the column just shows an ugly raw name
 # for longer, this maps to what county_deep_dive.py already displays).
+# median_income_chr's label carries its display unit ("per $10k") because
+# its regression slope is reported in CONTEXT_VAR_DISPLAY_SCALE units, not
+# raw dollars -- see that dict's docstring for why.
 CONTEXT_VAR_LABELS = {
     "pct_uninsured_chr": "% uninsured",
     "pct_smokers": "% adult smokers",
     "pct_obese": "% adult obesity",
-    "median_income_chr": "Median household income",
+    "median_income_chr": "Median household income (per $10k)",
     "pct_rural": "% rural",
 }
+
+# regress_disruption_on_context fits slopes against each variable's raw
+# units. Four of the five are already 0-1 proportions, so their slopes
+# land in a readable ~1-40 range -- but median_income_chr is raw dollars,
+# so its true slope (found while reviewing the rendered table: -0.000054
+# for diabetes) rounds to "0.00" at any table's fixed decimal precision,
+# and is visually a flat line next to the other variables' bars on a
+# shared chart axis, even though it's highly significant (p<0.001). This
+# scales ONLY the display value -- never the underlying regression or the
+# stored parquet -- multiplying by 10,000 so the table/chart reads in
+# "disruption per $10k of income" instead of "per $1".
+CONTEXT_VAR_DISPLAY_SCALE = {
+    "median_income_chr": 10_000,
+}
+
+
+def scale_context_slope_for_display(variable: str, slope: float) -> float:
+    return slope * CONTEXT_VAR_DISPLAY_SCALE.get(variable, 1)
 
 
 @st.cache_data(ttl="1h")

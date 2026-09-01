@@ -4,7 +4,7 @@ import streamlit as st
 from app.components.data_loading import (
     load_heterogeneity_summary, load_county_disruption, load_heterogeneity_selection_bias,
     load_heterogeneity_rurality_robustness, data_available, heterogeneity_synthetic_banner,
-    HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS,
+    HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS, scale_context_slope_for_display,
 )
 from app.components.county_map import render_county_choropleth
 
@@ -52,6 +52,9 @@ with st.container(horizontal=True):
 
 st.subheader(f"Context-variable associations — {cause}")
 cause_het_display = cause_het.copy()
+cause_het_display["slope"] = cause_het_display.apply(
+    lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
+)
 cause_het_display["variable"] = cause_het_display["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het_display["variable"])
 st.dataframe(
     cause_het_display[["variable", "slope", "p_value", "n", "fdr_significant"]],
