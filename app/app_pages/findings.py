@@ -48,8 +48,15 @@ st.write(
 
 st.subheader("Headline results")
 display = summary.sort_values("p_value").copy()
+if sensitivity_check_available():
+    trend_shape = load_sensitivity_check()
+    trend_shape = trend_shape[trend_shape["check"] == "baseline_trend_shape (linear vs quadratic)"][["cause", "agrees"]]
+    display = display.merge(trend_shape, on="cause", how="left")
+    display["agrees"] = display["agrees"].fillna(True)
+else:
+    display["agrees"] = True
 st.dataframe(
-    display[["cause", "persistence_class", "p_value", "fdr_significant", "acute_pct_deviation", "latest_pct_deviation"]],
+    display[["cause", "persistence_class", "p_value", "fdr_significant", "acute_pct_deviation", "latest_pct_deviation", "agrees"]],
     column_config={
         "cause": st.column_config.TextColumn("Cause", width="medium"),
         "persistence_class": st.column_config.TextColumn("Result", width="medium"),
@@ -57,6 +64,11 @@ st.dataframe(
         "fdr_significant": st.column_config.CheckboxColumn("Survives FDR"),
         "acute_pct_deviation": st.column_config.NumberColumn("2020–21 deviation", format="%+.1f%%"),
         "latest_pct_deviation": st.column_config.NumberColumn("2024 deviation", format="%+.1f%%"),
+        "agrees": st.column_config.CheckboxColumn(
+            "Robust to trend shape",
+            help="False means this result loses significance if the pre-pandemic baseline is fit "
+                 "as a curve instead of a straight line — see Causes of death or Data Quality.",
+        ),
     },
     hide_index=True,
     width="stretch",
@@ -64,7 +76,10 @@ st.dataframe(
 st.caption(
     "\"Deviation\" is the effect size — how far the observed rate is from the expected pre-pandemic "
     "trend, as a percent. Significance (p-value) and magnitude (deviation) are different claims: a "
-    "cause can be statistically significant while still small in absolute terms, or vice versa."
+    "cause can be statistically significant while still small in absolute terms, or vice versa. "
+    "\"Robust to trend shape\" flags whether the result survives an alternate, curved baseline fit — "
+    "unchecked for heart disease and cerebrovascular disease, whose straight-line fit was already "
+    "diverging from the real pre-pandemic trend before 2020 (see Causes of death for the chart)."
 )
 
 st.subheader("The two results that weren't supposed to happen this way")

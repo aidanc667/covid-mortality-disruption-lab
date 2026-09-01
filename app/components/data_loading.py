@@ -100,6 +100,11 @@ def load_disruption_deviations() -> pd.DataFrame:
 
 
 @st.cache_data(ttl="1h")
+def load_baseline_fitted_trend() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "baseline_fitted_trend.parquet")
+
+
+@st.cache_data(ttl="1h")
 def load_heterogeneity_summary() -> pd.DataFrame:
     return pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet")
 

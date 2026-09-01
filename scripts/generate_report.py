@@ -90,10 +90,13 @@ def load_data() -> dict:
         "sensitivity": pd.read_parquet(OUTPUTS_MODELS / "sensitivity_check.parquet"),
         "national_series": pd.read_parquet(OUTPUTS_MODELS / "national_mortality_series.parquet"),
         "deviations": pd.read_parquet(OUTPUTS_MODELS / "disruption_deviations.parquet"),
+        "baseline_fitted": pd.read_parquet(OUTPUTS_MODELS / "baseline_fitted_trend.parquet"),
     }
 
 
-def make_trajectory_chart(cause: str, national_series: pd.DataFrame, deviations: pd.DataFrame) -> Drawing:
+def make_trajectory_chart(
+    cause: str, national_series: pd.DataFrame, deviations: pd.DataFrame, baseline_fitted: pd.DataFrame,
+) -> Drawing:
     """The one chart missing from earlier report versions: a plain
     observed-vs-expected trajectory, which is what actually makes the
     "excess mortality" method click for a reader who isn't fluent in
@@ -101,16 +104,28 @@ def make_trajectory_chart(cause: str, national_series: pd.DataFrame, deviations:
     deviations carries the 2020-2024 expected trend and its prediction
     interval (compute_deviations only ever projects forward into the
     post period, so there's nothing to plot for the interval before
-    2020). Drawn as three thin reference lines (expected, plus the
-    interval's low and high edges) rather than a filled band, since a
-    hand-computed polygon would have to reimplement this chart's own
-    axis scaling to place its corners correctly, and getting that wrong
-    silently would be far more misleading than a plain line."""
+    2020); baseline_fitted carries the same model's own fit across
+    1999-2019, the years used to build it, with no interval since they
+    weren't tested against it. The expected line is drawn across the
+    full 1999-2024 span (baseline_fitted + deviations concatenated) so a
+    reader can judge for themselves how well the straight-line
+    assumption tracks the real pre-pandemic trend, rather than only
+    seeing the projection appear at the 2020 breakpoint with no way to
+    check it against history -- exactly the gap a reader question
+    surfaced for heart disease and cerebrovascular disease (section 4).
+    Drawn as three thin reference lines (expected, plus the interval's
+    low and high edges) rather than a filled band, since a hand-computed
+    polygon would have to reimplement this chart's own axis scaling to
+    place its corners correctly, and getting that wrong silently would
+    be far more misleading than a plain line."""
     obs = national_series[national_series["cause"] == cause].sort_values("year")
     dev = deviations[deviations["cause"] == cause].sort_values("year")
+    fitted = baseline_fitted[baseline_fitted["cause"] == cause].sort_values("year")
 
     observed_pts = list(zip(obs["year"].astype(float), obs["age_adjusted_rate"]))
-    expected_pts = list(zip(dev["year"].astype(float), dev["expected"]))
+    expected_pts = list(zip(fitted["year"].astype(float), fitted["fitted"])) + list(
+        zip(dev["year"].astype(float), dev["expected"])
+    )
     pi_low_pts = list(zip(dev["year"].astype(float), dev["pi_low"]))
     pi_high_pts = list(zip(dev["year"].astype(float), dev["pi_high"]))
 
@@ -125,7 +140,7 @@ def make_trajectory_chart(cause: str, national_series: pd.DataFrame, deviations:
     plot.xValueAxis.labelTextFormat = "%d"
     plot.xValueAxis.labels.fontSize = 7
 
-    all_values = pd.concat([obs["age_adjusted_rate"], dev["pi_low"], dev["pi_high"]])
+    all_values = pd.concat([obs["age_adjusted_rate"], dev["pi_low"], dev["pi_high"], fitted["fitted"]])
     plot.yValueAxis.valueMin = float(all_values.min()) * 0.85
     plot.yValueAxis.valueMax = float(all_values.max()) * 1.1
     plot.yValueAxis.labels.fontSize = 7
@@ -215,6 +230,8 @@ def build(data: dict) -> list:
     sens = data["sensitivity"]
     national_series = data["national_series"]
     deviations = data["deviations"]
+    baseline_fitted = data["baseline_fitted"]
+    trend_shape_robust = sens[sens["check"] == "baseline_trend_shape (linear vs quadratic)"].set_index("cause")["agrees"].to_dict()
 
     story = []
 
@@ -315,7 +332,7 @@ def build(data: dict) -> list:
         "exactly what happens starting in 2020 and what pulls back toward it by 2024.",
         styles["Body"]
     ))
-    story.append(make_trajectory_chart("Drug overdose", national_series, deviations))
+    story.append(make_trajectory_chart("Drug overdose", national_series, deviations, baseline_fitted))
     story.append(Paragraph(
         "Figure 1. Drug overdose: observed mortality rate against its pre-pandemic trend, "
         "1999-2024.", styles["Caption"]
@@ -325,19 +342,27 @@ def build(data: dict) -> list:
         f"<b>{int(s['fdr_significant'].sum())} of 6</b> survive FDR correction.", styles["Body"]
     ))
 
-    table_data = [["Cause", "Result", "p-value", "FDR-sig.", "2020-21 dev.", "2024 dev."]]
+    table_data = [["Cause", "Result", "p-value", "FDR-sig.", "2020-21 dev.", "2024 dev.", "Robust?"]]
     for _, r in s.sort_values("p_value").iterrows():
+        robust = trend_shape_robust.get(r["cause"], True)
         table_data.append([
             r["cause"], r["persistence_class"], f"{r['p_value']:.3g}",
             "Yes" if r["fdr_significant"] else "No",
             f"{r['acute_pct_deviation']:+.1f}%", f"{r['latest_pct_deviation']:+.1f}%",
+            "Yes" if robust else "No",
         ])
-    result_table = Table(table_data, colWidths=[1.5 * inch, 1.5 * inch, 0.75 * inch, 0.65 * inch, 0.85 * inch, 0.75 * inch])
+    result_table = Table(
+        table_data,
+        colWidths=[1.5 * inch, 1.5 * inch, 0.75 * inch, 0.6 * inch, 0.8 * inch, 0.6 * inch, 0.65 * inch],
+    )
     result_table.setStyle(TABLE_HEADER_STYLE)
     story.append(result_table)
     story.append(Paragraph(
         "\"Deviation\" is the effect size: how far the observed rate is from the expected "
-        "pre-pandemic trend, as a percent. Significance and magnitude are different claims.",
+        "pre-pandemic trend, as a percent. Significance and magnitude are different claims. "
+        "\"Robust?\" marks whether the result survives an alternate, curved baseline fit "
+        "instead of the primary straight line; heart disease and cerebrovascular disease do not "
+        "(see section 4 for why).",
         styles["Caption"]
     ))
     story.append(Spacer(1, 6))

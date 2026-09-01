@@ -281,6 +281,28 @@ def main():
             })
     deviations_df = pd.DataFrame(deviations_rows)
 
+    # The baseline trend's own fitted values over 1999-2019 -- distinct from
+    # deviations_df's "expected" column, which only covers 2020-2024 (the
+    # years compute_deviations actually tests). Found missing during a
+    # self-audit prompted by a reader question: the app's trajectory chart
+    # only ever drew the dashed trend line starting at 2020, so there was no
+    # way to see with your own eyes whether the straight-line fit tracked
+    # the real 1999-2019 trajectory or was already diverging from it well
+    # before the pandemic -- exactly the failure mode the baseline_trend_shape
+    # sensitivity check exists to catch for heart disease and cerebrovascular
+    # disease. No prediction interval is computed for these years (they were
+    # used to FIT the model, not tested against it), only the fitted center
+    # line itself.
+    baseline_fitted_rows = []
+    for cause in TEST_CAUSES + [NEGATIVE_CONTROL]:
+        r = results[cause] if cause in results else negative_control_result
+        trend = r["trend"]
+        for year in range(1999, 2020):
+            baseline_fitted_rows.append({
+                "cause": cause, "year": year, "fitted": trend.slope * year + trend.intercept,
+            })
+    baseline_fitted_df = pd.DataFrame(baseline_fitted_rows)
+
     # National series for the Disruption Overview chart: D76 baseline +
     # D158 post period, per cause -- same construction as the analysis
     # itself, not the raw 2018-2019-duplicated files.
@@ -359,6 +381,7 @@ def main():
     covid_df.to_parquet(OUTPUTS_MODELS / "covid_reference_series.parquet", index=False)
     summary_df.to_parquet(OUTPUTS_MODELS / "disruption_summary.parquet", index=False)
     deviations_df.to_parquet(OUTPUTS_MODELS / "disruption_deviations.parquet", index=False)
+    baseline_fitted_df.to_parquet(OUTPUTS_MODELS / "baseline_fitted_trend.parquet", index=False)
     heterogeneity_summary.to_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet", index=False)
     selection_bias_df.to_parquet(OUTPUTS_MODELS / "heterogeneity_selection_bias.parquet", index=False)
     robustness_df.to_parquet(OUTPUTS_MODELS / "heterogeneity_rurality_robustness.parquet", index=False)

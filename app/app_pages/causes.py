@@ -4,8 +4,8 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_national_series, load_disruption_summary, load_disruption_deviations,
-    load_sensitivity_check, data_available, sensitivity_check_available,
-    synthetic_banner, TEST_CAUSES, CAUSE_COLORS, CAUSE_BADGE_STYLE,
+    load_baseline_fitted_trend, load_sensitivity_check, data_available,
+    sensitivity_check_available, synthetic_banner, TEST_CAUSES, CAUSE_COLORS, CAUSE_BADGE_STYLE,
 )
 from app.components.cause_explanations import CAUSE_EXPLANATIONS
 
@@ -24,7 +24,24 @@ if not data_available():
 summary = load_disruption_summary().set_index("cause")
 national = load_national_series()
 deviations = load_disruption_deviations()
+baseline_fitted = load_baseline_fitted_trend()
 sens = load_sensitivity_check() if sensitivity_check_available() else None
+
+TREND_SHAPE_CHECK = "baseline_trend_shape (linear vs quadratic)"
+
+
+def _trend_shape_robust(cause: str) -> bool:
+    """False only when this cause's sensitivity check found the result
+    flips under a curved baseline instead of the primary straight-line
+    fit -- currently heart disease and cerebrovascular disease, whose
+    straight-line baseline fit was already diverging from their actual
+    1999-2019 trajectory before 2020 (see the trajectory chart's now
+    fully-drawn dashed line). Defaults to True (don't flag) when the
+    sensitivity check hasn't been run yet."""
+    if sens is None:
+        return True
+    row = sens[(sens["cause"] == cause) & (sens["check"] == TREND_SHAPE_CHECK)]
+    return bool(row.iloc[0]["agrees"]) if len(row) else True
 
 CLASS_ICON = {
     "Persisted": ":material/trending_up:",
@@ -43,6 +60,8 @@ for i, cause in enumerate(TEST_CAUSES):
             st.badge(cause, icon=icon, color=badge_color)
             st.write(f"**{r['persistence_class']}**")
             st.caption(f"{r['acute_pct_deviation']:+.1f}% in 2020–21  •  p = {r['p_value']:.2g}")
+            if not _trend_shape_robust(cause):
+                st.badge("Not robust to trend shape", icon=":material/warning:", color="orange")
 
 st.subheader("Deep dive")
 cause = st.segmented_control("Select a cause", options=TEST_CAUSES, default=TEST_CAUSES[0], label_visibility="collapsed")
@@ -60,6 +79,8 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.caption("Result")
         st.badge(r["persistence_class"], icon=CLASS_ICON.get(r["persistence_class"], ":material/help:"), color="gray" if r["persistence_class"] == "No significant disruption" else "red")
+        if not _trend_shape_robust(cause):
+            st.badge("Not robust to trend shape", icon=":material/warning:", color="orange")
     with st.container(border=True):
         st.metric("2020–21 deviation", f"{r['acute_pct_deviation']:+.1f}%")
     with st.container(border=True):
@@ -73,10 +94,23 @@ with st.container(horizontal=True):
 # --- Trajectory chart ---
 series = national[national["cause"] == cause].sort_values("year")
 dev = deviations[deviations["cause"] == cause].sort_values("year")
+fitted = baseline_fitted[baseline_fitted["cause"] == cause].sort_values("year")
 
 observed = series.rename(columns={"age_adjusted_rate": "value"})[["year", "value"]]
 band_df = dev[["year", "pi_low", "pi_high"]].copy()
-expected_df = dev[["year", "expected"]].rename(columns={"expected": "value"})
+# The dashed trend line is drawn across the full 1999-2024 span, not just
+# the 2020-2024 projection: fitted (1999-2019, the model's own fit to the
+# years used to build it, no prediction interval since these weren't
+# tested) concatenated with expected (2020-2024, the actual projection and
+# what compute_deviations tests against). Drawing only the 2020+ segment,
+# as this chart used to, hid exactly the evidence a reader would need to
+# judge whether the straight-line assumption tracks the real pre-pandemic
+# trajectory -- for heart disease and cerebrovascular disease it visibly
+# doesn't (see the "Not robust to trend shape" flag above).
+expected_full = pd.concat([
+    fitted.rename(columns={"fitted": "value"})[["year", "value"]],
+    dev[["year", "expected"]].rename(columns={"expected": "value"}),
+], ignore_index=True)
 
 band = (
     alt.Chart(band_df)
@@ -89,19 +123,21 @@ observed_line = (
     .encode(x="year:O", y="value:Q", tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Observed")])
 )
 expected_line = (
-    alt.Chart(expected_df)
+    alt.Chart(expected_full)
     .mark_line(strokeDash=[5, 4], strokeWidth=1.5, color="#6B7280")
-    .encode(x="year:O", y="value:Q", tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Expected")])
+    .encode(x="year:O", y="value:Q", tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Trend fit")])
 )
 onset_rule = alt.Chart(pd.DataFrame({"year": [2020]})).mark_rule(color="#9CA3AF", strokeDash=[2, 2]).encode(x="year:O")
 
 chart = (band + observed_line + expected_line + onset_rule).properties(height=320)
 st.altair_chart(chart, width="stretch")
 st.caption(
-    f"Solid line: observed. Dashed gray line + shaded band: expected trend and its 95% prediction "
-    f"interval, projected from 1999–2019. Independent cross-check (PELT, binary segmentation, "
-    f"segmented regression): {r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint "
-    f"near 2020."
+    f"Solid line: observed. Dashed gray line: the same straight-line trend fit across all 26 "
+    f"years, both where it was fit (1999–2019, so you can judge for yourself how well it tracks "
+    f"the real pre-pandemic trajectory) and where it's projected forward (2020–2024, shaded band: "
+    f"its 95% prediction interval, the only years actually tested). Independent cross-check "
+    f"(PELT, binary segmentation, segmented regression): {r['cross_check_methods_agreeing']} of 3 "
+    f"methods confirm a breakpoint near 2020."
 )
 if not r["cross_check_confirms_2020"]:
     st.caption(
@@ -110,14 +146,14 @@ if not r["cross_check_confirms_2020"]:
         "whichever single breakpoint fits best, which can legitimately land elsewhere. See Methods."
     )
 
-if sens is not None:
-    quad_row = sens[(sens["cause"] == cause) & (sens["check"] == "baseline_trend_shape (linear vs quadratic)")]
-    if len(quad_row) and not bool(quad_row.iloc[0]["agrees"]):
-        st.warning(
-            "**Robustness flag:** this result loses significance under a curved (quadratic) "
-            "baseline trend instead of the primary straight-line assumption — see Data Quality "
-            "for the full sensitivity breakdown.", icon=":material/warning:",
-        )
+if not _trend_shape_robust(cause):
+    st.warning(
+        "**Robustness flag:** this result loses significance under a curved (quadratic) "
+        "baseline trend instead of the primary straight-line assumption. Look at the dashed "
+        "line above through 1999–2019: it was already diverging from the actual trend well "
+        "before 2020, which distorts the apparent size of the 2020+ gap. See Data Quality for "
+        "the full sensitivity breakdown.", icon=":material/warning:",
+    )
 
 st.subheader("What could explain this?")
 st.caption(
