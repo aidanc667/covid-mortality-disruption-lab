@@ -7,20 +7,28 @@ from app.components.data_loading import (
 
 st.title("COVID Mortality Disruption Lab")
 st.header(
-    "Officially, COVID-19's death toll is the people who died of the virus itself. "
-    "This project measures what it did to everyone else."
+    "Which causes of death were most disrupted by the COVID-19 pandemic, how long did those "
+    "disruptions persist, and where in the U.S. were they most severe?"
 )
 synthetic_banner()
 
 st.subheader("Why this matters")
 st.write(
-    "Pandemic death tolls are usually counted one way: how many people died of COVID-19 itself. "
-    "That number misses a larger, quieter effect — years of deferred screenings, delayed emergency "
-    "care, disrupted medication access, and interrupted treatment for the diseases that already "
-    "killed the most Americans every year, pandemic or not. This project measures that second, "
-    "harder-to-see toll directly from real government mortality data — not survey estimates or "
-    "modeling assumptions — for 6 major causes of death, and asks a question that's still open "
-    "four years on: **is it actually over?**"
+    "The impact of a pandemic cannot be understood from deaths attributed to the virus alone. A "
+    "major disruption to healthcare, behavior, and daily life can also alter mortality from "
+    "diseases that have nothing to do with the infection itself."
+)
+st.write("This project asks whether those changes left a measurable footprint in the mortality record.")
+st.write(
+    "Using 26 years of CDC mortality data, we establish each cause's pre-pandemic trajectory, "
+    "estimate the mortality we would have expected in 2020–2024, and test whether observed "
+    "mortality significantly departed from that baseline. We then examine whether those "
+    "disruptions were temporary or persisted through 2024 — across causes and, for two of them, "
+    "across U.S. counties by socioeconomic status, healthcare access, and rurality."
+)
+st.write(
+    "**The central question isn't simply how many people died during COVID-19. It's whether the "
+    "pandemic changed the mortality landscape that followed.**"
 )
 
 st.subheader("What we did")
