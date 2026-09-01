@@ -2,7 +2,8 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary, load_bridging_summary,
-    data_available, synthetic_banner, heterogeneity_synthetic_banner, TEST_CAUSES,
+    load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner,
+    heterogeneity_synthetic_banner, TEST_CAUSES,
 )
 
 st.title("Data quality")
@@ -111,3 +112,49 @@ st.caption(
     "only measures the size of the jump, so a real discontinuity is never mistaken for a "
     "COVID effect."
 )
+
+st.subheader("Sensitivity analysis (research_protocol.md §8)")
+if not sensitivity_check_available():
+    st.info(
+        "Not yet run. `python -m scripts.run_sensitivity_check` re-fits the primary method with "
+        "an alternate, shorter baseline (2010–2019 instead of 1999–2019) to check whether results "
+        "depend on that choice.",
+        icon=":material/info:",
+    )
+else:
+    sens = load_sensitivity_check()
+    test_cause_rows = sens[sens["cause"].isin(TEST_CAUSES)]
+    n_disagree = int((~test_cause_rows["classification_agrees"]).sum())
+    if n_disagree == 0:
+        st.success(
+            "All 6 test causes classify identically whether the baseline trend is fit on "
+            "1999–2019 (primary) or 2010–2019 (alternate, shorter window) — the primary results "
+            "are not an artifact of the baseline window choice.",
+            icon=":material/check_circle:",
+        )
+    else:
+        disagreeing = test_cause_rows.loc[~test_cause_rows["classification_agrees"], "cause"].tolist()
+        st.error(f"{n_disagree} test cause(s) classify differently depending on baseline window: {disagreeing}")
+
+    st.dataframe(
+        sens[[
+            "cause", "metric", "persistence_class_primary", "p_value_primary",
+            "persistence_class_alt", "p_value_alt", "classification_agrees",
+        ]],
+        column_config={
+            "cause": "Cause",
+            "metric": "Metric",
+            "persistence_class_primary": "Classification (1999–2019 baseline)",
+            "p_value_primary": st.column_config.NumberColumn("p-value (1999–2019)", format="%.4g"),
+            "persistence_class_alt": "Classification (2010–2019 baseline)",
+            "p_value_alt": st.column_config.NumberColumn("p-value (2010–2019)", format="%.4g"),
+            "classification_agrees": st.column_config.CheckboxColumn("Agrees"),
+        },
+        hide_index=True,
+    )
+    st.caption(
+        "The negative control's `age_adjusted_rate` row disagreeing across windows reproduces the "
+        "already-documented rounding artifact (see the negative-control-swap note above), not a new "
+        "instability — its actual gate metric (`deaths`, shown in the second negative-control row) "
+        "is stable across both windows."
+    )

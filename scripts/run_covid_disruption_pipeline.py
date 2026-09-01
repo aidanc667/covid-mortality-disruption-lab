@@ -126,8 +126,13 @@ def check_bridging(d76_df: pd.DataFrame, d158_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def analyze_cause(d76_df: pd.DataFrame, d158_df: pd.DataFrame, cause: str, value_col: str = "age_adjusted_rate") -> dict:
-    baseline = d76_df[(d76_df["cause"] == cause) & (d76_df["year"] <= 2019)].sort_values("year")
+def analyze_cause(
+    d76_df: pd.DataFrame, d158_df: pd.DataFrame, cause: str,
+    value_col: str = "age_adjusted_rate", baseline_start_year: int = 1999,
+) -> dict:
+    baseline = d76_df[
+        (d76_df["cause"] == cause) & (d76_df["year"] >= baseline_start_year) & (d76_df["year"] <= 2019)
+    ].sort_values("year")
     post = d158_df[(d158_df["cause"] == cause) & (d158_df["year"] >= 2020)].sort_values("year")
 
     trend = fit_baseline_trend(baseline["year"].to_numpy(), baseline[value_col].to_numpy())

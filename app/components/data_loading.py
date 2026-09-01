@@ -54,6 +54,11 @@ def load_bridging_summary() -> pd.DataFrame:
 
 
 @st.cache_data(ttl="1h")
+def load_sensitivity_check() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "sensitivity_check.parquet")
+
+
+@st.cache_data(ttl="1h")
 def load_county_disruption(cause: str) -> pd.DataFrame:
     fname = f"county_disruption_{cause.lower().replace(' ', '_')}.parquet"
     return pd.read_parquet(OUTPUTS_MODELS / fname)
@@ -61,6 +66,10 @@ def load_county_disruption(cause: str) -> pd.DataFrame:
 
 def data_available() -> bool:
     return (OUTPUTS_MODELS / "disruption_summary.parquet").exists()
+
+
+def sensitivity_check_available() -> bool:
+    return (OUTPUTS_MODELS / "sensitivity_check.parquet").exists()
 
 
 def synthetic_banner() -> None:
