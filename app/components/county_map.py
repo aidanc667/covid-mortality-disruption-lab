@@ -55,5 +55,5 @@ def render_county_choropleth(disruption_df: pd.DataFrame, cause: str, value_col:
     return (
         (county_layer + state_borders)
         .project(type="albersUsa")
-        .properties(width="container", height=460, title=f"{cause}: county-level disruption (crude rate, post − pre)")
+        .properties(width="container", height=460, title=f"{cause} disruption by county")
     )
