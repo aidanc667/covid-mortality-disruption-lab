@@ -8,13 +8,13 @@ import streamlit as st
 import pandas as pd
 
 from src.utils.config import OUTPUTS_MODELS
-from src.utils.synthetic_mortality import is_synthetic_active
+from src.utils.synthetic_mortality import is_synthetic_active, SYNTHETIC_HETEROGENEITY_MARKER
 
 TEST_CAUSES = [
     "Diseases of heart", "Diabetes mellitus", "Alzheimer's disease",
     "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
 ]
-NEGATIVE_CONTROL = "Accidental drowning"
+NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnormalities"
 HETEROGENEITY_CAUSES = ["Diabetes mellitus", "Drug overdose"]
 
 
@@ -49,6 +49,11 @@ def load_negative_control() -> pd.DataFrame:
 
 
 @st.cache_data(ttl="1h")
+def load_bridging_summary() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "bridging_summary.parquet")
+
+
+@st.cache_data(ttl="1h")
 def load_county_disruption(cause: str) -> pd.DataFrame:
     fname = f"county_disruption_{cause.lower().replace(' ', '_')}.parquet"
     return pd.read_parquet(OUTPUTS_MODELS / fname)
@@ -70,5 +75,23 @@ def synthetic_banner() -> None:
             "pipeline development, generated to match this project's own "
             "pre-registered priors (see Methods) — it does not validate them. "
             "See `docs/manual_data_acquisition.md` to load real CDC WONDER data.",
+            icon=":material/science:",
+        )
+
+
+def heterogeneity_synthetic_banner() -> None:
+    """Renders a warning scoped to just the county-level heterogeneity
+    stage, which still runs on synthetic data even after the national
+    disruption/persistence analysis switched to real CDC WONDER data --
+    a single blanket marker can't express that partial-realness honestly,
+    so this checks the heterogeneity-specific marker instead of
+    `synthetic_banner`'s project-wide one."""
+    if is_synthetic_active(marker_path=SYNTHETIC_HETEROGENEITY_MARKER):
+        st.error(
+            "County-level heterogeneity below is currently **synthetic "
+            "placeholder data** — no real county-level CDC WONDER pull "
+            "exists yet (see `docs/manual_data_acquisition.md`'s "
+            "'later, smaller scope' section). The national disruption and "
+            "persistence results on other pages are real CDC WONDER data.",
             icon=":material/science:",
         )

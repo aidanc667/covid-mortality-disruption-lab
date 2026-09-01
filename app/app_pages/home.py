@@ -2,6 +2,7 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, data_available, synthetic_banner,
+    heterogeneity_synthetic_banner,
 )
 
 st.title("COVID Mortality Disruption Lab")
@@ -52,7 +53,7 @@ else:
         with st.container(border=True):
             passed = bool(neg_control["passed"])
             st.metric("Negative control", "Passed" if passed else "FAILED", delta=None)
-            st.caption("Accidental drowning — no plausible COVID mechanism")
+            st.caption("Congenital malformations — no plausible COVID mechanism")
 
     if not passed:
         st.error(
@@ -71,6 +72,7 @@ st.write(
     "**Data quality** — suppression, the vintage-bridging discontinuity, and the negative control, shown rather than hidden.\n\n"
     "**Methods** — every statistical choice, threshold, and pre-registered hypothesis, made explicit."
 )
+heterogeneity_synthetic_banner()
 
 with st.expander("Ethics statement", icon=":material/balance:"):
     st.write(

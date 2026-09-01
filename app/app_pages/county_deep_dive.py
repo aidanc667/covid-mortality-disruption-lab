@@ -1,11 +1,13 @@
 import pandas as pd
 import streamlit as st
 
-from app.components.data_loading import load_county_disruption, data_available, synthetic_banner, HETEROGENEITY_CAUSES
+from app.components.data_loading import (
+    load_county_disruption, data_available, heterogeneity_synthetic_banner, HETEROGENEITY_CAUSES,
+)
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 
 st.title("County deep dive")
-synthetic_banner()
+heterogeneity_synthetic_banner()
 st.caption(
     "County-level heterogeneity data exists only as pre/post period aggregates for the "
     "causes analyzed in the Geographic Heterogeneity page — not full annual trajectories "

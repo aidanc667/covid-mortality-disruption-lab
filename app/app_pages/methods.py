@@ -30,7 +30,7 @@ with st.expander("Pre-registered hypotheses", icon=":material/fact_check:"):
         "| Alzheimer's disease | G30 | Large, isolation-driven | High |\n"
         "| Cerebrovascular disease | I60-I69 | Real but harder to detect (smaller N) | Moderate |\n"
         "| Malignant neoplasms | C00-C97 | **Expected null** — measurement-lag comparison case | Low (by design) |\n"
-        "| Accidental drowning | W65-W74 | **Negative control** — expected null | Validation case |\n"
+        "| Congenital malformations | Q00-Q99 | **Negative control** — expected null | Validation case |\n"
         "| COVID-19 | U07.1 | Reference series, not a hypothesis test | — |\n"
     )
 
@@ -63,10 +63,13 @@ with st.expander("Statistical methods", icon=":material/query_stats:"):
         "they land on a breakpoint near March 2020 without being told to."
     )
     st.write(
-        "**Negative control.** The identical pipeline run on accidental drowning mortality — "
-        "a cause with no plausible COVID mechanism. A significant \"disruption\" there would "
-        "indicate the method is detecting an artifact, not a real signal, and is a hard gate "
-        "on trusting the other 6 causes."
+        "**Negative control.** The identical pipeline run on congenital-malformations "
+        "mortality — a cause concentrated in infancy with no plausible COVID mechanism. A "
+        "significant \"disruption\" there would indicate the method is detecting an artifact, "
+        "not a real signal, and is a hard gate on trusting the other 6 causes. (Its gate "
+        "decision uses raw death counts rather than age-adjusted rate — the rate is only "
+        "reported to 1 decimal by CDC WONDER, which at this cause's low magnitude made the "
+        "rate-based test oversensitive to rounding noise; see the Data Quality page.)"
     )
     st.write(
         "**Multiple-testing correction.** Benjamini-Hochberg FDR correction applied across "

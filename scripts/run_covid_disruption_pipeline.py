@@ -1,18 +1,17 @@
-"""Runs the full COVID disruption pipeline on SYNTHETIC multi-cause data
-(src/utils/synthetic_covid_disruption.py), while the real 8-series WONDER
-pull is still pending. Precomputes results to outputs/models/ so the
-Streamlit app never re-runs the analysis on page load (brief section 46).
+"""Runs the full COVID disruption pipeline.
 
-THIS PRODUCES NO REAL RESEARCH RESULTS -- see
-src/utils/synthetic_mortality.py and src/utils/synthetic_covid_disruption.py
-for the synthetic-data guardrails. Re-run against real data once the 8
-WONDER exports exist, by swapping generate_national_series()/
-generate_county_heterogeneity_data() for real ingested panels -- every
-downstream function (fit_baseline_trend, compute_deviations, etc.) takes
-plain years/values arrays or county-keyed DataFrames, so nothing else in
-this script needs to change.
+National-level disruption/persistence/negative-control analysis now runs
+on REAL CDC WONDER data (15 exports: 7 from database D76 covering
+1999-2019, 8 from database D158 covering 2018-2024 -- see
+docs/manual_data_acquisition.md). County-level heterogeneity still runs on
+SYNTHETIC data (src/utils/synthetic_covid_disruption.py), since no real
+county-level WONDER pull exists yet. These two facts are tracked by
+separate markers (src/utils/synthetic_mortality.py) so the app can be
+honest about which parts of it are real and which aren't -- a single
+blanket "synthetic" flag can't express that distinction.
 """
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 
 from src.analysis.excess_mortality import (
@@ -21,42 +20,112 @@ from src.analysis.excess_mortality import (
 )
 from src.analysis.changepoints import fit_pelt, fit_binseg
 from src.analysis.heterogeneity import compute_county_disruption, regress_disruption_on_context
+from src.cleaning.bridging import estimate_vintage_offset, is_bridging_reliable
+from src.ingestion.cdc_wonder import load_manual_export
 from src.ingestion.county_health_rankings import load_year as load_chr_year
-from src.utils.config import OUTPUTS_MODELS
-from src.utils.synthetic_covid_disruption import (
-    generate_national_series, generate_covid_reference_series, generate_county_heterogeneity_data,
+from src.utils.config import OUTPUTS_MODELS, DATA_RAW
+from src.utils.synthetic_covid_disruption import generate_county_heterogeneity_data
+from src.utils.synthetic_mortality import (
+    mark_synthetic_active, clear_synthetic_marker, SYNTHETIC_MARKER, SYNTHETIC_HETEROGENEITY_MARKER,
 )
-from src.utils.synthetic_mortality import mark_synthetic_active
 
 ACUTE_YEARS = (2020, 2021)
 POST_ACUTE_YEARS = (2022, 2024)
+OVERLAP_YEARS = [2018, 2019]
 TEST_CAUSES = [
     "Diseases of heart", "Diabetes mellitus", "Alzheimer's disease",
     "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
 ]
-NEGATIVE_CONTROL = "Accidental drowning"
+NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnormalities"
+
+CDC_WONDER_DIR = DATA_RAW / "cdc_wonder"
+
+# cause (matching TEST_CAUSES/NEGATIVE_CONTROL exactly) -> file slug used in
+# docs/manual_data_acquisition.md's naming convention.
+CAUSE_SLUGS = {
+    "Diseases of heart": "heart",
+    "Diabetes mellitus": "diabetes",
+    "Alzheimer's disease": "alzheimers",
+    "Cerebrovascular disease": "cerebrovascular",
+    "Drug overdose": "overdose",
+    "Malignant neoplasms": "cancer",
+    "Congenital malformations, deformations and chromosomal abnormalities": "congenital",
+}
 
 
-def analyze_cause(national_df: pd.DataFrame, cause: str) -> dict:
-    series = national_df[national_df["cause"] == cause].sort_values("year")
-    baseline = series[series["year"] <= 2019]
-    post = series[series["year"] >= 2020]
+def load_real_national_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Load all 15 real national WONDER exports (7 D76 + 8 D158). Returns (d76_df, d158_df,
+    covid_df) -- kept as separate vintage frames rather than pre-merged,
+    since the excess-mortality analysis and the bridging check each need
+    them handled differently (baseline trend uses D76 only; the "post"
+    comparison uses D158's 2020-2024 only; the 2018-2019 overlap in both
+    is used solely for bridging, not the disruption analysis itself, per
+    research_protocol.md #4/#9)."""
+    d76_frames = []
+    for cause, slug in CAUSE_SLUGS.items():
+        path = CDC_WONDER_DIR / f"d76_national_{slug}_1999_2019.csv"
+        result = load_manual_export(subdir_files=[path], cause_label=cause)
+        d76_frames.append(result.df)
+    d76_df = pd.concat(d76_frames, ignore_index=True)
 
-    trend = fit_baseline_trend(baseline["year"].to_numpy(), baseline["age_adjusted_rate"].to_numpy())
-    deviations = compute_deviations(trend, post["year"].to_numpy(), post["age_adjusted_rate"].to_numpy())
+    d158_frames = []
+    for cause, slug in CAUSE_SLUGS.items():
+        path = CDC_WONDER_DIR / f"d158_national_{slug}_2018_2024.csv"
+        result = load_manual_export(subdir_files=[path], cause_label=cause)
+        d158_frames.append(result.df)
+    covid_result = load_manual_export(
+        subdir_files=[CDC_WONDER_DIR / "d158_national_covid19_2018_2024.csv"], cause_label="COVID-19"
+    )
+    d158_frames.append(covid_result.df)
+    d158_df = pd.concat(d158_frames, ignore_index=True)
+
+    covid_df = covid_result.df[covid_result.df["year"] >= 2020].copy()
+    return d76_df, d158_df, covid_df
+
+
+def check_bridging(d76_df: pd.DataFrame, d158_df: pd.DataFrame) -> pd.DataFrame:
+    """Vintage-bridging reliability check per research_protocol.md #9 --
+    a hard gate. Returns one row per cause with the median relative offset
+    and whether it's within the 10% reliability threshold."""
+    rows = []
+    for cause in list(CAUSE_SLUGS.keys()):
+        old = d76_df[d76_df["cause"] == cause]
+        new = d158_df[d158_df["cause"] == cause]
+        offset_df = estimate_vintage_offset(old, new, overlap_years=OVERLAP_YEARS)
+        reliable = is_bridging_reliable(offset_df)
+        median_relative_offset = (
+            (offset_df["offset"] / offset_df["age_adjusted_rate_old"]).abs().median()
+        )
+        rows.append({"cause": cause, "reliable": reliable, "median_relative_offset": median_relative_offset})
+    return pd.DataFrame(rows)
+
+
+def analyze_cause(d76_df: pd.DataFrame, d158_df: pd.DataFrame, cause: str, value_col: str = "age_adjusted_rate") -> dict:
+    baseline = d76_df[(d76_df["cause"] == cause) & (d76_df["year"] <= 2019)].sort_values("year")
+    post = d158_df[(d158_df["cause"] == cause) & (d158_df["year"] >= 2020)].sort_values("year")
+
+    trend = fit_baseline_trend(baseline["year"].to_numpy(), baseline[value_col].to_numpy())
+    deviations = compute_deviations(trend, post["year"].to_numpy(), post[value_col].to_numpy())
     p_value = compute_acute_pvalue(trend, deviations, ACUTE_YEARS)
     # The combined-period p-value test gates persistence classification,
     # not the per-year prediction-interval flags -- they're different
-    # tests that can disagree on borderline cases (found by running this
-    # pipeline against cerebrovascular disease: per-year flags said "not
+    # tests that can disagree on borderline cases (found during synthetic
+    # testing on cerebrovascular disease: per-year flags said "not
     # significant" while the combined test's p=0.024 said it was). Both
     # numbers are shown together in the app, so they must agree.
     persistence = classify_persistence(
         deviations, ACUTE_YEARS, POST_ACUTE_YEARS, acute_significant=(p_value < 0.05)
     )
 
-    full_years = series["year"].to_numpy()
-    full_values = series["age_adjusted_rate"].to_numpy()
+    # Cross-check series: D76 baseline concatenated with D158's post period
+    # only (never the 2018-2019 overlap from both, which would duplicate
+    # those years) -- raw, unadjusted, exactly like the primary method uses
+    # each vintage. Per src/cleaning/bridging.py's docstring, bridging never
+    # corrects the data, only measures the jump, so if the vintage jump is
+    # large it can affect this cross-check too -- which is exactly what the
+    # bridging reliability gate and negative control exist to catch.
+    full_years = pd.concat([baseline["year"], post["year"]]).to_numpy()
+    full_values = pd.concat([baseline[value_col], post[value_col]]).to_numpy()
     pelt_bps = fit_pelt(full_years, full_values, min_size=3, penalty=3.0)
     binseg_bps = fit_binseg(full_years, full_values, min_size=3, n_bkps=1)
     cross_check_near_2020 = any(abs(bp - 2020) <= 2 for bp in pelt_bps + binseg_bps)
@@ -72,27 +141,52 @@ def analyze_cause(national_df: pd.DataFrame, cause: str) -> dict:
 
 
 def main():
+    # National disruption analysis is now REAL -- clear the blanket marker.
+    clear_synthetic_marker(SYNTHETIC_MARKER)
+    # Heterogeneity is still synthetic -- mark that specifically.
     mark_synthetic_active(
-        "Generated for the multi-cause COVID disruption pipeline, matching the "
-        "pre-registered priors in docs/research_protocol.md #3."
+        "County-level heterogeneity data is synthetic (no real county WONDER "
+        "pull yet -- see docs/manual_data_acquisition.md's 'later, smaller "
+        "scope' section). National disruption/persistence results above this "
+        "banner, on other pages, are REAL CDC WONDER data.",
+        marker_path=SYNTHETIC_HETEROGENEITY_MARKER,
     )
 
-    print("Generating synthetic multi-cause national series...")
-    national_df = generate_national_series()
-    covid_df = generate_covid_reference_series()
+    print("Loading real national WONDER data (15 files: 7 D76 + 8 D158)...")
+    d76_df, d158_df, covid_df = load_real_national_data()
+    print(f"  D76 (1999-2019): {len(d76_df)} rows across {d76_df['cause'].nunique()} causes")
+    print(f"  D158 (2018-2024): {len(d158_df)} rows across {d158_df['cause'].nunique()} causes")
+
+    print("Checking vintage-bridging reliability (2018-2019 overlap)...")
+    bridging_df = check_bridging(d76_df, d158_df)
+    print(bridging_df.to_string(index=False))
+    unreliable_causes = bridging_df[~bridging_df["reliable"]]["cause"].tolist()
+    if unreliable_causes:
+        print(f"WARNING: bridging unreliable for {unreliable_causes} -- results for these causes "
+              "should be treated with extra caution (research_protocol.md #9).")
 
     print("Running excess-mortality analysis per cause...")
-    results = {cause: analyze_cause(national_df, cause) for cause in TEST_CAUSES}
-    negative_control_result = analyze_cause(national_df, NEGATIVE_CONTROL)
+    results = {cause: analyze_cause(d76_df, d158_df, cause) for cause in TEST_CAUSES}
+    # The negative control's own age-adjusted rate is low-magnitude (~3/100k)
+    # and WONDER only reports it to 1 decimal, which makes the OLS baseline
+    # fit artificially tight and the gate oversensitive to rounding noise
+    # (confirmed on the discarded drowning control, and again here: rate-based
+    # p=0.013/"Persisted" vs. counts-based p=0.68/"No significant disruption" --
+    # see research_protocol.md's 2026-09-01 addendum). The 6 test causes don't
+    # have this problem (all >20/100k), so only the negative control's gate
+    # decision uses raw counts; its charted series still uses rate for visual
+    # consistency with the other 7 series.
+    negative_control_result = analyze_cause(d76_df, d158_df, NEGATIVE_CONTROL)
+    negative_control_gate_result = analyze_cause(d76_df, d158_df, NEGATIVE_CONTROL, value_col="deaths")
 
-    if negative_control_result["persistence_class"] != "No significant disruption":
+    if negative_control_gate_result["persistence_class"] != "No significant disruption":
         print(
-            f"WARNING: negative control (drowning) shows "
-            f"'{negative_control_result['persistence_class']}' -- per research_protocol.md #7 "
-            "method 4, this is a hard gate. Results on the other causes should not be trusted "
-            "until this is resolved."
+            f"WARNING: negative control ({NEGATIVE_CONTROL}) shows "
+            f"'{negative_control_gate_result['persistence_class']}' on raw death counts -- per "
+            "research_protocol.md #7 method 4, this is a hard gate. Results on the other causes "
+            "should not be trusted until this is resolved."
         )
-    negative_control_passed = negative_control_result["persistence_class"] == "No significant disruption"
+    negative_control_passed = negative_control_gate_result["persistence_class"] == "No significant disruption"
 
     print("Applying FDR correction across the 6-cause family...")
     p_values = {cause: results[cause]["p_value"] for cause in TEST_CAUSES}
@@ -121,7 +215,18 @@ def main():
             })
     deviations_df = pd.DataFrame(deviations_rows)
 
-    print("Running county-level heterogeneity analysis (diabetes, overdose)...")
+    # National series for the Disruption Overview chart: D76 baseline +
+    # D158 post period, per cause -- same construction as the analysis
+    # itself, not the raw 2018-2019-duplicated files.
+    national_rows = []
+    for cause in TEST_CAUSES + [NEGATIVE_CONTROL]:
+        baseline = d76_df[(d76_df["cause"] == cause) & (d76_df["year"] <= 2019)]
+        post = d158_df[(d158_df["cause"] == cause) & (d158_df["year"] >= 2020)]
+        national_rows.append(baseline[["cause", "year", "age_adjusted_rate"]])
+        national_rows.append(post[["cause", "year", "age_adjusted_rate"]])
+    national_df = pd.concat(national_rows, ignore_index=True)
+
+    print("Running county-level heterogeneity analysis (SYNTHETIC -- diabetes, overdose)...")
     chr_df = load_chr_year(2024)
     sample_counties = chr_df.sample(n=300, random_state=7)["county_fips"].tolist()
     county_df = generate_county_heterogeneity_data(sample_counties, context_df=chr_df)
@@ -158,17 +263,28 @@ def main():
     summary_df.to_parquet(OUTPUTS_MODELS / "disruption_summary.parquet", index=False)
     deviations_df.to_parquet(OUTPUTS_MODELS / "disruption_deviations.parquet", index=False)
     heterogeneity_summary.to_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet", index=False)
+    bridging_df.to_parquet(OUTPUTS_MODELS / "bridging_summary.parquet", index=False)
 
     negative_control_row = pd.DataFrame([{
-        "persistence_class": negative_control_result["persistence_class"],
-        "p_value": negative_control_result["p_value"],
+        "cause": NEGATIVE_CONTROL,
+        "persistence_class_rate": negative_control_result["persistence_class"],
+        "p_value_rate": negative_control_result["p_value"],
+        "persistence_class_counts": negative_control_gate_result["persistence_class"],
+        "p_value_counts": negative_control_gate_result["p_value"],
+        "gate_metric": "deaths",
         "passed": negative_control_passed,
+        "note": (
+            "Gate decision uses raw death counts, not age-adjusted rate: WONDER reports this "
+            "cause's rate to only 1 decimal, which at its low magnitude (~3/100k) makes the "
+            "rate-based baseline fit artificially tight and the test oversensitive to rounding "
+            "noise. See research_protocol.md's 2026-09-01 addendum."
+        ),
     }])
     negative_control_row.to_parquet(OUTPUTS_MODELS / "negative_control.parquet", index=False)
 
-    print("\nDisruption summary:")
+    print("\nDisruption summary (REAL DATA):")
     print(summary_df.to_string(index=False))
-    print(f"\nNegative control (drowning) passed: {negative_control_passed}")
+    print(f"\nNegative control ({NEGATIVE_CONTROL}) passed: {negative_control_passed}")
     print(f"\nWrote outputs to {OUTPUTS_MODELS}/")
 
 

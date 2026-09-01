@@ -1,0 +1,3 @@
+This project is currently running on SYNTHETIC placeholder mortality data.
+No number downstream of this file represents a real research finding.
+County-level heterogeneity data is synthetic (no real county WONDER pull yet -- see docs/manual_data_acquisition.md's 'later, smaller scope' section). National disruption/persistence results above this banner, on other pages, are REAL CDC WONDER data.

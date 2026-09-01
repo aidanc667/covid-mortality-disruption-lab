@@ -2,11 +2,12 @@ import pandas as pd
 import streamlit as st
 
 from app.components.data_loading import (
-    load_heterogeneity_summary, load_county_disruption, data_available, synthetic_banner, HETEROGENEITY_CAUSES,
+    load_heterogeneity_summary, load_county_disruption, data_available, heterogeneity_synthetic_banner,
+    HETEROGENEITY_CAUSES,
 )
 
 st.title("Geographic heterogeneity")
-synthetic_banner()
+heterogeneity_synthetic_banner()
 st.caption(
     "Is county-level disruption magnitude associated with socioeconomic status, healthcare "
     "access, or rurality? Associational only — see Methods for the causal-language policy."

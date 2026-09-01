@@ -29,24 +29,29 @@ import pandas as pd
 from src.utils.config import DATA_RAW, PROJECT_ROOT
 
 SYNTHETIC_MARKER = PROJECT_ROOT / "data" / "SYNTHETIC_DATA_ACTIVE"
+# Scoped marker: national disruption analysis can be REAL while county-level
+# heterogeneity is still synthetic (no real county WONDER pull exists yet,
+# per docs/manual_data_acquisition.md's "later, smaller scope" section) --
+# a single blanket marker can't express that distinction honestly.
+SYNTHETIC_HETEROGENEITY_MARKER = PROJECT_ROOT / "data" / "SYNTHETIC_HETEROGENEITY_ACTIVE"
 SYNTHETIC_EXPORT_PATH = DATA_RAW / "cdc_wonder" / "SYNTHETIC_ucd_1999_2020.txt"
 
 
-def mark_synthetic_active(note: str) -> None:
-    SYNTHETIC_MARKER.parent.mkdir(parents=True, exist_ok=True)
-    SYNTHETIC_MARKER.write_text(
+def mark_synthetic_active(note: str, marker_path=SYNTHETIC_MARKER) -> None:
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text(
         "This project is currently running on SYNTHETIC placeholder mortality data.\n"
         "No number downstream of this file represents a real research finding.\n"
         f"{note}\n"
     )
 
 
-def clear_synthetic_marker() -> None:
-    SYNTHETIC_MARKER.unlink(missing_ok=True)
+def clear_synthetic_marker(marker_path=SYNTHETIC_MARKER) -> None:
+    marker_path.unlink(missing_ok=True)
 
 
-def is_synthetic_active() -> bool:
-    return SYNTHETIC_MARKER.exists()
+def is_synthetic_active(marker_path=SYNTHETIC_MARKER) -> bool:
+    return marker_path.exists()
 
 
 def _simulate_county_trajectory(rng: np.random.Generator, years: np.ndarray, has_break: bool) -> np.ndarray:

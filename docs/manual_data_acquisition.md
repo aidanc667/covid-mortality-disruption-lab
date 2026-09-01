@@ -10,6 +10,8 @@ CDC WONDER's public API cannot group or limit National Vital Statistics System m
 
 Per `docs/research_protocol.md` §3–4: **two databases** (1999–2019 baseline, 2020–2024 post-shock) and **8 cause-of-death series**.
 
+**2026-09-01 update:** the negative control changed from accidental drowning to congenital malformations (Q00-Q99) after the real drowning pull showed a genuine, persistent COVID-era disruption — see `research_protocol.md`'s 2026-09-01 addendum. This was a 1:1 swap in the active set below (congenital malformations replaced drowning), so the active count is still 15 exports, not 17 — the drowning files already pulled remain on disk as a documented side-finding but are no longer part of the active set.
+
 **Multi-cause bundling does not work and should not be attempted.** Two approaches were tried and both failed on a real pull (2026-09-01):
 - Selecting multiple causes with **no** "And By: Cause of death" grouping → WONDER silently **blends all selected causes into one combined number per year** — you cannot tell which cause contributed what.
 - Selecting multiple causes **with** "And By: Cause of death" → WONDER **explodes each category into every individual 4-digit ICD-10 sub-code inside it** (e.g. "Malignant neoplasms" became ~400 separate rows — one per specific cancer site, down to "external upper lip" vs. "external lower lip"). Re-aggregating this yourself is not safe: some sub-codes are suppressed, and summing while dropping suppressed rows silently *undercounts* the true category total — exactly the kind of bias this project's suppression discipline exists to prevent.
@@ -31,10 +33,12 @@ Every one of these is a single-cause, national-level, single-database query — 
 | Cerebrovascular diseases | `I60-I69` |
 | Alzheimer disease | `G30` |
 | Malignant neoplasms | `C00-C97` |
-| Accidental drowning and submersion | `W65-W74` |
+| Congenital malformations, deformations and chromosomal abnormalities | `Q00-Q99` |
 | Drug overdose | *(use the Drug/Alcohol Induced Causes finder instead — see below)* |
 
-**D158 database (2018–2024) — the same 7, plus COVID-19 = 8 exports.** Note: pull **2018–2024**, not just 2020–2024 — the extra 2018–2019 years cost nothing extra and are required so `src/cleaning/bridging.py` has years that exist in *both* databases to calibrate the size of the vintage discontinuity (§9's hard gate in `research_protocol.md`). The excess-mortality analysis itself still only treats 2020–2024 as the post-shock period; 2018–2019 is used solely for that calibration.
+**D158 database (2018–2024) — the same 7 causes, plus COVID-19 = 8 exports.** Note: pull **2018–2024**, not just 2020–2024 — the extra 2018–2019 years cost nothing extra and are required so `src/cleaning/bridging.py` has years that exist in *both* databases to calibrate the size of the vintage discontinuity (§9's hard gate in `research_protocol.md`). The excess-mortality analysis itself still only treats 2020–2024 as the post-shock period; 2018–2019 is used solely for that calibration.
+
+*(Accidental drowning, W65-W74, was the original negative control and was already pulled for both databases — see the 2026-09-01 update above for why it's no longer in the active set. Its 2 files remain in `data/raw/cdc_wonder/` unused by the pipeline.)*
 
 ### Steps for every export
 
@@ -53,7 +57,7 @@ Split by year range (e.g. 1999–2009 and 2010–2019) — unlikely to be needed
 
 ### File naming and provenance
 
-Save to `data/raw/cdc_wonder/`, named by database + cause, e.g. `d76_national_diabetes_1999_2019.csv`, `d158_national_covid19_2018_2024.csv` (note the D158 files span 2018–2024 per the note above, not 2020–2024, even though the analysis only uses 2020–2024 of it). Record in a sibling `.meta.json` (see `src/utils/caching.py`): export date, exact query parameters, and who ran it.
+Save to `data/raw/cdc_wonder/`, named by database + cause, e.g. `d76_national_diabetes_1999_2019.csv`, `d158_national_covid19_2018_2024.csv`, and for the 2 new congenital-malformations exports: `d76_national_congenital_1999_2019.csv`, `d158_national_congenital_2018_2024.csv` (note the D158 files span 2018–2024 per the note above, not 2020–2024, even though the analysis only uses 2020–2024 of it). Record in a sibling `.meta.json` (see `src/utils/caching.py`): export date, exact query parameters, and who ran it.
 
 ### County-level heterogeneity data (later, smaller scope)
 
