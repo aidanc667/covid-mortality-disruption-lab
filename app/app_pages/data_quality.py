@@ -177,7 +177,9 @@ else:
 
     st.caption(
         "The negative control's baseline-window row (age-adjusted rate) disagreeing across windows "
-        "reproduces the already-documented rounding artifact (see the negative-control-swap note "
-        "above), not a new instability — its actual gate metric (raw death counts, separate row "
+        "reproduces the already-documented rounding artifact (see \"Why raw counts, not "
+        "age-adjusted rate?\" above, and Findings → \"This wasn't the first choice\" for the full "
+        "story of why the gate switched to raw counts), not a new instability — its actual gate "
+        "metric (raw death counts, separate row "
         "above) is stable across both windows."
     )
