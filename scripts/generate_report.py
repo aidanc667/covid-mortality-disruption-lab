@@ -20,6 +20,8 @@ from reportlab.platypus import (
 )
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.charts.lineplots import LinePlot
+from reportlab.graphics.charts.legends import Legend
 
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
 
@@ -86,7 +88,80 @@ def load_data() -> dict:
         "rurality_robustness": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_rurality_robustness.parquet"),
         "bridging": pd.read_parquet(OUTPUTS_MODELS / "bridging_summary.parquet"),
         "sensitivity": pd.read_parquet(OUTPUTS_MODELS / "sensitivity_check.parquet"),
+        "national_series": pd.read_parquet(OUTPUTS_MODELS / "national_mortality_series.parquet"),
+        "deviations": pd.read_parquet(OUTPUTS_MODELS / "disruption_deviations.parquet"),
     }
+
+
+def make_trajectory_chart(cause: str, national_series: pd.DataFrame, deviations: pd.DataFrame) -> Drawing:
+    """The one chart missing from earlier report versions: a plain
+    observed-vs-expected trajectory, which is what actually makes the
+    "excess mortality" method click for a reader who isn't fluent in
+    p-values. national_series carries the full 1999-2024 observed line;
+    deviations carries the 2020-2024 expected trend and its prediction
+    interval (compute_deviations only ever projects forward into the
+    post period, so there's nothing to plot for the interval before
+    2020). Drawn as three thin reference lines (expected, plus the
+    interval's low and high edges) rather than a filled band, since a
+    hand-computed polygon would have to reimplement this chart's own
+    axis scaling to place its corners correctly, and getting that wrong
+    silently would be far more misleading than a plain line."""
+    obs = national_series[national_series["cause"] == cause].sort_values("year")
+    dev = deviations[deviations["cause"] == cause].sort_values("year")
+
+    observed_pts = list(zip(obs["year"].astype(float), obs["age_adjusted_rate"]))
+    expected_pts = list(zip(dev["year"].astype(float), dev["expected"]))
+    pi_low_pts = list(zip(dev["year"].astype(float), dev["pi_low"]))
+    pi_high_pts = list(zip(dev["year"].astype(float), dev["pi_high"]))
+
+    drawing = Drawing(460, 245)
+    plot = LinePlot()
+    plot.x, plot.y = 50, 55
+    plot.width, plot.height = 380, 160
+    plot.data = [observed_pts, expected_pts, pi_low_pts, pi_high_pts]
+
+    plot.xValueAxis.valueMin = float(obs["year"].min())
+    plot.xValueAxis.valueMax = float(obs["year"].max())
+    plot.xValueAxis.labelTextFormat = "%d"
+    plot.xValueAxis.labels.fontSize = 7
+
+    all_values = pd.concat([obs["age_adjusted_rate"], dev["pi_low"], dev["pi_high"]])
+    plot.yValueAxis.valueMin = float(all_values.min()) * 0.85
+    plot.yValueAxis.valueMax = float(all_values.max()) * 1.1
+    plot.yValueAxis.labels.fontSize = 7
+
+    observed_color = colors.HexColor("#2b3a55")
+    expected_color = colors.HexColor("#888888")
+    interval_color = colors.HexColor("#c9a0a5")
+    line_styles = [
+        (observed_color, 2.0, None),
+        (expected_color, 1.2, (4, 3)),
+        (interval_color, 0.8, (2, 2)),
+        (interval_color, 0.8, (2, 2)),
+    ]
+    for i, (color, width, dash) in enumerate(line_styles):
+        plot.lines[i].strokeColor = color
+        plot.lines[i].strokeWidth = width
+        plot.lines[i].symbol = None
+        if dash:
+            plot.lines[i].strokeDashArray = dash
+
+    drawing.add(plot)
+
+    legend = Legend()
+    legend.x = 60
+    legend.y = 15
+    legend.fontSize = 7.5
+    legend.dxTextSpace = 6
+    legend.columnMaximum = 1
+    legend.colorNamePairs = [
+        (observed_color, "Observed"),
+        (expected_color, "Expected trend"),
+        (interval_color, "95% prediction interval"),
+    ]
+    drawing.add(legend)
+
+    return drawing
 
 
 def make_deviation_chart(summary: pd.DataFrame) -> Drawing:
@@ -138,6 +213,8 @@ def build(data: dict) -> list:
     rurality_robustness = data["rurality_robustness"]
     bridging = data["bridging"]
     sens = data["sensitivity"]
+    national_series = data["national_series"]
+    deviations = data["deviations"]
 
     story = []
 
@@ -229,6 +306,21 @@ def build(data: dict) -> list:
     # --- 3. Results ---
     story.append(Paragraph("3. Results", styles["H1"]))
     story.append(Paragraph(
+        "Before the summary table, here is what the primary method actually measures, shown for "
+        "drug overdose: the cause with the largest acute disruption and the clearest before-and-"
+        "after pattern. The solid line is the real observed rate. The dashed gray line is what "
+        "the 1999-2019 trend would have predicted for 2020-2024 had nothing changed, with its 95% "
+        "prediction interval shown as the two thin pink lines around it. A year counts as "
+        "significantly disrupted when the solid line steps outside that interval, which is "
+        "exactly what happens starting in 2020 and what pulls back toward it by 2024.",
+        styles["Body"]
+    ))
+    story.append(make_trajectory_chart("Drug overdose", national_series, deviations))
+    story.append(Paragraph(
+        "Figure 1. Drug overdose: observed mortality rate against its pre-pandemic trend, "
+        "1999-2024.", styles["Caption"]
+    ))
+    story.append(Paragraph(
         f"<b>{n_disrupted} of 6</b> test causes show a significant disruption; "
         f"<b>{int(s['fdr_significant'].sum())} of 6</b> survive FDR correction.", styles["Body"]
     ))
@@ -250,7 +342,7 @@ def build(data: dict) -> list:
     ))
     story.append(Spacer(1, 6))
     story.append(make_deviation_chart(s))
-    story.append(Paragraph("Figure 1. Mean 2020-2021 deviation from expected trend, by cause.", styles["Caption"]))
+    story.append(Paragraph("Figure 2. Mean 2020-2021 deviation from expected trend, by cause.", styles["Caption"]))
 
     story.append(Paragraph("The two results that weren't supposed to happen this way", styles["H2"]))
     cancer = s[s["cause"] == "Malignant neoplasms"].iloc[0]
