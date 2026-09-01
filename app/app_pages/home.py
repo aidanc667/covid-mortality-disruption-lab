@@ -2,7 +2,7 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, data_available, synthetic_banner,
-    heterogeneity_synthetic_banner,
+    heterogeneity_synthetic_banner, TEST_CAUSES, CAUSE_BADGE_STYLE,
 )
 
 st.title("COVID Mortality Disruption Lab")
@@ -30,6 +30,29 @@ st.write(
     "**The central question isn't simply how many people died during COVID-19. It's whether the "
     "pandemic changed the mortality landscape that followed.**"
 )
+
+st.subheader("The breaking point")
+st.caption(
+    "COVID-19 itself is not one of the causes tested below — it's the fixed, known-date shock "
+    "the whole analysis is built around. Every cause is compared against the trend it was already "
+    "on before this date, not searched for after the fact."
+)
+with st.container(border=True):
+    st.badge("COVID-19", icon=":material/coronavirus:", color="primary")
+    st.write("**March 2020 — the pandemic's onset, fixed as the breakpoint**")
+    st.caption(
+        "Shown as a reference series, not tested for its own disruption — COVID-19 mortality "
+        "is the event every other cause below is being tested against, not a hypothesis in itself."
+    )
+
+st.subheader("What we're testing")
+st.caption("Six major causes of death, each tested independently against its own 1999–2019 baseline trend.")
+cause_grid = st.columns(3)
+for i, cause in enumerate(TEST_CAUSES):
+    badge_color, icon = CAUSE_BADGE_STYLE[cause]
+    with cause_grid[i % 3]:
+        with st.container(border=True, width="stretch"):
+            st.badge(cause, icon=icon, color=badge_color)
 
 st.subheader("What we did")
 steps = st.container(horizontal=True)
