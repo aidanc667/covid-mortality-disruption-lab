@@ -42,7 +42,7 @@ def render_county_choropleth(disruption_df: pd.DataFrame, cause: str, value_col:
                     # the ~8% of men with red-green color vision deficiency
                     # this map would otherwise be unreadable for.
                     scale=alt.Scale(scheme="blueorange", domain=[-vmax, vmax]),
-                    title="Disruption (post − pre, crude rate)",
+                    title="Disruption",
                     legend=alt.Legend(orient="bottom", gradientLength=280),
                 ),
                 alt.value("#E5E7EB"),

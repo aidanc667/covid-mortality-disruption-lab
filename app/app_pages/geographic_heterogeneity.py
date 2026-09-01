@@ -4,7 +4,7 @@ import streamlit as st
 from app.components.data_loading import (
     load_heterogeneity_summary, load_county_disruption, load_heterogeneity_selection_bias,
     load_heterogeneity_rurality_robustness, data_available, heterogeneity_synthetic_banner,
-    HETEROGENEITY_CAUSES,
+    HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS,
 )
 from app.components.county_map import render_county_choropleth
 
@@ -51,14 +51,16 @@ with st.container(horizontal=True):
         st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
 
 st.subheader(f"Context-variable associations — {cause}")
+cause_het_display = cause_het.copy()
+cause_het_display["variable"] = cause_het_display["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het_display["variable"])
 st.dataframe(
-    cause_het[["variable", "slope", "p_value", "n", "fdr_significant"]],
+    cause_het_display[["variable", "slope", "p_value", "n", "fdr_significant"]],
     column_config={
-        "variable": st.column_config.TextColumn("Context variable", width="medium"),
-        "slope": st.column_config.NumberColumn("Slope", format="%.3f"),
-        "p_value": st.column_config.NumberColumn("p-value", format="%.4g"),
-        "n": "Counties",
-        "fdr_significant": "FDR-significant",
+        "variable": st.column_config.TextColumn("Context variable", width="large"),
+        "slope": st.column_config.NumberColumn("Slope", format="%.3f", width="small"),
+        "p_value": st.column_config.NumberColumn("p-value", format="%.4g", width="small"),
+        "n": st.column_config.NumberColumn("Counties", width="small"),
+        "fdr_significant": st.column_config.CheckboxColumn("FDR-significant", width="small"),
     },
     hide_index=True,
     width="stretch",

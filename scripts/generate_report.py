@@ -23,6 +23,19 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
 
+# Duplicated from app/components/data_loading.py's CONTEXT_VAR_LABELS
+# rather than imported, to keep this standalone script fully decoupled
+# from the Streamlit app runtime. Human-readable labels for the raw CHR&R
+# context-variable column names -- found rendering illegibly as raw
+# column names (e.g. "median_income_chr") in an earlier version.
+CONTEXT_VAR_LABELS = {
+    "pct_uninsured_chr": "% uninsured",
+    "pct_smokers": "% adult smokers",
+    "pct_obese": "% adult obesity",
+    "median_income_chr": "Median household income",
+    "pct_rural": "% rural",
+}
+
 OUTPUT_PATH = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
 
 styles = getSampleStyleSheet()
@@ -86,7 +99,7 @@ def make_heterogeneity_chart(het_cause_df: pd.DataFrame) -> Drawing:
     chart.x, chart.y = 50, 30
     chart.width, chart.height = 380, 130
     chart.data = [list(ordered["slope"])]
-    chart.categoryAxis.categoryNames = list(ordered["variable"].str.replace("_chr", "").str.replace("pct_", "% ").str.replace("_", " "))
+    chart.categoryAxis.categoryNames = [CONTEXT_VAR_LABELS.get(v, v) for v in ordered["variable"]]
     chart.categoryAxis.labels.fontSize = 7
     chart.categoryAxis.labels.angle = 20
     chart.categoryAxis.labels.dy = -12
@@ -180,7 +193,7 @@ def build(data: dict) -> list:
         "primary method tests one specific pre-registered date, while the cross-check methods "
         "search the whole series for whichever single breakpoint fits best.", styles["Body"]))
     story.append(Paragraph("<b>Negative control.</b> The identical pipeline run on a cause with no "
-        "plausible COVID mechanism. A significant result there would indicate the method is "
+        "direct COVID mechanism. A significant result there would indicate the method is "
         "detecting an artifact, not a real signal &mdash; a hard gate, not a footnote.", styles["Body"]))
     story.append(Paragraph("<b>Multiple-testing correction.</b> Benjamini-Hochberg FDR correction "
         "applied across the 6 test causes as one family, separately from the heterogeneity-stage "
@@ -324,7 +337,8 @@ def build(data: dict) -> list:
         story.append(Paragraph(f"{cause} &mdash; {n_fdr_het} of {len(cause_het)} context variables survive FDR correction", styles["H2"]))
         het_table_data = [["Context variable", "Slope", "p-value", "FDR-sig."]]
         for _, r in cause_het.iterrows():
-            het_table_data.append([r["variable"], f"{r['slope']:.3f}", f"{r['p_value']:.3g}", "Yes" if r["fdr_significant"] else "No"])
+            var_label = CONTEXT_VAR_LABELS.get(r["variable"], r["variable"])
+            het_table_data.append([var_label, f"{r['slope']:.3f}", f"{r['p_value']:.3g}", "Yes" if r["fdr_significant"] else "No"])
         het_table = Table(het_table_data, colWidths=[2.2 * inch, 1.1 * inch, 1.0 * inch, 0.9 * inch])
         het_table.setStyle(TABLE_HEADER_STYLE)
         story.append(het_table)

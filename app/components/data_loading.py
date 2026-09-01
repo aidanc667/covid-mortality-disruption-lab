@@ -45,6 +45,18 @@ CAUSE_BADGE_STYLE = {
     NEGATIVE_CONTROL: ("gray", ":material/verified:"),
 }
 
+# Human-readable labels for the raw CHR&R context-variable column names
+# (found truncating illegibly in st.dataframe cells otherwise, e.g.
+# "median_income_chr" -- widening the column just shows an ugly raw name
+# for longer, this maps to what county_deep_dive.py already displays).
+CONTEXT_VAR_LABELS = {
+    "pct_uninsured_chr": "% uninsured",
+    "pct_smokers": "% adult smokers",
+    "pct_obese": "% adult obesity",
+    "median_income_chr": "Median household income",
+    "pct_rural": "% rural",
+}
+
 
 @st.cache_data(ttl="1h")
 def load_national_series() -> pd.DataFrame:

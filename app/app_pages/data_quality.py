@@ -38,7 +38,7 @@ st.caption(
 if passed:
     st.success(
         f"{neg_control['cause']} mortality — a cause concentrated in infancy with no "
-        "plausible COVID mechanism — shows no significant disruption on raw death counts, "
+        "direct COVID mechanism — shows no significant disruption on raw death counts, "
         "as expected. This does not prove the methodology is artifact-free, but a failure "
         "here would have been strong evidence that it is.",
         icon=":material/check_circle:",

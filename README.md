@@ -12,7 +12,7 @@ The app includes an interactive U.S. county choropleth map (Geographic heterogen
 
 ## Approach
 
-A known-date interrupted time series ("excess mortality") design against a 1999–2019 baseline trend, cross-validated with independent change-point detection, a negative control (a cause with no plausible COVID mechanism), and Benjamini-Hochberg FDR correction across the 6 tested causes. County-level heterogeneity regresses per-county disruption magnitude against real socioeconomic/healthcare-access context variables (County Health Rankings & Roadmaps).
+A known-date interrupted time series ("excess mortality") design against a 1999–2019 baseline trend, cross-validated with independent change-point detection, a negative control (a cause with no direct COVID mechanism), and Benjamini-Hochberg FDR correction across the 6 tested causes. County-level heterogeneity regresses per-county disruption magnitude against real socioeconomic/healthcare-access context variables (County Health Rankings & Roadmaps).
 
 Full methodology, pre-registered hypotheses, statistical methods, and every deviation logged as it happened: [`docs/research_protocol.md`](docs/research_protocol.md).
 

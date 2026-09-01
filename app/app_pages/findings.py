@@ -4,6 +4,7 @@ from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary,
     load_heterogeneity_selection_bias, load_heterogeneity_rurality_robustness,
     load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner, TEST_CAUSES,
+    CONTEXT_VAR_LABELS,
 )
 from src.utils.config import OUTPUTS_REPORTS
 
@@ -116,7 +117,7 @@ with st.container(horizontal=True):
         )
 st.write(
     "Before trusting any of the above, the pipeline runs the identical method on a cause with no "
-    "plausible COVID mechanism — congenital malformations and chromosomal abnormalities, concentrated "
+    "direct COVID mechanism — congenital malformations and chromosomal abnormalities, concentrated "
     "in infancy and driven by prenatal/genetic factors. It passed: no significant disruption. This "
     "doesn't prove every positive result above is real, but a failure here would have been strong "
     "evidence the method was just detecting noise or a database artifact — and it didn't fail."
@@ -167,18 +168,20 @@ st.write(
     "associated with socioeconomic and healthcare-access context:"
 )
 for cause in ["Diabetes mellitus", "Drug overdose"]:
-    cause_het = het[het["cause"] == cause].sort_values("p_value")
+    cause_het = het[het["cause"] == cause].sort_values("p_value").copy()
+    cause_het["variable"] = cause_het["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het["variable"])
     n_fdr_het = int(cause_het["fdr_significant"].sum())
     st.write(f"**{cause}** — {n_fdr_het} of {len(cause_het)} context variables survive FDR correction:")
     st.dataframe(
         cause_het[["variable", "slope", "p_value", "fdr_significant"]],
         column_config={
-            "variable": "Context variable",
-            "slope": st.column_config.NumberColumn("Direction/magnitude", format="%.2f"),
-            "p_value": st.column_config.NumberColumn("p-value", format="%.3g"),
-            "fdr_significant": st.column_config.CheckboxColumn("FDR-significant"),
+            "variable": st.column_config.TextColumn("Context variable", width="large"),
+            "slope": st.column_config.NumberColumn("Direction/magnitude", format="%.2f", width="small"),
+            "p_value": st.column_config.NumberColumn("p-value", format="%.3g", width="small"),
+            "fdr_significant": st.column_config.CheckboxColumn("FDR-significant", width="small"),
         },
         hide_index=True,
+        width="stretch",
     )
 st.write(
     "Higher uninsured rate, smoking rate, and obesity rate all predict **larger** disruption for both "

@@ -102,7 +102,15 @@ with st.expander("Causal language policy", icon=":material/gavel:"):
 
 with st.expander("Known limitations", icon=":material/warning:"):
     st.write(
-        "- Observational, ecological design — no individual-level causal inference\n"
+        "- Observational, ecological design — no individual-level causal inference. The "
+        "county-level heterogeneity stage carries **ecological fallacy** risk by name: a "
+        "county-average relationship doesn't necessarily hold at the individual level\n"
+        "- **Selection bias in the county-level heterogeneity sample**: counties excluded by the "
+        "suppression filter are disproportionately rural (77.7% rural excluded vs. 31.5% "
+        "included for diabetes; 74.4% vs. 23.8% for overdose). The rurality finding is more "
+        "trustworthy for diabetes (holds up among more-rural included counties) than for drug "
+        "overdose (driven by less-rural counties, not significant among more-rural ones) — see "
+        "Geographic Heterogeneity for the full check\n"
         "- Mortality-vintage discontinuity between the two CDC WONDER databases\n"
         "- ICD-10 coding practices may have shifted during 2020–2021 due to strain on death-certification systems\n"
         "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that — cancer shows a significant, still-persisting disruption, not the null originally expected\n"
