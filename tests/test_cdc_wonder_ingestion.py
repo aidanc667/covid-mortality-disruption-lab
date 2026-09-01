@@ -156,3 +156,52 @@ def test_load_manual_export_dedup_key_includes_cause(tmp_path):
     path.write_text("\n".join(lines + ["---", '"Total"']))
     with pytest.raises(ValueError, match="Duplicate"):
         load_manual_export(subdir_files=[path])
+
+
+NATIONAL_HEADER = "Year\tDeaths\tPopulation\tCrude Rate\tAge Adjusted Rate"
+STATE_HEADER = "State\tState Code\tYear\tDeaths\tPopulation\tCrude Rate\tAge Adjusted Rate"
+
+
+def test_load_manual_export_national_level_has_no_location_columns(tmp_path):
+    # Shaped exactly like the real national-level drowning export
+    # (verified 2026-09-01): no County or State columns at all.
+    lines = [NATIONAL_HEADER, "1999\t3529\t279040168\t1.3\t1.3", "2000\t3482\t281421906\t1.2\t1.2"]
+    path = tmp_path / "national.txt"
+    path.write_text("\n".join(lines + ["---", '"Total"']))
+
+    result = load_manual_export(subdir_files=[path], cause_label="Accidental drowning")
+    assert result.geography == "national"
+    assert "county_fips" not in result.df.columns
+    assert "state_code" not in result.df.columns
+    assert result.n_rows == 2
+    assert result.df.iloc[0]["deaths"] == 3529
+
+
+def test_load_manual_export_state_level_detected(tmp_path):
+    lines = [STATE_HEADER, "Alabama\t01\t2020\t45\t5000000\t0.9\t0.9"]
+    path = tmp_path / "state.txt"
+    path.write_text("\n".join(lines + ["---", '"Total"']))
+
+    result = load_manual_export(subdir_files=[path], cause_label="Drug overdose")
+    assert result.geography == "state"
+    assert "county_fips" not in result.df.columns
+    assert result.df.iloc[0]["state_code"] == "01"
+
+
+def test_load_manual_export_raises_on_mixed_geography_across_files(tmp_path):
+    national = tmp_path / "national.txt"
+    national.write_text("\n".join([NATIONAL_HEADER, "1999\t100\t1000000\t1.0\t1.0", "---", '"Total"']))
+    state = tmp_path / "state.txt"
+    state.write_text("\n".join([STATE_HEADER, "Alabama\t01\t1999\t10\t500000\t2.0\t2.0", "---", '"Total"']))
+
+    with pytest.raises(ValueError, match="Mixed geography"):
+        load_manual_export(subdir_files=[national, state], cause_label="Diabetes mellitus")
+
+
+def test_load_manual_export_county_level_still_works_backward_compatible(tmp_path):
+    f = _write_fixture(tmp_path, "county.txt", [
+        "Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5",
+    ])
+    result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
+    assert result.geography == "county"
+    assert result.df.iloc[0]["county_fips"] == "01001"
