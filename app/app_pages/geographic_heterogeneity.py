@@ -51,13 +51,14 @@ st.subheader(f"Context-variable associations — {cause}")
 st.dataframe(
     cause_het[["variable", "slope", "p_value", "n", "fdr_significant"]],
     column_config={
-        "variable": "Context variable",
+        "variable": st.column_config.TextColumn("Context variable", width="medium"),
         "slope": st.column_config.NumberColumn("Slope", format="%.3f"),
         "p_value": st.column_config.NumberColumn("p-value", format="%.4g"),
         "n": "Counties",
         "fdr_significant": "FDR-significant",
     },
     hide_index=True,
+    width="stretch",
 )
 
 n_fdr = int(cause_het["fdr_significant"].sum())
@@ -86,4 +87,5 @@ with st.expander("County-level disruption distribution and full table"):
             "disruption": st.column_config.NumberColumn("Disruption", format="%.1f"),
         },
         hide_index=True,
+        width="stretch",
     )

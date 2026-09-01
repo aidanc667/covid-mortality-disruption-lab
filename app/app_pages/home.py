@@ -80,11 +80,18 @@ else:
             st.caption(":material/functions: Benjamini-Hochberg across the 6-cause family")
         with st.container(border=True):
             reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"]
+            reversed_value = reversed_causes.iloc[0] if len(reversed_causes) else "None"
             st.metric(
-                "Reversed trajectory", reversed_causes.iloc[0] if len(reversed_causes) else "None", border=False,
-                help="A cause 'reverses' if it spiked one direction, then swung back past the "
-                     "pre-pandemic trend in the opposite direction. None of the 6 causes did this "
-                     "— whatever changed, stayed changed in the same direction.",
+                "Reversed trajectory", reversed_value if len(reversed_value) <= 12 else f"{len(reversed_causes)}",
+                border=False,
+                help=(
+                    f"{reversed_value} — a cause 'reverses' if it spiked one direction, then swung "
+                    "back past the pre-pandemic trend in the opposite direction."
+                    if len(reversed_causes) else
+                    "A cause 'reverses' if it spiked one direction, then swung back past the "
+                    "pre-pandemic trend in the opposite direction. None of the 6 causes did this "
+                    "— whatever changed, stayed changed in the same direction."
+                ),
             )
             st.caption(":material/u_turn_right: Spiked, then declined below the pre-pandemic trend")
         with st.container(border=True):

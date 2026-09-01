@@ -22,9 +22,13 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.metric("Status", "Passed" if passed else "FAILED")
     with st.container(border=True):
-        st.metric("Classification (raw counts, gating metric)", neg_control["persistence_class_counts"])
+        st.caption("Classification", help="Computed on raw death counts (the actual gating metric), not age-adjusted rate — see note below.")
+        st.badge(
+            neg_control["persistence_class_counts"],
+            color="gray" if neg_control["persistence_class_counts"] == "No significant disruption" else "red",
+        )
     with st.container(border=True):
-        st.metric("p-value (raw counts)", f"{neg_control['p_value_counts']:.4g}")
+        st.metric("p-value", f"{neg_control['p_value_counts']:.4g}", help="Computed on raw death counts, the gating metric.")
 
 st.caption(
     f"Cause: **{neg_control['cause']}**. Gate decision computed on {neg_control['gate_metric']}, "
@@ -63,9 +67,15 @@ st.subheader("Multiple-testing correction")
 summary = load_disruption_summary()
 with st.container(horizontal=True):
     with st.container(border=True):
-        st.metric("6-cause family, raw p<0.05", int((summary["p_value"] < 0.05).sum()))
+        st.metric(
+            "Raw p<0.05", int((summary["p_value"] < 0.05).sum()),
+            help="Of the 6-cause family, how many clear the standard (uncorrected) significance threshold.",
+        )
     with st.container(border=True):
-        st.metric("6-cause family, FDR-significant", int(summary["fdr_significant"].sum()))
+        st.metric(
+            "FDR-significant", int(summary["fdr_significant"].sum()),
+            help="Of the 6-cause family, how many still clear the stricter, multiple-testing-adjusted threshold.",
+        )
 st.caption(
     "Benjamini-Hochberg correction is applied across the 6 substantive test causes as one "
     "family (research_protocol.md §7a) — a stricter bar than testing each cause in isolation."
@@ -100,11 +110,12 @@ else:
 st.dataframe(
     bridging.sort_values("median_relative_offset", ascending=False),
     column_config={
-        "cause": "Cause",
+        "cause": st.column_config.TextColumn("Cause", width="large"),
         "reliable": st.column_config.CheckboxColumn("Reliable (≤10%)"),
         "median_relative_offset": st.column_config.NumberColumn("Median relative offset", format="percent"),
     },
     hide_index=True,
+    width="stretch",
 )
 st.caption(
     "Measured from the 2018–2019 years present in both database vintages "
@@ -153,14 +164,15 @@ else:
             st.dataframe(
                 check_rows[["cause", "primary_classification", "primary_p_value", "alt_classification", "alt_p_value", "agrees"]],
                 column_config={
-                    "cause": "Cause",
-                    "primary_classification": "Classification (primary)",
+                    "cause": st.column_config.TextColumn("Cause", width="large"),
+                    "primary_classification": st.column_config.TextColumn("Classification (primary)", width="medium"),
                     "primary_p_value": st.column_config.NumberColumn("p-value (primary)", format="%.4g"),
-                    "alt_classification": "Classification (alternate)",
+                    "alt_classification": st.column_config.TextColumn("Classification (alternate)", width="medium"),
                     "alt_p_value": st.column_config.NumberColumn("p-value (alternate)", format="%.4g"),
                     "agrees": st.column_config.CheckboxColumn("Agrees"),
                 },
                 hide_index=True,
+                width="stretch",
             )
 
     st.caption(

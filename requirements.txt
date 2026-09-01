@@ -3,6 +3,7 @@ numpy
 scipy
 ruptures
 streamlit
+altair
 requests
 pyarrow
 pytest

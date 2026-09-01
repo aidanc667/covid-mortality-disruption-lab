@@ -58,7 +58,8 @@ st.badge(cause, icon=icon, color=badge_color)
 
 with st.container(horizontal=True):
     with st.container(border=True):
-        st.metric("Result", r["persistence_class"])
+        st.caption("Result")
+        st.badge(r["persistence_class"], icon=CLASS_ICON.get(r["persistence_class"], ":material/help:"), color="gray" if r["persistence_class"] == "No significant disruption" else "red")
     with st.container(border=True):
         st.metric("2020–21 deviation", f"{r['acute_pct_deviation']:+.1f}%")
     with st.container(border=True):

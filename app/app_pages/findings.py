@@ -49,14 +49,15 @@ display = summary.sort_values("p_value").copy()
 st.dataframe(
     display[["cause", "persistence_class", "p_value", "fdr_significant", "acute_pct_deviation", "latest_pct_deviation"]],
     column_config={
-        "cause": "Cause",
-        "persistence_class": "Result",
+        "cause": st.column_config.TextColumn("Cause", width="medium"),
+        "persistence_class": st.column_config.TextColumn("Result", width="medium"),
         "p_value": st.column_config.NumberColumn("p-value", format="%.3g"),
         "fdr_significant": st.column_config.CheckboxColumn("Survives FDR"),
         "acute_pct_deviation": st.column_config.NumberColumn("2020–21 deviation", format="%+.1f%%"),
         "latest_pct_deviation": st.column_config.NumberColumn("2024 deviation", format="%+.1f%%"),
     },
     hide_index=True,
+    width="stretch",
 )
 st.caption(
     "\"Deviation\" is the effect size — how far the observed rate is from the expected pre-pandemic "
@@ -108,7 +109,10 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.metric("Cause tested", neg_control["cause"].split(",")[0])
     with st.container(border=True):
-        st.metric("p-value (gating metric)", f"{neg_control['p_value_counts']:.3g}")
+        st.metric(
+            "p-value", f"{neg_control['p_value_counts']:.3g}",
+            help="Computed on raw death counts, the actual gating metric — not age-adjusted rate.",
+        )
 st.write(
     "Before trusting any of the above, the pipeline runs the identical method on a cause with no "
     "plausible COVID mechanism — congenital malformations and chromosomal abnormalities, concentrated "
