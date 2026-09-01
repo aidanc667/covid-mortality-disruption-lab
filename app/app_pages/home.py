@@ -27,8 +27,8 @@ st.write(
     "across U.S. counties by socioeconomic status, healthcare access, and rurality."
 )
 st.write(
-    "**The central question isn't simply how many people died during COVID-19. It's whether the "
-    "pandemic changed the mortality landscape that followed.**"
+    "The central question isn't simply how many people died during COVID-19. It's whether the "
+    "pandemic changed the mortality landscape that followed."
 )
 
 st.subheader("The breaking point")
