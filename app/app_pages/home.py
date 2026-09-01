@@ -29,31 +29,31 @@ st.write(
 
 if not data_available():
     st.warning(
-        "No precomputed results found yet. Run `python scripts/run_covid_disruption_pipeline.py` "
-        "(or the real pipeline, once available) to populate outputs/models/.",
+        "No precomputed results found yet. Run `python -m scripts.run_covid_disruption_pipeline` "
+        "to populate outputs/models/.",
         icon=":material/warning:",
     )
 else:
     summary = load_disruption_summary()
     neg_control = load_negative_control().iloc[0]
+    passed = bool(neg_control["passed"])
 
     with st.container(horizontal=True):
         with st.container(border=True):
             n_disrupted = int((summary["persistence_class"] != "No significant disruption").sum())
-            st.metric("Causes with a significant disruption", f"{n_disrupted} of {len(summary)}")
-            st.caption("6 test causes, FDR-corrected (§7a)")
+            st.metric("Causes with a significant disruption", f"{n_disrupted} of {len(summary)}", border=False)
+            st.caption(":material/trending_up: 6 test causes, FDR-corrected (§7a)")
         with st.container(border=True):
             n_fdr = int(summary["fdr_significant"].sum())
-            st.metric("Survive FDR correction", f"{n_fdr} of {len(summary)}")
-            st.caption("Benjamini-Hochberg across the 6-cause family")
+            st.metric("Survive FDR correction", f"{n_fdr} of {len(summary)}", border=False)
+            st.caption(":material/functions: Benjamini-Hochberg across the 6-cause family")
         with st.container(border=True):
             reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"]
-            st.metric("Reversed trajectory", reversed_causes.iloc[0] if len(reversed_causes) else "None")
-            st.caption("Spiked, then declined below the pre-pandemic trend")
+            st.metric("Reversed trajectory", reversed_causes.iloc[0] if len(reversed_causes) else "None", border=False)
+            st.caption(":material/u_turn_right: Spiked, then declined below the pre-pandemic trend")
         with st.container(border=True):
-            passed = bool(neg_control["passed"])
-            st.metric("Negative control", "Passed" if passed else "FAILED", delta=None)
-            st.caption("Congenital malformations — no plausible COVID mechanism")
+            st.metric("Negative control", "Passed" if passed else "FAILED", border=False)
+            st.caption(":material/verified: Congenital malformations — no plausible COVID mechanism")
 
     if not passed:
         st.error(
@@ -63,15 +63,29 @@ else:
             icon=":material/error:",
         )
 
-st.subheader("Explore")
-st.write(
-    "**Disruption overview** — every cause's trajectory against its expected pre-pandemic trend, side by side.\n\n"
-    "**Persistence explorer** — did each disruption persist, resolve, or reverse through 2024?\n\n"
-    "**Geographic heterogeneity** — which county characteristics are associated with disruption size.\n\n"
-    "**County deep dive** — inspect one county's disruption relative to its context.\n\n"
-    "**Data quality** — suppression, the vintage-bridging discontinuity, and the negative control, shown rather than hidden.\n\n"
-    "**Methods** — every statistical choice, threshold, and pre-registered hypothesis, made explicit."
-)
+st.subheader("Start here")
+row1 = st.container(horizontal=True)
+with row1:
+    with st.container(border=True, width="stretch"):
+        st.markdown(":material/insights: **Findings**")
+        st.caption("The plain-language summary — what we found, and the two results that contradicted our own priors.")
+        st.page_link("app_pages/findings.py", label="Read the findings", icon=":material/arrow_forward:")
+    with st.container(border=True, width="stretch"):
+        st.markdown(":material/monitor_heart: **Causes of death**")
+        st.caption("Deep dive into each of the 6 causes: the data, the effect size, and possible reasons why.")
+        st.page_link("app_pages/causes.py", label="Explore by cause", icon=":material/arrow_forward:")
+
+row2 = st.container(horizontal=True)
+with row2:
+    with st.container(border=True, width="stretch"):
+        st.markdown(":material/map: **Geographic heterogeneity**")
+        st.caption("An interactive U.S. county map — where disruption was largest, and what predicts it.")
+        st.page_link("app_pages/geographic_heterogeneity.py", label="See the map", icon=":material/arrow_forward:")
+    with st.container(border=True, width="stretch"):
+        st.markdown(":material/fact_check: **Data quality**")
+        st.caption("Suppression, vintage bridging, the negative control, and sensitivity analysis — shown, not hidden.")
+        st.page_link("app_pages/data_quality.py", label="Check the rigor", icon=":material/arrow_forward:")
+
 heterogeneity_synthetic_banner()
 
 with st.expander("Ethics statement", icon=":material/balance:"):

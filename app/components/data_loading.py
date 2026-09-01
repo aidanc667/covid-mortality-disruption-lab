@@ -17,6 +17,34 @@ TEST_CAUSES = [
 NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnormalities"
 HETEROGENEITY_CAUSES = ["Diabetes mellitus", "Drug overdose"]
 
+# Matches .streamlit/config.toml's chartCategoricalColors, in the same
+# TEST_CAUSES + NEGATIVE_CONTROL order, so a cause renders the same color
+# everywhere it appears in a chart (Altair mark color -- legitimate data
+# encoding, not app-chrome theming, so it's not subject to the "no custom
+# CSS" rule that governs st.markdown/st.html styling elsewhere in the app).
+CAUSE_COLORS = {
+    "Diseases of heart": "#DC2626",
+    "Diabetes mellitus": "#2563EB",
+    "Alzheimer's disease": "#7C3AED",
+    "Cerebrovascular disease": "#EA580C",
+    "Drug overdose": "#059669",
+    "Malignant neoplasms": "#DB2777",
+    NEGATIVE_CONTROL: "#64748B",
+}
+
+# Semantic st.badge color names (Streamlit's fixed palette) paired with
+# Material Symbols icons, one per cause -- used for badges/metrics instead
+# of raw HTML/CSS, per this project's "no custom CSS unless requested" rule.
+CAUSE_BADGE_STYLE = {
+    "Diseases of heart": ("red", ":material/favorite:"),
+    "Diabetes mellitus": ("blue", ":material/water_drop:"),
+    "Alzheimer's disease": ("violet", ":material/psychology:"),
+    "Cerebrovascular disease": ("orange", ":material/bolt:"),
+    "Drug overdose": ("green", ":material/medication:"),
+    "Malignant neoplasms": ("yellow", ":material/biotech:"),
+    NEGATIVE_CONTROL: ("gray", ":material/verified:"),
+}
+
 
 @st.cache_data(ttl="1h")
 def load_national_series() -> pd.DataFrame:

@@ -8,6 +8,8 @@ Rather than treating COVID-19 as the disease under study, this project treats th
 
 92 automated tests, a pre-registered protocol locked before results were inspected, a negative control, a three-axis sensitivity analysis, effect-size reporting, and full vintage-bridging/suppression handling — all shown directly in the app's Data Quality page, not hidden.
 
+The app includes an interactive U.S. county choropleth map (Geographic heterogeneity page) and a per-cause deep-dive (Causes of death page) with the trajectory, effect size, and plausible research-literature reasoning for each of the 6 test causes.
+
 ## Approach
 
 A known-date interrupted time series ("excess mortality") design against a 1999–2019 baseline trend, cross-validated with independent change-point detection, a negative control (a cause with no plausible COVID mechanism), and Benjamini-Hochberg FDR correction across the 6 tested causes. County-level heterogeneity regresses per-county disruption magnitude against real socioeconomic/healthcare-access context variables (County Health Rankings & Roadmaps).

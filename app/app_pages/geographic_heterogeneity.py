@@ -5,6 +5,7 @@ from app.components.data_loading import (
     load_heterogeneity_summary, load_county_disruption, data_available, heterogeneity_synthetic_banner,
     HETEROGENEITY_CAUSES,
 )
+from app.components.county_map import render_county_choropleth
 
 st.title("Geographic heterogeneity")
 heterogeneity_synthetic_banner()
@@ -19,8 +20,32 @@ if not data_available():
 
 het = load_heterogeneity_summary()
 
-cause = st.selectbox("Cause", options=HETEROGENEITY_CAUSES)
+cause = st.segmented_control("Cause", options=HETEROGENEITY_CAUSES, default=HETEROGENEITY_CAUSES[0])
+if cause is None:
+    st.stop()
 cause_het = het[het["cause"] == cause].sort_values("p_value")
+county_disruption = load_county_disruption(cause)
+
+st.subheader("Where disruption was largest")
+st.caption(
+    "Blue = mortality rate fell relative to pre-pandemic trend. Red = mortality rate rose. "
+    "Gray = excluded (fewer than 2 non-suppressed years in one or both periods). Hover a county "
+    "for its exact pre/post rates. Rates are **crude rate**, not age-adjusted — CDC WONDER does "
+    "not offer age-adjustment at county granularity for the 2018–2024 database "
+    "(research_protocol.md's 2026-09-01 addendum)."
+)
+st.altair_chart(render_county_choropleth(county_disruption, cause), width="stretch")
+
+n_counties = len(county_disruption)
+worsened = int((county_disruption["disruption"] > 0).sum())
+improved = int((county_disruption["disruption"] < 0).sum())
+with st.container(horizontal=True):
+    with st.container(border=True):
+        st.metric("Counties included", n_counties)
+    with st.container(border=True):
+        st.metric("Rate rose (worse)", f"{worsened} ({worsened / n_counties:.0%})")
+    with st.container(border=True):
+        st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
 
 st.subheader(f"Context-variable associations — {cause}")
 st.dataframe(
@@ -44,29 +69,21 @@ st.caption(
     "analysis cannot separate them."
 )
 
-st.subheader("County-level disruption distribution")
-county_disruption = load_county_disruption(cause)
-bins = pd.cut(county_disruption["disruption"], bins=15)
-hist_df = (
-    bins.value_counts().sort_index().reset_index()
-)
-hist_df.columns = ["range", "counties"]
-hist_df["range"] = hist_df["range"].apply(lambda iv: f"{iv.left:.1f} to {iv.right:.1f}")
-st.bar_chart(hist_df, x="range", y="counties")
+with st.expander("County-level disruption distribution and full table"):
+    bins = pd.cut(county_disruption["disruption"], bins=15)
+    hist_df = bins.value_counts().sort_index().reset_index()
+    hist_df.columns = ["range", "counties"]
+    hist_df["range"] = hist_df["range"].apply(lambda iv: f"{iv.left:.1f} to {iv.right:.1f}")
+    st.bar_chart(hist_df, x="range", y="counties")
 
-st.caption(
-    "Pre/post rates below are **crude rate**, not age-adjusted — CDC WONDER does not offer "
-    "age-adjustment at county granularity for the 2018–2024 database (research_protocol.md's "
-    "2026-09-01 addendum)."
-)
-st.dataframe(
-    county_disruption[["county_fips", "crude_rate_pre", "crude_rate_post", "disruption"]]
-    .sort_values("disruption", ascending=False),
-    column_config={
-        "county_fips": "County FIPS",
-        "crude_rate_pre": st.column_config.NumberColumn("Pre-period rate (crude)", format="%.1f"),
-        "crude_rate_post": st.column_config.NumberColumn("Post-period rate (crude)", format="%.1f"),
-        "disruption": st.column_config.NumberColumn("Disruption", format="%.1f"),
-    },
-    hide_index=True,
-)
+    st.dataframe(
+        county_disruption[["county_fips", "crude_rate_pre", "crude_rate_post", "disruption"]]
+        .sort_values("disruption", ascending=False),
+        column_config={
+            "county_fips": "County FIPS",
+            "crude_rate_pre": st.column_config.NumberColumn("Pre-period rate (crude)", format="%.1f"),
+            "crude_rate_post": st.column_config.NumberColumn("Post-period rate (crude)", format="%.1f"),
+            "disruption": st.column_config.NumberColumn("Disruption", format="%.1f"),
+        },
+        hide_index=True,
+    )
