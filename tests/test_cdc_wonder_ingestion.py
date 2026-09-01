@@ -205,3 +205,24 @@ def test_load_manual_export_county_level_still_works_backward_compatible(tmp_pat
     result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
     assert result.geography == "county"
     assert result.df.iloc[0]["county_fips"] == "01001"
+
+
+def test_load_manual_export_handles_missing_age_adjusted_rate_column(tmp_path):
+    # Confirmed real WONDER behavior (2026-09-01): the D158 (2018-2024
+    # Single Race) database does not offer Age-Adjusted Rate at all when
+    # grouped by County -- the export has no such column, not suppressed
+    # cells within one. Must not raise; age_adjusted_rate should come back
+    # as NaN with no false suppressed/unreliable flag, since this is a
+    # database capability gap, not per-cell suppression.
+    header = "County\tCounty Code\tYear\tDeaths\tPopulation\tCrude Rate"
+    lines = [header, "Autauga County, AL\t01001\t2020\t27\t56145\t48.1"]
+    path = tmp_path / "county_no_aa_rate.txt"
+    path.write_text("\n".join(lines + ["---", '"Total"']))
+
+    result = load_manual_export(subdir_files=[path], cause_label="Diabetes mellitus")
+    assert result.geography == "county"
+    row = result.df.iloc[0]
+    assert pd.isna(row["age_adjusted_rate"])
+    assert not row["age_adjusted_rate_suppressed"]
+    assert not row["age_adjusted_rate_unreliable"]
+    assert row["crude_rate"] == 48.1

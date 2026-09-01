@@ -1,14 +1,13 @@
 """Runs the full COVID disruption pipeline.
 
-National-level disruption/persistence/negative-control analysis now runs
-on REAL CDC WONDER data (15 exports: 7 from database D76 covering
-1999-2019, 8 from database D158 covering 2018-2024 -- see
-docs/manual_data_acquisition.md). County-level heterogeneity still runs on
-SYNTHETIC data (src/utils/synthetic_covid_disruption.py), since no real
-county-level WONDER pull exists yet. These two facts are tracked by
-separate markers (src/utils/synthetic_mortality.py) so the app can be
-honest about which parts of it are real and which aren't -- a single
-blanket "synthetic" flag can't express that distinction.
+Both the national-level disruption/persistence/negative-control analysis
+AND the county-level heterogeneity analysis now run on REAL CDC WONDER
+data -- see docs/manual_data_acquisition.md for the 15 national exports
+(7 D76 + 8 D158) and the 4 county-level exports (D76 + D158, diabetes and
+drug overdose). Nothing in this pipeline is synthetic anymore; the marker
+system (src/utils/synthetic_mortality.py) is kept only so the app can
+detect and warn if someone re-runs an older synthetic-only script against
+these outputs.
 """
 from pathlib import Path
 
@@ -24,10 +23,21 @@ from src.cleaning.bridging import estimate_vintage_offset, is_bridging_reliable
 from src.ingestion.cdc_wonder import load_manual_export
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 from src.utils.config import OUTPUTS_MODELS, DATA_RAW
-from src.utils.synthetic_covid_disruption import generate_county_heterogeneity_data
-from src.utils.synthetic_mortality import (
-    mark_synthetic_active, clear_synthetic_marker, SYNTHETIC_MARKER, SYNTHETIC_HETEROGENEITY_MARKER,
-)
+from src.utils.synthetic_mortality import clear_synthetic_marker, SYNTHETIC_MARKER, SYNTHETIC_HETEROGENEITY_MARKER
+
+HETEROGENEITY_CAUSES = ["Diabetes mellitus", "Drug overdose"]
+HETEROGENEITY_PRE_YEARS = (2015, 2019)
+HETEROGENEITY_POST_YEARS = (2020, 2024)
+# County-level heterogeneity uses crude rate, not age-adjusted rate, for
+# both periods: CDC WONDER does not offer age-adjustment at all when a
+# D158 query is grouped by County (confirmed 2026-09-01 on the real
+# diabetes and overdose pulls -- no Age Adjusted Rate columns, no
+# "Standard Population" line in the query parameters). Using age-adjusted
+# rate for one period and crude for the other would not be comparable, so
+# both periods use crude_rate -- see research_protocol.md's 2026-09-01
+# addendum for the resulting limitation (crude rate doesn't control for a
+# county's own population-aging trajectory).
+HETEROGENEITY_VALUE_COL = "crude_rate"
 
 ACUTE_YEARS = (2020, 2021)
 POST_ACUTE_YEARS = (2022, 2024)
@@ -81,6 +91,22 @@ def load_real_national_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
     covid_df = covid_result.df[covid_result.df["year"] >= 2020].copy()
     return d76_df, d158_df, covid_df
+
+
+def load_real_county_data(cause: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load one heterogeneity cause's county-level pre/post exports.
+    Returns (pre_df, post_df), each already filtered to its period's year
+    range (the files are already period-scoped: D76 covers only
+    HETEROGENEITY_PRE_YEARS, D158 only HETEROGENEITY_POST_YEARS, so no
+    extra year filtering is needed beyond what's in the file)."""
+    slug = CAUSE_SLUGS[cause]
+    pre_result = load_manual_export(
+        subdir_files=[CDC_WONDER_DIR / f"d76_county_{slug}_2015_2019.csv"], cause_label=cause
+    )
+    post_result = load_manual_export(
+        subdir_files=[CDC_WONDER_DIR / f"d158_county_{slug}_2020_2024.csv"], cause_label=cause
+    )
+    return pre_result.df, post_result.df
 
 
 def check_bridging(d76_df: pd.DataFrame, d158_df: pd.DataFrame) -> pd.DataFrame:
@@ -141,16 +167,10 @@ def analyze_cause(d76_df: pd.DataFrame, d158_df: pd.DataFrame, cause: str, value
 
 
 def main():
-    # National disruption analysis is now REAL -- clear the blanket marker.
+    # Both national and county-level heterogeneity analysis are now REAL --
+    # clear both markers.
     clear_synthetic_marker(SYNTHETIC_MARKER)
-    # Heterogeneity is still synthetic -- mark that specifically.
-    mark_synthetic_active(
-        "County-level heterogeneity data is synthetic (no real county WONDER "
-        "pull yet -- see docs/manual_data_acquisition.md's 'later, smaller "
-        "scope' section). National disruption/persistence results above this "
-        "banner, on other pages, are REAL CDC WONDER data.",
-        marker_path=SYNTHETIC_HETEROGENEITY_MARKER,
-    )
+    clear_synthetic_marker(SYNTHETIC_HETEROGENEITY_MARKER)
 
     print("Loading real national WONDER data (15 files: 7 D76 + 8 D158)...")
     d76_df, d158_df, covid_df = load_real_national_data()
@@ -226,17 +246,20 @@ def main():
         national_rows.append(post[["cause", "year", "age_adjusted_rate"]])
     national_df = pd.concat(national_rows, ignore_index=True)
 
-    print("Running county-level heterogeneity analysis (SYNTHETIC -- diabetes, overdose)...")
+    print("Running county-level heterogeneity analysis (REAL -- diabetes, overdose)...")
     chr_df = load_chr_year(2024)
-    sample_counties = chr_df.sample(n=300, random_state=7)["county_fips"].tolist()
-    county_df = generate_county_heterogeneity_data(sample_counties, context_df=chr_df)
 
     heterogeneity_rows = []
-    for cause in ["Diabetes mellitus", "Drug overdose"]:
-        cause_df = county_df[county_df["cause"] == cause]
-        pre = cause_df[cause_df["period"] == "pre"]
-        post = cause_df[cause_df["period"] == "post"]
-        disruption_df = compute_county_disruption(pre, post, min_years_each_period=2)
+    for cause in HETEROGENEITY_CAUSES:
+        pre, post = load_real_county_data(cause)
+        print(
+            f"  {cause}: pre {len(pre)} rows / {pre['county_fips'].nunique()} counties, "
+            f"post {len(post)} rows / {post['county_fips'].nunique()} counties"
+        )
+        disruption_df = compute_county_disruption(
+            pre, post, value_col=HETEROGENEITY_VALUE_COL, min_years_each_period=2
+        )
+        print(f"    {len(disruption_df)} counties with >=2 non-suppressed years in both periods")
 
         context_vars = ["pct_uninsured_chr", "pct_smokers", "pct_obese", "median_income_chr", "pct_rural"]
         reg_result = regress_disruption_on_context(disruption_df, chr_df, context_vars)

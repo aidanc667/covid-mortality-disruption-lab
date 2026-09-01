@@ -35,8 +35,8 @@ with st.container(horizontal=True):
             st.write(f"**{cause}**")
             if len(row):
                 r = row.iloc[0]
-                st.metric("Pre-period rate", f"{r['age_adjusted_rate_pre']:.1f}")
-                st.metric("Post-period rate", f"{r['age_adjusted_rate_post']:.1f}", delta=f"{r['disruption']:+.1f}")
+                st.metric("Pre-period rate (crude)", f"{r['crude_rate_pre']:.1f}")
+                st.metric("Post-period rate (crude)", f"{r['crude_rate_post']:.1f}", delta=f"{r['disruption']:+.1f}")
             else:
                 st.caption("Excluded — insufficient non-missing years in one or both periods.")
 

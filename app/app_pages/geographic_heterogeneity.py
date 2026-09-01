@@ -54,13 +54,18 @@ hist_df.columns = ["range", "counties"]
 hist_df["range"] = hist_df["range"].apply(lambda iv: f"{iv.left:.1f} to {iv.right:.1f}")
 st.bar_chart(hist_df, x="range", y="counties")
 
+st.caption(
+    "Pre/post rates below are **crude rate**, not age-adjusted — CDC WONDER does not offer "
+    "age-adjustment at county granularity for the 2018–2024 database (research_protocol.md's "
+    "2026-09-01 addendum)."
+)
 st.dataframe(
-    county_disruption[["county_fips", "age_adjusted_rate_pre", "age_adjusted_rate_post", "disruption"]]
+    county_disruption[["county_fips", "crude_rate_pre", "crude_rate_post", "disruption"]]
     .sort_values("disruption", ascending=False),
     column_config={
         "county_fips": "County FIPS",
-        "age_adjusted_rate_pre": st.column_config.NumberColumn("Pre-period rate", format="%.1f"),
-        "age_adjusted_rate_post": st.column_config.NumberColumn("Post-period rate", format="%.1f"),
+        "crude_rate_pre": st.column_config.NumberColumn("Pre-period rate (crude)", format="%.1f"),
+        "crude_rate_post": st.column_config.NumberColumn("Post-period rate (crude)", format="%.1f"),
         "disruption": st.column_config.NumberColumn("Disruption", format="%.1f"),
     },
     hide_index=True,

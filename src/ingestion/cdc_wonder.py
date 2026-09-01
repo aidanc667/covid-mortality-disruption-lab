@@ -41,6 +41,16 @@ REQUIRED_COLUMNS = {
     "deaths": "Deaths",
     "population": "Population",
     "crude_rate": "Crude Rate",
+}
+
+# Present in most exports, but confirmed absent (2026-09-01) from real
+# D158 (2018-2024, Single Race) exports grouped by County -- WONDER simply
+# does not offer age-adjustment at that geography level for that database,
+# likely because single-race population estimates lack the age-stratified
+# denominators needed to standardize at fine geography. This is a whole-file
+# capability gap, not per-cell suppression, so it's handled separately from
+# REQUIRED_COLUMNS rather than raising.
+OPTIONAL_COLUMNS = {
     "age_adjusted_rate": "Age Adjusted Rate",
 }
 
@@ -68,6 +78,7 @@ class WonderLoadResult:
     n_suppressed: int
     n_unreliable: int
     geography: str  # "national", "state", or "county"
+    age_adjusted_rate_available: bool = True
 
 
 def _read_wonder_export(path: Path) -> pd.DataFrame:
@@ -190,6 +201,9 @@ def load_manual_export(
     rename_map = {v: k for k, v in REQUIRED_COLUMNS.items()}
     if geography in GEOGRAPHY_COLUMNS:
         rename_map.update({v: k for k, v in GEOGRAPHY_COLUMNS[geography].items()})
+    has_age_adjusted_rate = OPTIONAL_COLUMNS["age_adjusted_rate"] in combined.columns
+    if has_age_adjusted_rate:
+        rename_map[OPTIONAL_COLUMNS["age_adjusted_rate"]] = "age_adjusted_rate"
     combined = combined.rename(columns=rename_map)
 
     if geography == "county":
@@ -205,11 +219,20 @@ def load_manual_export(
     else:
         dedup_keys = ["year", "cause"]
 
-    for col in ("deaths", "crude_rate", "age_adjusted_rate"):
+    rate_cols = ["deaths", "crude_rate"] + (["age_adjusted_rate"] if has_age_adjusted_rate else [])
+    for col in rate_cols:
         raw_col = combined[col].astype(str)
         combined[f"{col}_suppressed"] = raw_col.isin(SUPPRESSED_TOKENS)
         combined[f"{col}_unreliable"] = raw_col.isin(UNRELIABLE_TOKENS)
         combined[col] = pd.to_numeric(combined[col], errors="coerce")
+
+    if not has_age_adjusted_rate:
+        # Whole-file capability gap, not per-cell suppression -- NaN with
+        # both flags False, never True, so downstream code can't mistake
+        # "database doesn't offer this" for "value was privacy-suppressed".
+        combined["age_adjusted_rate"] = float("nan")
+        combined["age_adjusted_rate_suppressed"] = False
+        combined["age_adjusted_rate_unreliable"] = False
 
     before = len(combined)
     combined = combined.drop_duplicates(subset=dedup_keys, keep="first")
@@ -226,6 +249,7 @@ def load_manual_export(
         n_suppressed=int(combined["deaths_suppressed"].sum()),
         n_unreliable=int(combined["age_adjusted_rate_unreliable"].sum()),
         geography=geography,
+        age_adjusted_rate_available=has_age_adjusted_rate,
     )
 
 
