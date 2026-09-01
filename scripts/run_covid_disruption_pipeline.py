@@ -11,11 +11,12 @@ these outputs.
 """
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from src.analysis.excess_mortality import (
     fit_baseline_trend, compute_deviations, classify_persistence,
-    compute_acute_pvalue, benjamini_hochberg,
+    compute_acute_pvalue, benjamini_hochberg, compute_residual_autocorrelation,
 )
 from src.analysis.changepoints import fit_pelt, fit_binseg
 from src.analysis.heterogeneity import compute_county_disruption, regress_disruption_on_context
@@ -128,7 +129,7 @@ def check_bridging(d76_df: pd.DataFrame, d158_df: pd.DataFrame) -> pd.DataFrame:
 
 def analyze_cause(
     d76_df: pd.DataFrame, d158_df: pd.DataFrame, cause: str,
-    value_col: str = "age_adjusted_rate", baseline_start_year: int = 1999,
+    value_col: str = "age_adjusted_rate", baseline_start_year: int = 1999, alpha: float = 0.05,
 ) -> dict:
     baseline = d76_df[
         (d76_df["cause"] == cause) & (d76_df["year"] >= baseline_start_year) & (d76_df["year"] <= 2019)
@@ -136,7 +137,10 @@ def analyze_cause(
     post = d158_df[(d158_df["cause"] == cause) & (d158_df["year"] >= 2020)].sort_values("year")
 
     trend = fit_baseline_trend(baseline["year"].to_numpy(), baseline[value_col].to_numpy())
-    deviations = compute_deviations(trend, post["year"].to_numpy(), post[value_col].to_numpy())
+    autocorrelation = compute_residual_autocorrelation(
+        baseline["year"].to_numpy(), baseline[value_col].to_numpy(), trend, lag=1
+    )
+    deviations = compute_deviations(trend, post["year"].to_numpy(), post[value_col].to_numpy(), alpha=alpha)
     p_value = compute_acute_pvalue(trend, deviations, ACUTE_YEARS)
     # The combined-period p-value test gates persistence classification,
     # not the per-year prediction-interval flags -- they're different
@@ -145,7 +149,7 @@ def analyze_cause(
     # significant" while the combined test's p=0.024 said it was). Both
     # numbers are shown together in the app, so they must agree.
     persistence = classify_persistence(
-        deviations, ACUTE_YEARS, POST_ACUTE_YEARS, acute_significant=(p_value < 0.05)
+        deviations, ACUTE_YEARS, POST_ACUTE_YEARS, acute_significant=(p_value < alpha)
     )
 
     # Cross-check series: D76 baseline concatenated with D158's post period
@@ -161,10 +165,28 @@ def analyze_cause(
     binseg_bps = fit_binseg(full_years, full_values, min_size=3, n_bkps=1)
     cross_check_near_2020 = any(abs(bp - 2020) <= 2 for bp in pelt_bps + binseg_bps)
 
+    # Effect size, not just significance: % deviation from the expected
+    # trend, since a p-value alone doesn't communicate magnitude to a
+    # reader who isn't fluent in statistical significance. acute_pct is
+    # the mean over ACUTE_YEARS (2020-2021); latest_pct is the most recent
+    # year alone, to show whether the gap is still as large in 2024.
+    acute_devs = [d for d in deviations if ACUTE_YEARS[0] <= d.year <= ACUTE_YEARS[1] and not np.isnan(d.deviation)]
+    acute_pct = (
+        float(np.mean([d.deviation / d.expected for d in acute_devs]) * 100) if acute_devs else float("nan")
+    )
+    latest_devs = [d for d in deviations if d.year == max(dv.year for dv in deviations)]
+    latest_pct = (
+        float(latest_devs[0].deviation / latest_devs[0].expected * 100)
+        if latest_devs and not np.isnan(latest_devs[0].deviation) else float("nan")
+    )
+
     return {
         "cause": cause,
         "persistence_class": persistence,
         "p_value": p_value,
+        "acute_pct_deviation": acute_pct,
+        "latest_pct_deviation": latest_pct,
+        "residual_autocorrelation": autocorrelation,
         "cross_check_confirms_2020": cross_check_near_2020,
         "deviations": deviations,
         "trend": trend,
@@ -225,6 +247,9 @@ def main():
             "persistence_class": r["persistence_class"],
             "p_value": r["p_value"],
             "fdr_significant": fdr_survives[cause],
+            "acute_pct_deviation": r["acute_pct_deviation"],
+            "latest_pct_deviation": r["latest_pct_deviation"],
+            "residual_autocorrelation": r["residual_autocorrelation"],
             "cross_check_confirms_2020": r["cross_check_confirms_2020"],
         })
     summary_df = pd.DataFrame(summary_rows)

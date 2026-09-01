@@ -55,6 +55,15 @@ for cause in all_causes:
                 st.caption(f"p = {r['p_value']:.4g}")
                 st.caption(f"FDR-significant: {'Yes' if r['fdr_significant'] else 'No'}")
                 st.caption(f"Cross-check (PELT/binseg) confirms ~2020: {'Yes' if r['cross_check_confirms_2020'] else 'No'}")
+            with st.container(horizontal=True):
+                st.caption(f"Acute-period (2020–21) deviation: {r['acute_pct_deviation']:+.1f}% vs. expected trend")
+                st.caption(f"Latest (2024) deviation: {r['latest_pct_deviation']:+.1f}% vs. expected trend")
+            if not r["cross_check_confirms_2020"]:
+                st.caption(
+                    "Cross-check disagreement isn't itself evidence against this result — PELT/binseg "
+                    "search the whole series for any breakpoint, while the primary method tests this "
+                    "one pre-registered date specifically. See Methods for why these can legitimately differ."
+                )
 
 if show_covid:
     st.subheader("COVID-19 (reference series, not a hypothesis test)")

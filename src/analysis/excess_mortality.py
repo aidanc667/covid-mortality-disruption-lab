@@ -50,6 +50,31 @@ def fit_baseline_trend(years: np.ndarray, values: np.ndarray) -> BaselineTrend:
     )
 
 
+def compute_residual_autocorrelation(years: np.ndarray, values: np.ndarray, trend: BaselineTrend, lag: int = 1) -> float:
+    """Lag-k autocorrelation of the baseline trend's own residuals, as a
+    diagnostic for research_protocol.md #12's documented limitation: the
+    OLS prediction-interval math in compute_deviations assumes
+    independent, identically distributed residuals year to year, but
+    annual mortality residuals are plausibly serially correlated (a rough
+    year tends to be followed by another rough year, from shared
+    underlying causes like flu-season overlap or economic conditions).
+    Strong positive autocorrelation here means the prediction interval is
+    probably too narrow and p-values overconfident -- this function
+    quantifies that risk per cause rather than leaving it as an
+    unverified caveat."""
+    years = np.asarray(years, dtype=float)
+    values = np.asarray(values, dtype=float)
+    mask = ~np.isnan(values)
+    years, values = years[mask], values[mask]
+
+    resid = values - (trend.slope * years + trend.intercept)
+    if len(resid) <= lag + 1:
+        return float("nan")
+
+    r = np.corrcoef(resid[:-lag], resid[lag:])[0, 1]
+    return float(r)
+
+
 @dataclass
 class DeviationResult:
     year: int

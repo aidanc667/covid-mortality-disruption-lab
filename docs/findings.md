@@ -6,14 +6,16 @@
 
 Of the 6 major causes of death tested, **5 show a statistically significant, still-unresolved deviation from their pre-pandemic trend, four years after the pandemic began.** None of the 5 have resolved back to their expected trend by 2024, and none have reversed direction. The one cause with no significant disruption — Alzheimer's disease — is itself a real, meaningful result, not a gap in the data.
 
-| Cause | Result | p-value | Survives FDR correction |
-|---|---|---|---|
-| Drug overdose | Persisted | 5.98 × 10⁻⁸ | Yes |
-| Diabetes mellitus | Persisted | 7.99 × 10⁻⁷ | Yes |
-| Malignant neoplasms (cancer) | Persisted | 1.94 × 10⁻⁴ | Yes |
-| Diseases of heart | Persisted | 6.33 × 10⁻⁴ | Yes |
-| Cerebrovascular disease | Persisted | 1.42 × 10⁻³ | Yes |
-| Alzheimer's disease | No significant disruption | 0.807 | No |
+| Cause | Result | p-value | Survives FDR | 2020–21 deviation | 2024 deviation |
+|---|---|---|---|---|---|
+| Drug overdose | Persisted | 5.98 × 10⁻⁸ | Yes | +40.9% | -4.3% |
+| Diabetes mellitus | Persisted | 7.99 × 10⁻⁷ | Yes | +26.9% | +15.0% |
+| Malignant neoplasms (cancer) | Persisted | 1.94 × 10⁻⁴ | Yes | +1.7% | +4.6% |
+| Diseases of heart | Persisted | 6.33 × 10⁻⁴ | Yes | +26.1% | +34.9% |
+| Cerebrovascular disease | Persisted | 1.42 × 10⁻³ | Yes | +37.0% | +57.3% |
+| Alzheimer's disease | No significant disruption | 0.807 | No | +1.0% | -19.1% |
+
+"Deviation" is the effect size — how far the observed rate is from the expected pre-pandemic trend, as a percent. This matters because significance and magnitude are different claims: cancer's disruption is real and statistically significant but an order of magnitude smaller in relative terms (1.7–4.6%) than heart disease, diabetes, cerebrovascular disease, or overdose (15–57%). And the picture keeps shifting through 2024 — drug overdose has swung to *below* its expected trend (consistent with the real, documented 2023–2024 decline in overdose deaths), while cerebrovascular disease has gotten *worse*, not better, four years on.
 
 "Persisted" means the cause's death rate moved outside its expected pre-pandemic trend starting in 2020, and as of 2024 it is still outside that expected range — not resolved, not reversed.
 
@@ -31,9 +33,15 @@ Before trusting any of the above, the pipeline runs the identical method on a ca
 
 One methodological note worth being upfront about: this wasn't the first choice. Accidental drowning was the original negative control, and it failed — it showed a real, statistically robust increase in deaths starting in 2020, confirmed on raw counts (not a rounding artifact). That's consistent with published CDC reporting on pandemic-era increases in drowning deaths (pool/beach closures, lifeguard shortages, more unsupervised time in home pools). Drowning was swapped out for congenital malformations because it was never actually COVID-independent — not because the method failed. Full account: `research_protocol.md`'s 2026-09-01 addenda.
 
-## Robustness check
+## Robustness check: does this depend on modeling choices?
 
-The primary method fits its "expected trend" baseline using 1999–2019 mortality data. A sensitivity analysis re-ran the identical method with a shorter, more recent baseline (2010–2019) to check whether the choice of window drives the results. **All 6 test causes classify identically under both windows** — same result, same FDR-significance, just tighter p-values under the shorter window. The results aren't an artifact of the baseline window choice. (`scripts/run_sensitivity_check.py`, surfaced on the app's Data Quality page.)
+Three separate sensitivity checks re-fit the primary method one modeling choice at a time (`scripts/run_sensitivity_check.py`, surfaced on the app's Data Quality page):
+
+1. **Baseline window** (1999–2019 primary vs. a shorter, more recent 2010–2019): all 6 test causes agree. Not an artifact of the window choice.
+2. **Significance threshold** (α=0.05 primary vs. a stricter α=0.01): all 6 test causes agree. Every significant result clears the stricter bar comfortably.
+3. **Baseline trend shape** (linear primary vs. allowing the pre-pandemic trend to curve/quadratic): **4 of 6 causes are robust, 2 are not.** Diabetes, drug overdose, and cancer stay significant under a curved baseline; Alzheimer's stays non-significant, consistent with the primary result. But **Diseases of heart and Cerebrovascular disease both lose significance** when the trend is allowed to curve instead of being forced into a straight line. This is a real, material limitation: part of what the linear method reads as a 2020 disruption for these two causes could instead be the natural curvature of their pre-existing trend, poorly extrapolated by a straight line. Of the 5 "Persisted" results, **diabetes, drug overdose, and cancer are the most robust** — they hold up across every axis tested — while **heart disease and cerebrovascular disease are the least robust**, both single-axis-sensitive to this one specific modeling assumption.
+
+Also worth stating plainly, since it doesn't show up in a p-value: measured lag-1 autocorrelation of each cause's own pre-pandemic residuals is large for 5 of 6 causes (0.65–0.93; only cancer is low, at 0.19). The primary method's prediction-interval math assumes independent year-to-year residuals, which this data doesn't really satisfy — meaning the reported p-values throughout this document are likely more confident than a model that accounted for this would produce. This doesn't overturn the results (the deviations found are large, and the negative control still passed), but it's a real statistical limitation, not a footnote to bury.
 
 ## Which counties were hit hardest (diabetes and drug overdose)
 

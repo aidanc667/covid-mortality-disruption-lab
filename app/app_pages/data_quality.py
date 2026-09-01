@@ -116,45 +116,56 @@ st.caption(
 st.subheader("Sensitivity analysis (research_protocol.md §8)")
 if not sensitivity_check_available():
     st.info(
-        "Not yet run. `python -m scripts.run_sensitivity_check` re-fits the primary method with "
-        "an alternate, shorter baseline (2010–2019 instead of 1999–2019) to check whether results "
-        "depend on that choice.",
+        "Not yet run. `python -m scripts.run_sensitivity_check` re-fits the primary method three "
+        "different ways (baseline window, significance threshold, baseline trend shape) to check "
+        "whether results depend on those choices.",
         icon=":material/info:",
     )
 else:
     sens = load_sensitivity_check()
-    test_cause_rows = sens[sens["cause"].isin(TEST_CAUSES)]
-    n_disagree = int((~test_cause_rows["classification_agrees"]).sum())
-    if n_disagree == 0:
-        st.success(
-            "All 6 test causes classify identically whether the baseline trend is fit on "
-            "1999–2019 (primary) or 2010–2019 (alternate, shorter window) — the primary results "
-            "are not an artifact of the baseline window choice.",
-            icon=":material/check_circle:",
-        )
-    else:
-        disagreeing = test_cause_rows.loc[~test_cause_rows["classification_agrees"], "cause"].tolist()
-        st.error(f"{n_disagree} test cause(s) classify differently depending on baseline window: {disagreeing}")
+    test_cause_checks = sens[sens["cause"].isin(TEST_CAUSES)]
 
-    st.dataframe(
-        sens[[
-            "cause", "metric", "persistence_class_primary", "p_value_primary",
-            "persistence_class_alt", "p_value_alt", "classification_agrees",
-        ]],
-        column_config={
-            "cause": "Cause",
-            "metric": "Metric",
-            "persistence_class_primary": "Classification (1999–2019 baseline)",
-            "p_value_primary": st.column_config.NumberColumn("p-value (1999–2019)", format="%.4g"),
-            "persistence_class_alt": "Classification (2010–2019 baseline)",
-            "p_value_alt": st.column_config.NumberColumn("p-value (2010–2019)", format="%.4g"),
-            "classification_agrees": st.column_config.CheckboxColumn("Agrees"),
-        },
-        hide_index=True,
-    )
+    quad_check = test_cause_checks[test_cause_checks["check"] == "baseline_trend_shape (linear vs quadratic)"]
+    quad_disagree = quad_check.loc[~quad_check["agrees"], "cause"].tolist()
+    if quad_disagree:
+        st.error(
+            f"**{len(quad_disagree)} of 6 test causes are not robust to baseline trend shape:** "
+            f"{', '.join(quad_disagree)} lose significance when the pre-pandemic baseline is fit "
+            "as a curve (quadratic) instead of a straight line (linear, the primary method). Part "
+            "of what the primary method reads as a 2020 disruption for these causes could instead "
+            "be the natural curvature of their pre-existing trend, poorly extrapolated by a "
+            "straight line. This is a real, material limitation, reported here rather than smoothed "
+            "over — see `research_protocol.md`'s 2026-09-01 sensitivity addendum.",
+            icon=":material/warning:",
+        )
+    for check_name, check_label, description in [
+        ("baseline_window (1999 vs 2010)", "1. Baseline window (1999–2019 vs. 2010–2019)",
+         "Does a shorter, more recent baseline change the result?"),
+        ("significance_threshold (0.05 vs 0.01)", "2. Significance threshold (α=0.05 vs. α=0.01)",
+         "Does a stricter significance bar change the result?"),
+        ("baseline_trend_shape (linear vs quadratic)", "3. Baseline trend shape (linear vs. quadratic)",
+         "Does allowing the pre-pandemic trend to curve, instead of forcing a straight line, change the result?"),
+    ]:
+        check_rows = sens[sens["check"] == check_name]
+        n_disagree = int((~check_rows["agrees"]).sum())
+        with st.expander(f"{check_label} — {n_disagree} disagreement(s)", expanded=(n_disagree > 0)):
+            st.caption(description)
+            st.dataframe(
+                check_rows[["cause", "primary_classification", "primary_p_value", "alt_classification", "alt_p_value", "agrees"]],
+                column_config={
+                    "cause": "Cause",
+                    "primary_classification": "Classification (primary)",
+                    "primary_p_value": st.column_config.NumberColumn("p-value (primary)", format="%.4g"),
+                    "alt_classification": "Classification (alternate)",
+                    "alt_p_value": st.column_config.NumberColumn("p-value (alternate)", format="%.4g"),
+                    "agrees": st.column_config.CheckboxColumn("Agrees"),
+                },
+                hide_index=True,
+            )
+
     st.caption(
-        "The negative control's `age_adjusted_rate` row disagreeing across windows reproduces the "
-        "already-documented rounding artifact (see the negative-control-swap note above), not a new "
-        "instability — its actual gate metric (`deaths`, shown in the second negative-control row) "
-        "is stable across both windows."
+        "The negative control's baseline-window row (age-adjusted rate) disagreeing across windows "
+        "reproduces the already-documented rounding artifact (see the negative-control-swap note "
+        "above), not a new instability — its actual gate metric (raw death counts, separate row "
+        "above) is stable across both windows."
     )

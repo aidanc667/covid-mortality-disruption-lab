@@ -17,6 +17,7 @@ page = st.navigation(
     {
         "": [
             st.Page("app_pages/home.py", title="Home", icon=":material/home:"),
+            st.Page("app_pages/findings.py", title="Findings", icon=":material/insights:"),
         ],
         "Detection": [
             st.Page("app_pages/disruption_overview.py", title="Disruption overview", icon=":material/trending_up:"),

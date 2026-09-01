@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.analysis.excess_mortality import fit_baseline_trend
+from src.analysis.excess_mortality import fit_baseline_trend, compute_residual_autocorrelation
 
 
 def test_fit_baseline_trend_recovers_known_linear_relationship():
@@ -22,6 +22,37 @@ def test_fit_baseline_trend_ignores_nan_values():
     trend = fit_baseline_trend(years, values)
     assert trend.n == 10
     assert trend.slope == pytest.approx(0.5, abs=1e-9)
+
+
+def test_compute_residual_autocorrelation_near_one_for_smooth_wandering_residuals():
+    # A slow sine-wave curvature is smooth (strongly positively
+    # autocorrelated year to year) but nonlinear, so a linear OLS fit
+    # can't absorb it into the slope the way it would a pure ramp -- real
+    # residual is left over, and it should show strong positive lag-1
+    # autocorrelation. This is the case the OLS prediction interval's
+    # independence assumption doesn't hold for.
+    years = np.arange(1999, 2020)
+    trend_line = 2.0 + 0.5 * (years - 1999)
+    x = np.arange(len(years))
+    smooth_residual = 3.0 * np.sin(x / 4.0)
+    values = trend_line + smooth_residual
+    trend = fit_baseline_trend(years, values)
+    autocorr = compute_residual_autocorrelation(years, values, trend, lag=1)
+    assert autocorr > 0.5
+
+
+def test_compute_residual_autocorrelation_near_zero_for_alternating_residuals():
+    # Residuals that flip sign every year (worst case for positive
+    # autocorrelation) should show strongly negative lag-1 autocorrelation,
+    # confirming the function actually measures sign/pattern, not just
+    # returning a constant.
+    years = np.arange(1999, 2020)
+    trend_line = 2.0 + 0.5 * (years - 1999)
+    alternating_residual = np.array([1.0 if i % 2 == 0 else -1.0 for i in range(len(years))])
+    values = trend_line + alternating_residual
+    trend = fit_baseline_trend(years, values)
+    autocorr = compute_residual_autocorrelation(years, values, trend, lag=1)
+    assert autocorr < -0.5
 
 
 def test_fit_baseline_trend_raises_with_too_few_points():
