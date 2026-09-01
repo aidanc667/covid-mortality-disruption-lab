@@ -41,6 +41,21 @@ def compute_county_disruption(
     ].copy()
 
     merged["disruption"] = merged[f"{value_col}_post"] - merged[f"{value_col}_pre"]
+
+    # County names aren't needed for the regression itself, but any UI
+    # listing individual counties (app/app_pages/county_deep_dive.py) needs
+    # something more identifiable than an opaque 5-digit FIPS code. Real CDC
+    # WONDER exports carry a "county" column (src/ingestion/cdc_wonder.py);
+    # prefer post_period's (the more recent pull) and fall back to
+    # pre_period's if only one has it. Older synthetic fixtures and this
+    # module's own other unit tests don't carry "county" at all, so this
+    # must degrade gracefully rather than raise.
+    for source in (post_period, pre_period):
+        if "county" in source.columns:
+            name_lookup = source.drop_duplicates("county_fips").set_index("county_fips")["county"]
+            merged["county_name"] = merged["county_fips"].map(name_lookup)
+            break
+
     return merged
 
 

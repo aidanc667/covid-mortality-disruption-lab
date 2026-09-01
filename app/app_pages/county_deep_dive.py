@@ -22,9 +22,27 @@ if not data_available():
 frames = [load_county_disruption(c) for c in HETEROGENEITY_CAUSES]
 combined = pd.concat(frames, ignore_index=True)
 
-county_fips = st.selectbox("Select a county (FIPS)", options=sorted(combined["county_fips"].unique()))
+# County names come from the real CDC WONDER export
+# (src/analysis/heterogeneity.compute_county_disruption attaches them) --
+# a bare 5-digit FIPS code isn't something anyone has memorized, so the
+# selector needs a human-readable label even though FIPS remains the
+# actual lookup key everywhere else on this page.
+name_lookup = {}
+if "county_name" in combined.columns:
+    name_lookup = (
+        combined.dropna(subset=["county_name"])
+        .drop_duplicates("county_fips")
+        .set_index("county_fips")["county_name"]
+        .to_dict()
+    )
 
-st.subheader(f"County {county_fips}")
+county_fips = st.selectbox(
+    "Select a county",
+    options=sorted(combined["county_fips"].unique()),
+    format_func=lambda fips: f"{name_lookup[fips]} ({fips})" if fips in name_lookup else fips,
+)
+
+st.subheader(name_lookup.get(county_fips, f"County {county_fips}"))
 
 county_rows = combined[combined["county_fips"] == county_fips]
 

@@ -32,4 +32,14 @@ page = st.navigation(
     position="sidebar",
 )
 
+with st.sidebar:
+    st.divider()
+    st.caption("Built by Aidan Chi")
+    st.link_button(
+        "View source on GitHub",
+        "https://github.com/aidanc667/covid-mortality-disruption-lab",
+        icon=":material/code:",
+        width="stretch",
+    )
+
 page.run()

@@ -26,6 +26,43 @@ def test_compute_county_disruption_computes_difference_correctly():
     assert row_01003["disruption"] == pytest.approx(1.0)
 
 
+def test_compute_county_disruption_attaches_county_name_when_present():
+    # county_deep_dive.py needs a human-readable name for its selector --
+    # counties are otherwise only identifiable by opaque 5-digit FIPS
+    # codes, which nobody has memorized. Real CDC WONDER county exports
+    # carry a "County" column (renamed "county" by
+    # src/ingestion/cdc_wonder.load_manual_export); this must be threaded
+    # through the pre/post aggregation to the final disruption table.
+    pre = pd.DataFrame({
+        "county_fips": ["01001", "01001", "01003", "01003"],
+        "county": ["Autauga County, AL"] * 2 + ["Baldwin County, AL"] * 2,
+        "year": [2018, 2019, 2018, 2019],
+        "age_adjusted_rate": [20.0, 20.0, 30.0, 30.0],
+    })
+    post = pd.DataFrame({
+        "county_fips": ["01001", "01001", "01003", "01003"],
+        "county": ["Autauga County, AL"] * 2 + ["Baldwin County, AL"] * 2,
+        "year": [2020, 2021, 2020, 2021],
+        "age_adjusted_rate": [25.0, 25.0, 30.0, 32.0],
+    })
+    result = compute_county_disruption(pre, post)
+    assert result[result["county_fips"] == "01001"].iloc[0]["county_name"] == "Autauga County, AL"
+    assert result[result["county_fips"] == "01003"].iloc[0]["county_name"] == "Baldwin County, AL"
+
+
+def test_compute_county_disruption_missing_county_column_does_not_raise():
+    # Older synthetic fixtures and this module's own other tests don't
+    # carry a "county" column at all -- must degrade gracefully, not KeyError.
+    pre = pd.DataFrame({
+        "county_fips": ["01001", "01001"], "year": [2018, 2019], "age_adjusted_rate": [20.0, 20.0],
+    })
+    post = pd.DataFrame({
+        "county_fips": ["01001", "01001"], "year": [2020, 2021], "age_adjusted_rate": [25.0, 25.0],
+    })
+    result = compute_county_disruption(pre, post)
+    assert "county_name" not in result.columns or result["county_name"].isna().all()
+
+
 def test_compute_county_disruption_excludes_insufficient_years():
     pre = pd.DataFrame({
         "county_fips": ["01001"], "year": [2019], "age_adjusted_rate": [20.0],
