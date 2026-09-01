@@ -34,14 +34,14 @@ Every one of these is a single-cause, national-level, single-database query — 
 | Accidental drowning and submersion | `W65-W74` |
 | Drug overdose | *(use the Drug/Alcohol Induced Causes finder instead — see below)* |
 
-**D158 database (2020–2024 post-shock) — the same 7, plus COVID-19 = 8 exports.**
+**D158 database (2018–2024) — the same 7, plus COVID-19 = 8 exports.** Note: pull **2018–2024**, not just 2020–2024 — the extra 2018–2019 years cost nothing extra and are required so `src/cleaning/bridging.py` has years that exist in *both* databases to calibrate the size of the vintage discontinuity (§9's hard gate in `research_protocol.md`). The excess-mortality analysis itself still only treats 2020–2024 as the post-shock period; 2018–2019 is used solely for that calibration.
 
 ### Steps for every export
 
 1. Go to https://wonder.cdc.gov/ucd-icd10.html for the 7 D76 exports, or https://wonder.cdc.gov/ucd-icd10-expanded.html for the 8 D158 exports.
 2. Accept the data-use terms (reappears each fresh page load).
 3. **Organize table layout:** Group Results By **Year**. That's the only grouping — leave And By fields at "None."
-4. **Select year and month:** use the finder tool — click your first year, then Shift+click your last year to select the whole range (1999 through 2019 for D76, 2020 through 2024 for D158).
+4. **Select year and month:** use the finder tool — click your first year, then Shift+click your last year to select the whole range (1999 through 2019 for D76, **2018** through 2024 for D158 — not 2020, see the note above).
 5. **Select cause of death:** for the 6 causes in the table above, use the **ICD-10 Codes** finder and select **exactly one** code per query — verify the "Currently selected" box shows only that one item before sending. For **drug overdose**, switch to the **Drug/Alcohol Induced Causes** finder, expand "Drug-induced causes," and Ctrl+click all four: Unintentional (X40-X44), Suicide (X60-X64), Homicide (X85), Undetermined (Y10-Y14) — this one query legitimately needs multiple selections, since the standard CDC overdose definition itself spans four intent categories; unlike the 6-cause bundling attempt, this works because it's the *same* underlying measure split by intent, not different diseases being merged. For **COVID-19** (D158 exports only), ICD-10 Codes finder → `U07.1`.
 6. **Other options:** check **Age-Adjusted Rate** and its 95% CI, keep **Crude Rate** checked, check **Show Zero Values** and **Show Suppressed Values**, uncheck **Show Totals**.
 7. Check **Export Results**, set Export Type to **CSV** (verified working against a real export; the loader auto-detects delimiter either way).
@@ -53,7 +53,7 @@ Split by year range (e.g. 1999–2009 and 2010–2019) — unlikely to be needed
 
 ### File naming and provenance
 
-Save to `data/raw/cdc_wonder/`, named by database + cause, e.g. `d76_national_diabetes_1999_2019.csv`, `d158_national_covid19_2020_2024.csv`. Record in a sibling `.meta.json` (see `src/utils/caching.py`): export date, exact query parameters, and who ran it.
+Save to `data/raw/cdc_wonder/`, named by database + cause, e.g. `d76_national_diabetes_1999_2019.csv`, `d158_national_covid19_2018_2024.csv` (note the D158 files span 2018–2024 per the note above, not 2020–2024, even though the analysis only uses 2020–2024 of it). Record in a sibling `.meta.json` (see `src/utils/caching.py`): export date, exact query parameters, and who ran it.
 
 ### County-level heterogeneity data (later, smaller scope)
 
