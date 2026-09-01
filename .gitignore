@@ -19,10 +19,17 @@ outputs/figures/*
 !outputs/figures/.gitkeep
 outputs/tables/*
 !outputs/tables/.gitkeep
-outputs/models/*
-!outputs/models/.gitkeep
 outputs/reports/*
 !outputs/reports/.gitkeep
+
+# outputs/models/*.parquet ARE committed (decided 2026-09-01): these are
+# small (~100KB total) precomputed results, not raw/redistributable-
+# sensitive source data, and the app is designed to only ever read
+# precomputed outputs, never recompute on page load -- so a deployed
+# instance (Streamlit Community Cloud) has no way to produce them itself,
+# since it never has the raw CDC WONDER exports (data/raw/* stays
+# gitignored above). Re-running scripts/run_covid_disruption_pipeline.py
+# locally overwrites these with fresh output as usual.
 
 .streamlit/secrets.toml
 .pytest_cache/
