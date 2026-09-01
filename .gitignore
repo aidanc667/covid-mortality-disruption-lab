@@ -21,6 +21,12 @@ outputs/tables/*
 !outputs/tables/.gitkeep
 outputs/reports/*
 !outputs/reports/.gitkeep
+# The formal PDF report IS committed (decided 2026-09-01), same reasoning
+# as outputs/models/*.parquet below: small (~15KB), not raw source data,
+# and the app's Findings page offers it as a download -- a deployed
+# instance has no other way to produce it (reportlab isn't in the app's
+# own requirements.txt, see requirements-report.txt).
+!outputs/reports/covid_mortality_disruption_report.pdf
 
 # outputs/models/*.parquet ARE committed (decided 2026-09-01): these are
 # small (~100KB total) precomputed results, not raw/redistributable-

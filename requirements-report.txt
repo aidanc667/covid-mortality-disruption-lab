@@ -1,0 +1,8 @@
+# Extra dependency for scripts/generate_report.py only -- NOT installed by
+# the deployed Streamlit app (see requirements.txt), to keep the app's
+# build lean and avoid an unused dependency risk. reportlab is pure
+# Python (no system libraries like GDAL), so it's safe to install
+# locally just for report generation:
+#   pip install -r requirements-report.txt
+-r requirements.txt
+reportlab

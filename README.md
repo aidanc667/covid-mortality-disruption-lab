@@ -4,9 +4,9 @@
 
 ## Status: complete, running on real data
 
-Rather than treating COVID-19 as the disease under study, this project treats the pandemic as a system-wide shock and asks what it did to mortality from other major causes — cardiovascular disease, stroke, diabetes, Alzheimer's disease, drug overdose, and cancer. All national-level results (15 real CDC WONDER exports) and county-level heterogeneity results (4 real CDC WONDER exports) are real data — nothing synthetic remains in this project. **See [`docs/findings.md`](docs/findings.md) for what the analysis found**, including two results that contradicted the project's own pre-registered priors.
+Rather than treating COVID-19 as the disease under study, this project treats the pandemic as a system-wide shock and asks what it did to mortality from other major causes — cardiovascular disease, stroke, diabetes, Alzheimer's disease, drug overdose, and cancer. All national-level results (15 real CDC WONDER exports) and county-level heterogeneity results (4 real CDC WONDER exports) are real data — nothing synthetic remains in this project. **See [`docs/findings.md`](docs/findings.md) for what the analysis found**, including two results that contradicted the project's own pre-registered priors — or read the same findings inside the live app (Findings page), which also offers a formal PDF report ([`outputs/reports/covid_mortality_disruption_report.pdf`](outputs/reports/covid_mortality_disruption_report.pdf)) as a download.
 
-90 automated tests, a pre-registered protocol locked before results were inspected, a negative control, a sensitivity analysis, and full vintage-bridging/suppression handling — all shown directly in the app's Data Quality page, not hidden.
+92 automated tests, a pre-registered protocol locked before results were inspected, a negative control, a three-axis sensitivity analysis, effect-size reporting, and full vintage-bridging/suppression handling — all shown directly in the app's Data Quality page, not hidden.
 
 ## Approach
 
@@ -30,8 +30,15 @@ The 19 CDC WONDER exports underlying this analysis are not checked into the repo
 
 ```bash
 python -m scripts.run_covid_disruption_pipeline   # national + county disruption/persistence/heterogeneity analysis
-python -m scripts.run_sensitivity_check           # alternate-baseline robustness check
+python -m scripts.run_sensitivity_check           # 3-axis robustness check (window, threshold, trend shape)
 streamlit run app/streamlit_app.py
+```
+
+The formal PDF report (`outputs/reports/covid_mortality_disruption_report.pdf`) needs one extra dependency not in the app's own `requirements.txt` (kept lean for deployment):
+
+```bash
+pip install -r requirements-report.txt
+python -m scripts.generate_report
 ```
 
 ## Ethics statement

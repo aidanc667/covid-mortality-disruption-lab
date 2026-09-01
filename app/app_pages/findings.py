@@ -4,6 +4,7 @@ from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary,
     load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner, TEST_CAUSES,
 )
+from src.utils.config import OUTPUTS_REPORTS
 
 st.title("Findings")
 synthetic_banner()
@@ -11,6 +12,16 @@ st.caption(
     "What the completed analysis found, in plain language. Full methodology: see Methods. "
     "Every number below is drawn live from the same precomputed results as the rest of the app."
 )
+
+report_path = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
+if report_path.exists():
+    st.download_button(
+        "Download formal PDF report",
+        data=report_path.read_bytes(),
+        file_name="covid_mortality_disruption_report.pdf",
+        mime="application/pdf",
+        icon=":material/description:",
+    )
 
 if not data_available():
     st.warning("No precomputed data available yet.", icon=":material/warning:")
