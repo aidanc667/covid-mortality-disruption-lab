@@ -140,11 +140,14 @@ def synthetic_banner() -> None:
 
 def heterogeneity_synthetic_banner() -> None:
     """Renders a warning scoped to just the county-level heterogeneity
-    stage, which still runs on synthetic data even after the national
-    disruption/persistence analysis switched to real CDC WONDER data --
-    a single blanket marker can't express that partial-realness honestly,
-    so this checks the heterogeneity-specific marker instead of
-    `synthetic_banner`'s project-wide one."""
+    stage, for the (now historical) case where it still ran on synthetic
+    data after the national disruption/persistence analysis had already
+    switched to real CDC WONDER data -- a single blanket marker couldn't
+    express that partial-realness honestly, so this checks the
+    heterogeneity-specific marker instead of `synthetic_banner`'s
+    project-wide one. Both stages are real data as of the 2026-09-01
+    county-level pull; this stays in place as a guard in case anyone
+    re-runs an older synthetic-only script against these outputs."""
     if is_synthetic_active(marker_path=SYNTHETIC_HETEROGENEITY_MARKER):
         st.error(
             "County-level heterogeneity below is currently **synthetic "

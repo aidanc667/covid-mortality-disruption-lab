@@ -404,6 +404,10 @@ def build(data: dict) -> list:
         "magnitude may partly reflect each county's own population-aging trajectory.",
         "Small-county suppression and instability at the county-level heterogeneity stage.",
         "PLACES model-based behavioral estimates (CHR&amp;R smoking/obesity/inactivity).",
+        "Context-variable vintage is post-period, not pre-period: all five heterogeneity-stage "
+        "context variables come from CHR&amp;R's 2024 release, measured during or after the "
+        "2020-2024 disruption window, not a pre-pandemic baseline &mdash; income and the uninsured "
+        "rate plausibly moved during the pandemic itself.",
         "Multiple testing across both the 6-cause family and, separately, the context-variable "
         "family per cause.",
         "Spatial non-independence of counties (spatial autocorrelation not modeled).",

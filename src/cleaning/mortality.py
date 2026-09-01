@@ -3,6 +3,14 @@ docs/research_protocol.md #6, to the loaded WONDER panel (real or, while
 mortality data is blocked, the synthetic fixture in
 src/utils/synthetic_mortality.py — the eligibility logic itself doesn't
 care which).
+
+SUPERSEDED, kept for its test coverage and history only: this module
+belongs to the original single-disease, per-county-trajectory design.
+research_protocol.md §5 replaced it with the coarser pre/post aggregation
+`src/analysis/heterogeneity.compute_county_disruption` uses instead — the
+live pipeline (scripts/run_covid_disruption_pipeline.py) does not import
+this module or the config constants it depends on
+(MIN_NONSUPPRESSED_YEARS, MIN_COUNTY_POPULATION, PRIMARY_WINDOW).
 """
 from __future__ import annotations
 

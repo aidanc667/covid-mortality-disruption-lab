@@ -98,7 +98,7 @@ else:
             st.metric(
                 "Negative control", "Passed" if passed else "FAILED", border=False,
                 help="A built-in sanity check: the identical method run on a cause with no "
-                     "plausible COVID connection (a birth-defect category), to confirm the method "
+                     "direct COVID connection (a birth-defect category), to confirm the method "
                      "doesn't just find 'disruption' everywhere by accident. It found nothing "
                      "there, as expected — evidence the method works.",
             )
@@ -113,7 +113,7 @@ else:
         )
 
     st.caption(
-        ":green-badge[92 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[96 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 
