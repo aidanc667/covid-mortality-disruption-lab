@@ -46,3 +46,7 @@ python -m scripts.generate_report
 ## Ethics statement
 
 This project uses publicly available aggregate data and is intended for research and educational purposes. It does not provide medical advice or individual-level risk predictions.
+
+## License
+
+Code and documentation are released under the [MIT License](LICENSE). CDC WONDER mortality data is U.S. government public domain (not subject to copyright, per 17 U.S.C. §105); County Health Rankings & Roadmaps data carries its own [terms of use](https://www.countyhealthrankings.org/about-us/terms-and-conditions) — neither is relicensed by this repository.

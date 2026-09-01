@@ -131,5 +131,5 @@ for title, desc in explanation["mechanisms"]:
 if explanation["note"]:
     st.info(explanation["note"], icon=":material/info:")
 with st.expander("Sources"):
-    for title, url in explanation["sources"]:
-        st.markdown(f"- [{title}]({url})")
+    for i, source in enumerate(explanation["sources"], start=1):
+        st.markdown(f"{i}. {source['citation']} [↗]({source['url']})")

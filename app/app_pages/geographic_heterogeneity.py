@@ -28,7 +28,9 @@ county_disruption = load_county_disruption(cause)
 
 st.subheader("Where disruption was largest")
 st.caption(
-    "Blue = mortality rate fell relative to pre-pandemic trend. Red = mortality rate rose. "
+    "Blue = mortality rate fell relative to pre-pandemic trend. Orange = mortality rate rose "
+    "(a colorblind-safe blue/orange scale, not red/green or red/blue, which are hard to "
+    "distinguish for the ~8% of men with red-green color vision deficiency). "
     "Gray = excluded (fewer than 2 non-suppressed years in one or both periods). Hover a county "
     "for its exact pre/post rates. Rates are **crude rate**, not age-adjusted — CDC WONDER does "
     "not offer age-adjustment at county granularity for the 2018–2024 database "

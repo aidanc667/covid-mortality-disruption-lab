@@ -35,7 +35,13 @@ def render_county_choropleth(disruption_df: pd.DataFrame, cause: str, value_col:
                 f"datum.{value_col} !== null",
                 alt.Color(
                     f"{value_col}:Q",
-                    scale=alt.Scale(scheme="redblue", domain=[vmax, -vmax]),
+                    # "blueorange" (not red/blue or red/green): one of the
+                    # most robust diverging pairs across protanopia,
+                    # deuteranopia, and tritanopia -- red-based diverging
+                    # scales are a common accessibility miss for exactly
+                    # the ~8% of men with red-green color vision deficiency
+                    # this map would otherwise be unreadable for.
+                    scale=alt.Scale(scheme="blueorange", domain=[-vmax, vmax]),
                     title="Disruption (post − pre, crude rate)",
                     legend=alt.Legend(orient="bottom", gradientLength=280),
                 ),

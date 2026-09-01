@@ -29,9 +29,18 @@ CAUSE_EXPLANATIONS = {
             "2024 is consistent with the broader national decline reported for that period."
         ),
         "sources": [
-            ("CDC: Increase in fatal drug overdoses across the US driven by synthetic opioids", "https://cdc.gov/overdose-prevention/media/pdfs/2024/03/Increase-in-fatal-drug-overdoses-across-us-driven-by-synthetic-opioids-before-and-during-COVID-19.pdf"),
-            ("Commonwealth Fund: The spike in drug overdose deaths during COVID-19", "https://www.commonwealthfund.org/blog/2021/spike-drug-overdose-deaths-during-covid-19-pandemic-and-policy-options-move-forward"),
-            ("NIH: Estimating the impact of the COVID-19 pandemic on overdose trends", "https://pmc.ncbi.nlm.nih.gov/articles/PMC9703855/"),
+            {
+                "citation": "Centers for Disease Control and Prevention. Increase in Fatal Drug Overdoses Across the United States Driven by Synthetic Opioids Before and During the COVID-19 Pandemic. CDC Health Advisory. March 2024.",
+                "url": "https://cdc.gov/overdose-prevention/media/pdfs/2024/03/Increase-in-fatal-drug-overdoses-across-us-driven-by-synthetic-opioids-before-and-during-COVID-19.pdf",
+            },
+            {
+                "citation": "Commonwealth Fund. The Spike in Drug Overdose Deaths During the COVID-19 Pandemic and Policy Options to Move Forward. Commonwealth Fund To the Point (blog). 2021.",
+                "url": "https://www.commonwealthfund.org/blog/2021/spike-drug-overdose-deaths-during-covid-19-pandemic-and-policy-options-move-forward",
+            },
+            {
+                "citation": "Lee H, Singh GK. Estimating the impact of the COVID-19 pandemic on rising trends in drug overdose mortality in the United States, 2018-2021. Ann Epidemiol. 2023;77:85-89. doi:10.1016/j.annepidem.2022.11.007",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9703855/",
+            },
         ],
     },
     "Diabetes mellitus": {
@@ -48,8 +57,14 @@ CAUSE_EXPLANATIONS = {
         ],
         "note": None,
         "sources": [
-            ("The Lancet: Excess diabetes-related deaths during the COVID-19 pandemic", "https://www.thelancet.com/journals/eclinm/article/PIIS2589-5370(22)00401-1/fulltext"),
-            ("Impact of the COVID-19 pandemic on diabetes-related mortality", "https://www.sciencedirect.com/science/article/pii/S2666970624000404"),
+            {
+                "citation": "Lv F, Gao X, Huang AH, et al. Excess diabetes mellitus-related deaths during the COVID-19 pandemic in the United States. eClinicalMedicine. 2022;54:101671. doi:10.1016/j.eclinm.2022.101671",
+                "url": "https://www.thelancet.com/journals/eclinm/article/PIIS2589-5370(22)00401-1/fulltext",
+            },
+            {
+                "citation": "The impact of the COVID-19 pandemic on diabetes-related mortality. 2024. (Author list not independently verified against the publisher's paywalled record — cited by title/publisher only.)",
+                "url": "https://www.sciencedirect.com/science/article/pii/S2666970624000404",
+            },
         ],
     },
     "Diseases of heart": {
@@ -70,8 +85,14 @@ CAUSE_EXPLANATIONS = {
             "line rather than a curve. See the Robustness section for detail."
         ),
         "sources": [
-            ("NIH: COVID-19-associated cardiovascular complications", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8293160/"),
-            ("NIH: Clinical characterization of acute myocardial injury in COVID-19", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8979292/"),
+            {
+                "citation": "Lee CCE, Ali K, Connell D, Mordi IR, George J, Lang EMSL, Lang CC. COVID-19-Associated Cardiovascular Complications. Diseases. 2021;9(3):47. doi:10.3390/diseases9030047",
+                "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8293160/",
+            },
+            {
+                "citation": "Li S, Wang J, Yan Y, Zhang Z, Gong W, Nie S. Clinical Characterization and Possible Pathological Mechanism of Acute Myocardial Injury in COVID-19. Front Cardiovasc Med. 2022;9:862571. doi:10.3389/fcvm.2022.862571",
+                "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8979292/",
+            },
         ],
     },
     "Cerebrovascular disease": {
@@ -92,8 +113,14 @@ CAUSE_EXPLANATIONS = {
             "5 disrupted causes alongside heart disease."
         ),
         "sources": [
-            ("NIH: COVID-19-associated ischemic and hemorrhagic stroke", "https://pmc.ncbi.nlm.nih.gov/articles/PMC7652923/"),
-            ("Nature: Impact of the COVID-19 pandemic on acute stroke care", "https://www.nature.com/articles/s41598-024-83016-z"),
+            {
+                "citation": "Wang Z, Yang Y, Liang X, Gao B, Liu M, Li W, Chen Z, Wang Z. COVID-19 Associated Ischemic Stroke and Hemorrhagic Stroke: Incidence, Potential Pathological Mechanism, and Management. Front Neurol. 2020;11:571996. doi:10.3389/fneur.2020.571996",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7652923/",
+            },
+            {
+                "citation": "Héja M, Fekete I, Márton S, Horváth L, Fekete K. Impact of COVID-19 pandemic on acute stroke care in a tertiary stroke centre. Sci Rep. 2024;14. doi:10.1038/s41598-024-83016-z",
+                "url": "https://www.nature.com/articles/s41598-024-83016-z",
+            },
         ],
     },
     "Malignant neoplasms": {
@@ -117,8 +144,14 @@ CAUSE_EXPLANATIONS = {
             "which would mean this project's own data window has only caught the beginning of it."
         ),
         "sources": [
-            ("The Lancet Oncology: COVID-19 pandemic and cancer deaths from care delays", "https://www.thelancet.com/journals/lanonc/article/PIIS1470-2045(20)30388-0/fulltext"),
-            ("The Lancet Public Health: COVID-19 pandemic impact on cancer incidence and mortality", "https://www.thelancet.com/journals/lanpub/article/PIIS2468-2667(22)00111-6/fulltext"),
+            {
+                "citation": "Maringe C, Spicer J, Morris M, Purushotham A, Nolte E, Sullivan R, Rachet B, Aggarwal A. The impact of the COVID-19 pandemic on cancer deaths due to delays in diagnosis in England, UK: a national, population-based, modelling study. Lancet Oncol. 2020;21(8):1023-1034. doi:10.1016/S1470-2045(20)30388-0",
+                "url": "https://www.thelancet.com/journals/lanonc/article/PIIS1470-2045(20)30388-0/fulltext",
+            },
+            {
+                "citation": "Luo Q, et al. Impact of the COVID-19 pandemic on cancer incidence and mortality. Lancet Public Health. 2022;7(6):e490-e491. doi:10.1016/S2468-2667(22)00111-6",
+                "url": "https://www.thelancet.com/journals/lanpub/article/PIIS2468-2667(22)00111-6/fulltext",
+            },
         ],
     },
     "Alzheimer's disease": {
@@ -141,8 +174,14 @@ CAUSE_EXPLANATIONS = {
             "how a dementia death is counted found a substantial one."
         ),
         "sources": [
-            ("JAMA Neurology: Excess mortality with Alzheimer disease and related dementias as underlying or contributing cause during COVID-19", "https://jamanetwork.com/journals/jamaneurology/fullarticle/2806770"),
-            ("Age and Ageing: Excess deaths from Alzheimer's disease and Parkinson's disease during COVID-19", "https://academic.oup.com/ageing/article/51/12/afac277/6936401"),
+            {
+                "citation": "Chen R, Charpignon ML, Raquib RV, Wang J, Meza E, Aschmann HE, DeVost MA, Mooney A, Bibbins-Domingo K, Riley AR, Kiang MV, Chen YH, Stokes AC, Glymour MM. Excess Mortality With Alzheimer Disease and Related Dementias as an Underlying or Contributing Cause During the COVID-19 Pandemic in the US. JAMA Neurol. 2023;80(9):919-928. doi:10.1001/jamaneurol.2023.2226",
+                "url": "https://jamanetwork.com/journals/jamaneurology/fullarticle/2806770",
+            },
+            {
+                "citation": "Li S, Han L, Shi H, Chong MKC, Zhao S, Ran J. Excess deaths from Alzheimer's disease and Parkinson's disease during the COVID-19 pandemic in the USA. Age Ageing. 2022;51(12):afac277. doi:10.1093/ageing/afac277",
+                "url": "https://academic.oup.com/ageing/article/51/12/afac277/6936401",
+            },
         ],
     },
 }
