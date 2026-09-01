@@ -2,7 +2,8 @@ import pandas as pd
 import streamlit as st
 
 from app.components.data_loading import (
-    load_heterogeneity_summary, load_county_disruption, data_available, heterogeneity_synthetic_banner,
+    load_heterogeneity_summary, load_county_disruption, load_heterogeneity_selection_bias,
+    load_heterogeneity_rurality_robustness, data_available, heterogeneity_synthetic_banner,
     HETEROGENEITY_CAUSES,
 )
 from app.components.county_map import render_county_choropleth
@@ -71,6 +72,43 @@ st.caption(
     "variables are themselves correlated in the real data, not independent effects — this "
     "analysis cannot separate them."
 )
+
+rural_row = cause_het[cause_het["variable"] == "pct_rural"]
+if len(rural_row):
+    bias = load_heterogeneity_selection_bias()
+    bias_row = bias[bias["cause"] == cause].iloc[0]
+    robustness = load_heterogeneity_rurality_robustness()
+    cause_robustness = robustness[robustness["cause"] == cause].set_index("half")
+    upper = cause_robustness.loc["upper_half"]
+    lower = cause_robustness.loc["lower_half"]
+
+    st.warning(
+        f"**Rurality finding: read this before trusting it.** The counties *excluded* from this "
+        f"analysis (too few non-suppressed years) are on average "
+        f"**{bias_row['mean_excluded']*100:.0f}% rural**, vs. **{bias_row['mean_included']*100:.0f}% rural** "
+        f"for the counties actually included — suppression disproportionately drops small, rural "
+        f"counties, so this regression describes suburban/small-city counties far more than it "
+        f"describes rural America.", icon=":material/warning:",
+    )
+    if cause_robustness.loc["upper_half", "p_value"] < 0.05 and (
+        cause_robustness.loc["upper_half", "slope"] < 0
+    ) == (rural_row.iloc[0]["slope"] < 0):
+        st.caption(
+            f"For {cause}, the relationship holds up reasonably well as a robustness check: split "
+            f"the *included* counties at the median rurality, and the rurality-disruption "
+            f"relationship is still significant among the more-rural half (p={upper['p_value']:.3g}, "
+            f"n={int(upper['n'])}) — if anything it's stronger there than among the less-rural half "
+            f"(p={lower['p_value']:.3g}). Still doesn't cover the excluded, most-rural counties above."
+        )
+    else:
+        st.caption(
+            f"For {cause}, this robustness check is a real concern: split the *included* counties "
+            f"at the median rurality, and the relationship is driven almost entirely by the "
+            f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}) — among the "
+            f"more-rural half of the included sample, it's not significant "
+            f"(p={upper['p_value']:.3g}, n={int(upper['n'])}). Read the pooled slope above with real "
+            f"caution for this cause."
+        )
 
 with st.expander("County-level disruption distribution and full table"):
     bins = pd.cut(county_disruption["disruption"], bins=15)

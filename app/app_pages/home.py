@@ -102,7 +102,7 @@ else:
                      "doesn't just find 'disruption' everywhere by accident. It found nothing "
                      "there, as expected — evidence the method works.",
             )
-            st.caption(":material/verified: Congenital malformations — no plausible COVID mechanism")
+            st.caption(":material/verified: Congenital malformations — no direct COVID mechanism")
 
     if not passed:
         st.error(

@@ -53,6 +53,8 @@ def load_data() -> dict:
         "summary": pd.read_parquet(OUTPUTS_MODELS / "disruption_summary.parquet"),
         "negative_control": pd.read_parquet(OUTPUTS_MODELS / "negative_control.parquet").iloc[0],
         "heterogeneity": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet"),
+        "selection_bias": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_selection_bias.parquet"),
+        "rurality_robustness": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_rurality_robustness.parquet"),
         "bridging": pd.read_parquet(OUTPUTS_MODELS / "bridging_summary.parquet"),
         "sensitivity": pd.read_parquet(OUTPUTS_MODELS / "sensitivity_check.parquet"),
     }
@@ -102,6 +104,8 @@ def build(data: dict) -> list:
     s = data["summary"]
     nc = data["negative_control"]
     het = data["heterogeneity"]
+    selection_bias = data["selection_bias"]
+    rurality_robustness = data["rurality_robustness"]
     bridging = data["bridging"]
     sens = data["sensitivity"]
 
@@ -153,7 +157,7 @@ def build(data: dict) -> list:
     story.append(Paragraph(
         "Six substantive causes were tested: diseases of heart, diabetes mellitus, Alzheimer's "
         "disease, cerebrovascular disease, drug overdose, and malignant neoplasms (cancer). A "
-        "negative control (congenital malformations, a cause with no plausible COVID mechanism) "
+        "negative control (congenital malformations, a cause with no direct COVID mechanism) "
         "and a COVID-19 reference series (not a hypothesis test) round out the 8-series design. "
         "Every cause's confidence level was stated before any 2020-2024 data was pulled or "
         "analyzed, so results can be checked against stated priors rather than narrated after "
@@ -170,11 +174,11 @@ def build(data: dict) -> list:
     story.append(Paragraph("<b>Three-way persistence classification.</b> For causes with a significant "
         "2020-2021 disruption: Persisted (still significant, same direction, through 2024), "
         "Resolved (shrank back within the interval), or Reversed (flipped sign).", styles["Body"]))
-    story.append(Paragraph("<b>Independent cross-check.</b> PELT and binary segmentation change-point "
-        "detection run on each series to verify a breakpoint near 2020 without being told to. "
-        "Disagreement here is not itself evidence against a result: the primary method tests one "
-        "specific pre-registered date, while the cross-check searches the whole series for "
-        "whichever single breakpoint fits best.", styles["Body"]))
+    story.append(Paragraph("<b>Independent cross-check.</b> Three change-point methods (PELT, binary "
+        "segmentation, segmented regression) run on each series to verify a breakpoint near 2020 "
+        "without being told to. Disagreement here is not itself evidence against a result: the "
+        "primary method tests one specific pre-registered date, while the cross-check methods "
+        "search the whole series for whichever single breakpoint fits best.", styles["Body"]))
     story.append(Paragraph("<b>Negative control.</b> The identical pipeline run on a cause with no "
         "plausible COVID mechanism. A significant result there would indicate the method is "
         "detecting an artifact, not a real signal &mdash; a hard gate, not a footnote.", styles["Body"]))
@@ -223,7 +227,12 @@ def build(data: dict) -> list:
         f"and treatment during the pandemic was expected to take years longer than the 2024 data "
         f"window to appear as excess mortality. Instead, cancer shows a {cancer['persistence_class'].lower()} "
         f"disruption (p = {cancer['p_value']:.3g}, survives FDR correction), though its magnitude "
-        f"({cancer['acute_pct_deviation']:+.1f}% in 2020-21) is modest next to the larger disruptions above.",
+        f"({cancer['acute_pct_deviation']:+.1f}% in 2020-21) is modest next to the larger disruptions "
+        f"above. The wider literature on this question is unsettled: early 2020 models projected "
+        f"large future increases in cancer deaths from delayed screening, but more recent modeling "
+        f"using actual pandemic-era England data found lung and breast cancer deaths came in lower "
+        f"than pre-pandemic trends predicted, not higher. This project's small, real, persisting "
+        f"effect should be read against that uncertainty.",
         styles["Body"]
     ))
     story.append(Paragraph(
@@ -238,7 +247,7 @@ def build(data: dict) -> list:
     story.append(Paragraph("Negative control", styles["H2"]))
     passed = bool(nc["passed"])
     story.append(Paragraph(
-        f"{nc['cause']} &mdash; a cause concentrated in infancy with no plausible COVID mechanism "
+        f"{nc['cause']} &mdash; a cause concentrated in infancy with no direct COVID mechanism "
         f"&mdash; {'shows no significant disruption, as expected' if passed else 'FAILED the gate'} "
         f"(p = {nc['p_value_counts']:.3g} on raw death counts, the gating metric; WONDER's 1-decimal "
         f"age-adjusted-rate rounding made the rate-based test unreliable at this cause's low "
@@ -250,7 +259,10 @@ def build(data: dict) -> list:
         "statistically robust increase in deaths from 2020 onward, confirmed on raw counts, "
         "consistent with published CDC reporting on pandemic-era drowning increases (pool/beach "
         "closures, lifeguard shortages). It was swapped out because it was never actually "
-        "COVID-independent, not because the method failed.", styles["Caption"]
+        "COVID-independent, not because the method failed. Even the replacement isn't hermetically "
+        "sealed from the pandemic: prenatal and obstetric care was also disrupted during "
+        "2020-2021, a real if smaller and more indirect pathway than the ones behind the 6 test "
+        "causes.", styles["Caption"]
     ))
 
     # --- 4. Robustness ---
@@ -326,12 +338,39 @@ def build(data: dict) -> list:
         "result, running against a common assumption that rural areas were hit hardest. These are "
         "associations, not causal claims.", styles["Body"]
     ))
+    story.append(Paragraph("Rurality finding: a real caveat, found on self-audit", styles["H2"]))
+    bias_text = "; ".join(
+        f"{r['cause']}: excluded counties average {r['mean_excluded']*100:.0f}% rural vs. "
+        f"{r['mean_included']*100:.0f}% rural for counties included"
+        for _, r in selection_bias.iterrows()
+    )
+    story.append(Paragraph(
+        f"Counties excluded from this regression (too few non-suppressed years) are far more rural, "
+        f"on average, than the counties included: {bias_text}. Splitting the included counties at "
+        f"their own median rurality shows the two causes are not equally trustworthy here.",
+        styles["Body"]
+    ))
+    for cause in ["Diabetes mellitus", "Drug overdose"]:
+        r = rurality_robustness[rurality_robustness["cause"] == cause].set_index("half")
+        upper, lower = r.loc["upper_half"], r.loc["lower_half"]
+        if upper["p_value"] < 0.05:
+            verdict = f"holds up and even strengthens among the more-rural half (p={upper['p_value']:.3g}) vs. the less-rural half (p={lower['p_value']:.3g})."
+        else:
+            verdict = f"is driven almost entirely by the less-rural half (p={lower['p_value']:.3g}) and is not significant among the more-rural half (p={upper['p_value']:.3g}) &mdash; read with real skepticism."
+        story.append(Paragraph(f"<b>{cause}:</b> the relationship {verdict}", styles["Body"]))
     story.append(PageBreak())
 
     # --- 6. Limitations ---
     story.append(Paragraph("6. Limitations", styles["H1"]))
     limitations = [
-        "Observational, ecological design &mdash; no individual-level causal inference.",
+        "Observational, ecological design &mdash; no individual-level causal inference. The "
+        "county-level heterogeneity stage carries ecological fallacy risk by name: a county-average "
+        "relationship does not necessarily hold at the individual level.",
+        "Selection bias in the county-level heterogeneity sample: counties excluded by the "
+        "suppression filter are disproportionately rural, and the rurality finding is more "
+        "trustworthy for diabetes (holds up among more-rural included counties) than for drug "
+        "overdose (driven by less-rural counties, not significant among more-rural ones) &mdash; "
+        "see section 5.",
         "Mortality-vintage discontinuity between the two CDC WONDER databases (mitigated by "
         "bridging-overlap validation, not eliminated).",
         "ICD-10 coding practices may have shifted during 2020-2021 due to strain on "

@@ -6,6 +6,17 @@ what the broader research literature has proposed as contributing
 mechanisms elsewhere -- background context for interpreting our results,
 not something this analysis itself established. Never state these as
 proven causes of this project's specific findings.
+
+Each cause's "note" field deliberately includes real countervailing
+evidence, not just supportive citations -- found on a self-audit
+(2026-09-01) that the initial research pass only searched for literature
+explaining results already in hand, never for skepticism, contested
+findings, or confounds. Diabetes and heart disease both carry a genuine
+coding/attribution-confound caveat; cerebrovascular disease notes a
+national partial-reversal pattern this project's own persistence finding
+doesn't fully match; cancer's note was revised after finding more recent
+modeling suggests the true mortality impact may be smaller than early
+2020 projections, not merely delayed.
 """
 
 CAUSE_EXPLANATIONS = {
@@ -55,7 +66,17 @@ CAUSE_EXPLANATIONS = {
             ("Fear of infection at healthcare facilities", "Many people with diabetes delayed seeking care specifically because they were afraid of contracting COVID-19 in a hospital or clinic, leading to missed diagnoses and delayed treatment of complications."),
             ("Disrupted medication and supply access", "Insulin and other medication access, along with routine complication screening (eyes, kidneys, feet), was harder to maintain during periods of restricted in-person care."),
         ],
-        "note": None,
+        "note": (
+            "A real counterpoint worth including, not just the supportive case above: some of this "
+            "excess may be a coding/attribution artifact rather than a true increase in diabetes "
+            "deaths. CDC guidance during the pandemic allowed a presumptive COVID-19 underlying-cause "
+            "code without lab confirmation, and research has found evidence that SARS-CoV-2 was "
+            "sometimes substituted for competing causes of death on certificates — meaning some of "
+            "the reported diabetes-mortality rise could reflect how deaths were coded, not only how "
+            "many actually occurred. This doesn't cancel out the finding (excess mortality still "
+            "shows up even in analyses designed to account for this), but it's a genuine source of "
+            "uncertainty in the exact magnitude."
+        ),
         "sources": [
             {
                 "citation": "Lv F, Gao X, Huang AH, et al. Excess diabetes mellitus-related deaths during the COVID-19 pandemic in the United States. eClinicalMedicine. 2022;54:101671. doi:10.1016/j.eclinm.2022.101671",
@@ -80,9 +101,16 @@ CAUSE_EXPLANATIONS = {
             ("Compounding for existing heart disease", "People with pre-existing cardiovascular disease who contracted COVID-19 faced substantially higher in-hospital mortality risk than those without it."),
         ],
         "note": (
-            "This is the cause where our own sensitivity analysis found the least robust result: "
-            "the significant disruption depends on assuming the pre-pandemic trend was a straight "
-            "line rather than a curve. See the Robustness section for detail."
+            "Two real caveats, not just the supportive case above. First, this is the cause where "
+            "our own sensitivity analysis found the least robust result: the significant disruption "
+            "depends on assuming the pre-pandemic trend was a straight line rather than a curve — "
+            "see the Robustness section. Second, the broader literature itself flags attribution as "
+            "a genuine confound here: a death in a cardiac patient triggered by COVID-19 infection "
+            "could reasonably be coded as either heart disease or COVID-19 depending on "
+            "documentation practices, and at least one review of this literature specifically "
+            "described the underlying studies as \"generally poorly conducted,\" calling for better "
+            "designs before drawing firm conclusions about how much of the excess is genuinely "
+            "cardiovascular versus miscoded COVID."
         ),
         "sources": [
             {
@@ -110,7 +138,15 @@ CAUSE_EXPLANATIONS = {
         "note": (
             "Like heart disease, this cause's significant result in our own analysis depends on "
             "assuming a linear (not curved) pre-pandemic baseline trend — the least robust of the "
-            "5 disrupted causes alongside heart disease."
+            "5 disrupted causes alongside heart disease. There's also a real tension worth naming "
+            "against the broader national picture: a CDC data brief found the U.S. stroke death "
+            "rate for adults 45-64 rose through 2021 but then declined through 2022 — a partial "
+            "reversal — while this project's own national analysis finds cerebrovascular disease "
+            "getting worse, not better, through 2024 (+57% vs. expected trend, up from +37% in "
+            "2020-21). The two aren't necessarily contradictory (different age groups, all-ages vs. "
+            "45-64, and 2023-2024 aren't covered by the CDC brief), but it's a real discrepancy "
+            "worth being aware of rather than treating this project's persistence finding as the "
+            "last word on the national stroke trend."
         ),
         "sources": [
             {
@@ -120,6 +156,10 @@ CAUSE_EXPLANATIONS = {
             {
                 "citation": "Héja M, Fekete I, Márton S, Horváth L, Fekete K. Impact of COVID-19 pandemic on acute stroke care in a tertiary stroke centre. Sci Rep. 2024;14. doi:10.1038/s41598-024-83016-z",
                 "url": "https://www.nature.com/articles/s41598-024-83016-z",
+            },
+            {
+                "citation": "Curtin SC. Stroke Death Rates Among Adults Ages 45-64 by Region and Race and Hispanic Origin: United States, 2002-2022. NCHS Data Brief No. 505. August 2024.",
+                "url": "https://www.cdc.gov/nchs/products/databriefs/db505.htm",
             },
         ],
     },
@@ -139,14 +179,24 @@ CAUSE_EXPLANATIONS = {
             "This project's own pre-registered prior expected NO disruption to show up within the "
             "2024 data window, reasoning that these deferred-care effects on mortality would take "
             "longer to appear. A small, real, FDR-significant effect showed up anyway — modest "
-            "next to heart disease or overdose, but real. Published projections suggest the "
-            "larger mortality impact of pandemic-era screening delays is still several years out, "
-            "which would mean this project's own data window has only caught the beginning of it."
+            "next to heart disease or overdose, but real. Early 2020 modeling projected large future "
+            "mortality increases from screening delays, but more recent modeling using actual "
+            "pandemic-era England data found lung and breast cancer deaths came in *lower* than "
+            "pre-pandemic trends would have predicted, not higher — a genuinely important update, "
+            "not just a footnote. The honest reading isn't \"this project's data window caught only "
+            "the beginning of a larger effect\"; it's that the size and timing of any true screening-"
+            "delay mortality impact is still unsettled in the wider literature, and this project's "
+            "small, real, persisting signal should be read against that uncertainty rather than as "
+            "confirmation of the largest early projections."
         ),
         "sources": [
             {
                 "citation": "Maringe C, Spicer J, Morris M, Purushotham A, Nolte E, Sullivan R, Rachet B, Aggarwal A. The impact of the COVID-19 pandemic on cancer deaths due to delays in diagnosis in England, UK: a national, population-based, modelling study. Lancet Oncol. 2020;21(8):1023-1034. doi:10.1016/S1470-2045(20)30388-0",
                 "url": "https://www.thelancet.com/journals/lanonc/article/PIIS1470-2045(20)30388-0/fulltext",
+            },
+            {
+                "citation": "Arik A, Cairns AJG, Streftaris G. Cancer mortality projection: disparities, COVID-19, and late diagnosis impact. arXiv:2405.05643 [stat.AP]. 2024. doi:10.48550/arXiv.2405.05643",
+                "url": "https://arxiv.org/abs/2405.05643",
             },
             {
                 "citation": "Luo Q, et al. Impact of the COVID-19 pandemic on cancer incidence and mortality. Lancet Public Health. 2022;7(6):e490-e491. doi:10.1016/S2468-2667(22)00111-6",

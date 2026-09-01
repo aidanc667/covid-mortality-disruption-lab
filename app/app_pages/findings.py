@@ -2,6 +2,7 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary,
+    load_heterogeneity_selection_bias, load_heterogeneity_rurality_robustness,
     load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner, TEST_CAUSES,
 )
 from src.utils.config import OUTPUTS_REPORTS
@@ -189,6 +190,40 @@ st.write(
     "so part of any measured disruption could reflect each county's own population-aging trajectory "
     "rather than a COVID-era shift — see Data Quality for the full caveat."
 )
+
+bias = load_heterogeneity_selection_bias()
+robustness = load_heterogeneity_rurality_robustness()
+with st.expander("The rurality finding needs a real caveat — click to see why", icon=":material/warning:"):
+    st.write(
+        "A self-audit of this project's own most counterintuitive finding found a genuine selection "
+        "bias: counties *excluded* from the regression (too few non-suppressed years) are far more "
+        "rural, on average, than the counties actually included."
+    )
+    for _, row in bias.iterrows():
+        st.write(
+            f"**{row['cause']}**: excluded counties average **{row['mean_excluded']*100:.0f}% rural**, "
+            f"included counties average **{row['mean_included']*100:.0f}% rural**."
+        )
+    st.write(
+        "Splitting the included counties at their own median rurality shows the two causes aren't "
+        "equally trustworthy here:"
+    )
+    for cause in ["Diabetes mellitus", "Drug overdose"]:
+        r = robustness[robustness["cause"] == cause].set_index("half")
+        upper, lower = r.loc["upper_half"], r.loc["lower_half"]
+        if upper["p_value"] < 0.05:
+            st.success(
+                f"**{cause}**: relationship holds up among the more-rural half of the included "
+                f"sample (p={upper['p_value']:.3g}), even strengthening there vs. the less-rural "
+                f"half (p={lower['p_value']:.3g}).", icon=":material/check_circle:",
+            )
+        else:
+            st.error(
+                f"**{cause}**: relationship is driven almost entirely by the less-rural half "
+                f"(p={lower['p_value']:.3g}) and is not significant among the more-rural half "
+                f"(p={upper['p_value']:.3g}) — read this cause's rurality result with real "
+                f"skepticism.", icon=":material/error:",
+            )
 
 st.subheader("What this data cannot tell you")
 st.write(

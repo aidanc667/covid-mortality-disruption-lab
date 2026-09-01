@@ -44,6 +44,74 @@ def compute_county_disruption(
     return merged
 
 
+def compute_selection_bias(
+    disruption_df: pd.DataFrame, context_df: pd.DataFrame, context_var: str
+) -> dict:
+    """Compares context_var (e.g. rurality) between counties INCLUDED in
+    disruption_df and every other county present in context_df but
+    excluded from it. compute_county_disruption's min_years_each_period
+    filter drops counties with too much suppression, which is not random
+    -- small, low-death-count counties are disproportionately suppressed,
+    and small counties are disproportionately rural. If included and
+    excluded counties differ systematically on the very variable being
+    regressed against, that variable's regression result describes only
+    the counties that survived the filter, not the full county
+    population -- a real selection-bias risk found in this project's own
+    data (research_protocol.md's 2026-09-01 addendum), not a hypothetical
+    one, which is why this is a real check rather than a footnote."""
+    included_fips = set(disruption_df["county_fips"])
+    included = context_df[context_df["county_fips"].isin(included_fips)]
+    excluded = context_df[~context_df["county_fips"].isin(included_fips)]
+    mean_excluded = float(excluded[context_var].mean()) if len(excluded) else float("nan")
+    return {
+        "context_var": context_var,
+        "n_included": len(included),
+        "n_excluded": len(excluded),
+        "mean_included": float(included[context_var].mean()),
+        "mean_excluded": mean_excluded,
+    }
+
+
+def check_within_sample_robustness(
+    disruption_df: pd.DataFrame, context_df: pd.DataFrame, context_var: str
+) -> pd.DataFrame:
+    """Splits the INCLUDED sample into two halves by context_var (above/
+    below its own median within the included sample) and re-fits the
+    bivariate regression of disruption on context_var separately within
+    each half, alongside the full-sample fit. A relationship that only
+    holds in one half is not the same finding as one that holds evenly
+    across the variable's whole range -- the full-sample slope/p-value
+    alone can't distinguish these, which is exactly how this project's
+    own rurality finding turned out to differ by cause (diabetes:
+    relationship holds and strengthens in the more-rural half; drug
+    overdose: relationship is driven almost entirely by the less-rural
+    half and is not significant among more-rural counties)."""
+    merged = disruption_df.merge(context_df, on="county_fips", how="inner").dropna(
+        subset=[context_var, "disruption"]
+    )
+    median = merged[context_var].median() if len(merged) else float("nan")
+
+    rows = []
+    halves = [
+        ("full", merged),
+        ("upper_half", merged[merged[context_var] >= median]),
+        ("lower_half", merged[merged[context_var] < median]),
+    ]
+    for label, subset in halves:
+        if len(subset) < MIN_SAMPLE_SIZE:
+            rows.append({
+                "half": label, "n": len(subset), "mean_context_var": float("nan"),
+                "slope": float("nan"), "p_value": float("nan"),
+            })
+            continue
+        slope, intercept, r, p, se = stats.linregress(subset[context_var], subset["disruption"])
+        rows.append({
+            "half": label, "n": len(subset), "mean_context_var": float(subset[context_var].mean()),
+            "slope": slope, "p_value": p,
+        })
+    return pd.DataFrame(rows)
+
+
 def regress_disruption_on_context(
     disruption_df: pd.DataFrame, context_df: pd.DataFrame, context_vars: list[str]
 ) -> pd.DataFrame:

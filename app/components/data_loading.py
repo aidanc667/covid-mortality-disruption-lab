@@ -72,6 +72,16 @@ def load_heterogeneity_summary() -> pd.DataFrame:
 
 
 @st.cache_data(ttl="1h")
+def load_heterogeneity_selection_bias() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_selection_bias.parquet")
+
+
+@st.cache_data(ttl="1h")
+def load_heterogeneity_rurality_robustness() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_rurality_robustness.parquet")
+
+
+@st.cache_data(ttl="1h")
 def load_negative_control() -> pd.DataFrame:
     return pd.read_parquet(OUTPUTS_MODELS / "negative_control.parquet")
 

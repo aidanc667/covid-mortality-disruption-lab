@@ -18,8 +18,11 @@ from src.analysis.excess_mortality import (
     fit_baseline_trend, compute_deviations, classify_persistence,
     compute_acute_pvalue, benjamini_hochberg, compute_residual_autocorrelation,
 )
-from src.analysis.changepoints import fit_pelt, fit_binseg
-from src.analysis.heterogeneity import compute_county_disruption, regress_disruption_on_context
+from src.analysis.changepoints import fit_pelt, fit_binseg, fit_segmented_regression
+from src.analysis.heterogeneity import (
+    compute_county_disruption, regress_disruption_on_context,
+    compute_selection_bias, check_within_sample_robustness,
+)
 from src.cleaning.bridging import estimate_vintage_offset, is_bridging_reliable
 from src.ingestion.cdc_wonder import load_manual_export
 from src.ingestion.county_health_rankings import load_year as load_chr_year
@@ -163,7 +166,18 @@ def analyze_cause(
     full_values = pd.concat([baseline[value_col], post[value_col]]).to_numpy()
     pelt_bps = fit_pelt(full_years, full_values, min_size=3, penalty=3.0)
     binseg_bps = fit_binseg(full_years, full_values, min_size=3, n_bkps=1)
-    cross_check_near_2020 = any(abs(bp - 2020) <= 2 for bp in pelt_bps + binseg_bps)
+    # Third documented cross-check method (research_protocol.md #7 method 3
+    # names all three; this pipeline previously only ran PELT/binseg --
+    # found and fixed 2026-09-01). Only counts as a vote if the Chow test
+    # itself found the break significant, per fit_segmented_regression's
+    # own confirmatory framing -- an insignificant best-fit breakpoint
+    # isn't evidence of anything.
+    segreg_result = fit_segmented_regression(full_years, full_values)
+    pelt_agrees = any(abs(bp - 2020) <= 2 for bp in pelt_bps)
+    binseg_agrees = any(abs(bp - 2020) <= 2 for bp in binseg_bps)
+    segreg_agrees = bool(segreg_result.has_significant_break and abs(segreg_result.breakpoint_year - 2020) <= 2)
+    cross_check_methods_agreeing = sum([pelt_agrees, binseg_agrees, segreg_agrees])
+    cross_check_near_2020 = cross_check_methods_agreeing > 0
 
     # Effect size, not just significance: % deviation from the expected
     # trend, since a p-value alone doesn't communicate magnitude to a
@@ -188,6 +202,7 @@ def analyze_cause(
         "latest_pct_deviation": latest_pct,
         "residual_autocorrelation": autocorrelation,
         "cross_check_confirms_2020": cross_check_near_2020,
+        "cross_check_methods_agreeing": cross_check_methods_agreeing,
         "deviations": deviations,
         "trend": trend,
     }
@@ -251,6 +266,7 @@ def main():
             "latest_pct_deviation": r["latest_pct_deviation"],
             "residual_autocorrelation": r["residual_autocorrelation"],
             "cross_check_confirms_2020": r["cross_check_confirms_2020"],
+            "cross_check_methods_agreeing": r["cross_check_methods_agreeing"],
         })
     summary_df = pd.DataFrame(summary_rows)
 
@@ -280,6 +296,8 @@ def main():
     chr_df = load_chr_year(2024)
 
     heterogeneity_rows = []
+    selection_bias_rows = []
+    robustness_rows = []
     for cause in HETEROGENEITY_CAUSES:
         pre, post = load_real_county_data(cause)
         print(
@@ -296,19 +314,45 @@ def main():
         reg_result["cause"] = cause
         heterogeneity_rows.append(reg_result)
 
+        # Selection-bias check (research_protocol.md's 2026-09-01 addendum):
+        # the min_years_each_period filter excludes low-death-count counties,
+        # which are disproportionately rural -- so any rurality finding needs
+        # checking against whether the included/excluded samples actually
+        # differ on rurality, and whether the relationship survives when
+        # restricted to just the more-rural half of the included counties.
+        bias = compute_selection_bias(disruption_df, chr_df, "pct_rural")
+        bias["cause"] = cause
+        selection_bias_rows.append(bias)
+        robustness = check_within_sample_robustness(disruption_df, chr_df, "pct_rural")
+        robustness["cause"] = cause
+        robustness_rows.append(robustness)
+        print(
+            f"    Selection-bias check (rurality): included mean {bias['mean_included']*100:.1f}% rural, "
+            f"excluded mean {bias['mean_excluded']*100:.1f}% rural"
+        )
+
         disruption_df["cause"] = cause
         disruption_df.to_parquet(
             OUTPUTS_MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet", index=False
         )
     heterogeneity_summary = pd.concat(heterogeneity_rows, ignore_index=True)
-    het_p_values = dict(zip(
-        heterogeneity_summary["variable"] + "__" + heterogeneity_summary["cause"],
-        heterogeneity_summary["p_value"].fillna(1.0),
-    ))
-    het_fdr = benjamini_hochberg(het_p_values)
-    heterogeneity_summary["fdr_significant"] = [
-        het_fdr[f"{v}__{c}"] for v, c in zip(heterogeneity_summary["variable"], heterogeneity_summary["cause"])
-    ]
+    # FDR correction is applied SEPARATELY per cause (research_protocol.md
+    # #10: "for a given cause"), not pooled across both causes into one
+    # family of 10 -- found and fixed 2026-09-01. Pooling both causes
+    # together didn't happen to flip any flag on this data (verified by
+    # comparing both ways before fixing), but it wasn't what was
+    # documented and isn't guaranteed to stay harmless.
+    fdr_significant_col = pd.Series(index=heterogeneity_summary.index, dtype=bool)
+    for cause in heterogeneity_summary["cause"].unique():
+        cause_mask = heterogeneity_summary["cause"] == cause
+        cause_rows = heterogeneity_summary[cause_mask]
+        cause_p_values = dict(zip(cause_rows["variable"], cause_rows["p_value"].fillna(1.0)))
+        cause_fdr = benjamini_hochberg(cause_p_values)
+        fdr_significant_col[cause_mask] = cause_rows["variable"].map(cause_fdr)
+    heterogeneity_summary["fdr_significant"] = fdr_significant_col
+
+    selection_bias_df = pd.DataFrame(selection_bias_rows)
+    robustness_df = pd.concat(robustness_rows, ignore_index=True)
 
     OUTPUTS_MODELS.mkdir(parents=True, exist_ok=True)
     national_df.to_parquet(OUTPUTS_MODELS / "national_mortality_series.parquet", index=False)
@@ -316,6 +360,8 @@ def main():
     summary_df.to_parquet(OUTPUTS_MODELS / "disruption_summary.parquet", index=False)
     deviations_df.to_parquet(OUTPUTS_MODELS / "disruption_deviations.parquet", index=False)
     heterogeneity_summary.to_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet", index=False)
+    selection_bias_df.to_parquet(OUTPUTS_MODELS / "heterogeneity_selection_bias.parquet", index=False)
+    robustness_df.to_parquet(OUTPUTS_MODELS / "heterogeneity_rurality_robustness.parquet", index=False)
     bridging_df.to_parquet(OUTPUTS_MODELS / "bridging_summary.parquet", index=False)
 
     negative_control_row = pd.DataFrame([{

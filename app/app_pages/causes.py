@@ -99,8 +99,9 @@ chart = (band + observed_line + expected_line + onset_rule).properties(height=32
 st.altair_chart(chart, width="stretch")
 st.caption(
     f"Solid line: observed. Dashed gray line + shaded band: expected trend and its 95% prediction "
-    f"interval, projected from 1999–2019. Cross-check (PELT/binseg) confirms a breakpoint near "
-    f"2020: {'yes' if r['cross_check_confirms_2020'] else 'no — see note below'}."
+    f"interval, projected from 1999–2019. Independent cross-check (PELT, binary segmentation, "
+    f"segmented regression): {r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint "
+    f"near 2020."
 )
 if not r["cross_check_confirms_2020"]:
     st.caption(
