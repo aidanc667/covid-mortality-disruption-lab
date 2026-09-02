@@ -112,7 +112,7 @@ with st.container(horizontal=True):
 # become visually indistinguishable, which is exactly how a reader can miss
 # that this second number exists at all.
 st.caption(
-    "Secondary check, not the primary test: does the disruption still show up if all five "
+    "Secondary check: does the disruption still show up if all five "
     "post-2020 years are pooled instead of just the acute 2020–21 window?"
 )
 with st.container(border=True):
