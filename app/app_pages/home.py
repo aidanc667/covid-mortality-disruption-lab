@@ -23,7 +23,7 @@ st.write(
     "Using 26 years of CDC mortality data, we establish each cause's pre-pandemic trajectory, "
     "estimate the mortality we would have expected in 2020–2024, and test whether observed "
     "mortality significantly departed from that baseline. We then examine whether those "
-    "disruptions were temporary or persisted through 2024 — across causes and, for two of them, "
+    "disruptions were temporary or persisted through 2024, across causes and, for two of them, "
     "across U.S. counties by socioeconomic status, healthcare access, and rurality."
 )
 st.write(
@@ -33,20 +33,20 @@ st.write(
 
 st.subheader("The breaking point")
 st.caption(
-    "COVID-19 itself is not one of the causes tested below — it's the fixed, known-date shock "
+    "COVID-19 itself is not one of the causes tested below. It's the fixed, known-date shock "
     "the whole analysis is built around. Every cause is compared against the trend it was already "
     "on before this date, not searched for after the fact."
 )
 with st.container(border=True):
     st.badge("COVID-19", icon=":material/coronavirus:", color="primary")
-    st.write("**March 2020 — the pandemic's onset, fixed as the breakpoint**")
+    st.write("**March 2020: the pandemic's onset, fixed as the breakpoint**")
     st.caption(
-        "Shown as a reference series, not tested for its own disruption — COVID-19 mortality "
+        "Shown as a reference series, not tested for its own disruption. COVID-19 mortality "
         "is the event every other cause below is being tested against, not a hypothesis in itself."
     )
 
 st.subheader("What we're testing")
-st.caption("Six major causes of death, each tested independently against its own 1999–2019 baseline trend.")
+st.caption("Six major causes of death, each tested independently against its own pre-pandemic baseline trend.")
 cause_grid = st.columns(3)
 for i, cause in enumerate(TEST_CAUSES):
     badge_color, icon = CAUSE_BADGE_STYLE[cause]
@@ -65,7 +65,7 @@ with steps:
         st.caption("Hypotheses and confidence levels for each cause were written down before any 2020–2024 data was analyzed.")
     with st.container(border=True, width="stretch"):
         st.markdown(":material/verified: **Tested, not assumed**")
-        st.caption("A negative control, 3 independent sensitivity checks, and FDR correction — a passing grade wasn't assumed.")
+        st.caption("A negative control, 3 independent sensitivity checks, and FDR correction: a passing grade wasn't assumed.")
     with st.container(border=True, width="stretch"):
         st.markdown(":material/travel_explore: **Mapped and explained**")
         st.caption("Results broken down by cause and by county, with research-grounded reasoning for what could explain each one.")
@@ -85,7 +85,7 @@ else:
     st.subheader("The headline finding")
     st.write(
         f"**{n_disrupted} of the 6 major causes tested still show a statistically significant "
-        "deviation from their pre-pandemic trend — four years later, none of them has fully "
+        "deviation from their pre-pandemic trend. Four years later, none of them has fully "
         "returned to normal, and none reversed direction.** The one cause with no disruption is "
         "itself a real, meaningful result, not a gap in the data. Full breakdown, including two "
         "results that contradicted this project's own predictions: see Findings."
@@ -96,7 +96,7 @@ else:
             st.metric(
                 "Significant disruption", f"{n_disrupted} of {len(summary)}", border=False,
                 help="Of the 6 causes tested, this many showed a death rate that moved outside "
-                     "what a straight-line projection of the pre-pandemic trend would predict — "
+                     "what a straight-line projection of the pre-pandemic trend would predict: "
                      "a real statistical deviation, not normal year-to-year noise.",
             )
             st.caption(":material/trending_up: 6 test causes, FDR-corrected (§7a)")
@@ -105,7 +105,7 @@ else:
             st.metric(
                 "FDR-significant", f"{n_fdr} of {len(summary)}", border=False,
                 help="Testing 6 causes at once means some 'significant' results could appear by "
-                     "chance alone. FDR correction is a stricter bar that accounts for this — "
+                     "chance alone. FDR correction is a stricter bar that accounts for this, and "
                      "this many results still clear it, meaning they're very likely real effects.",
             )
             st.caption(":material/functions: Benjamini-Hochberg across the 6-cause family")
@@ -116,12 +116,12 @@ else:
                 "Reversed trajectory", reversed_value if len(reversed_value) <= 12 else f"{len(reversed_causes)}",
                 border=False,
                 help=(
-                    f"{reversed_value} — a cause 'reverses' if it spiked one direction, then swung "
+                    f"{reversed_value}: a cause 'reverses' if it spiked one direction, then swung "
                     "back past the pre-pandemic trend in the opposite direction."
                     if len(reversed_causes) else
                     "A cause 'reverses' if it spiked one direction, then swung back past the "
-                    "pre-pandemic trend in the opposite direction. None of the 6 causes did this "
-                    "— whatever changed, stayed changed in the same direction."
+                    "pre-pandemic trend in the opposite direction. None of the 6 causes did this: "
+                    "whatever changed, stayed changed in the same direction."
                 ),
             )
             st.caption(":material/u_turn_right: Spiked, then declined below the pre-pandemic trend")
@@ -131,13 +131,13 @@ else:
                 help="A built-in sanity check: the identical method run on a cause with no "
                      "direct COVID connection (a birth-defect category), to confirm the method "
                      "doesn't just find 'disruption' everywhere by accident. It found nothing "
-                     "there, as expected — evidence the method works.",
+                     "there, as expected: evidence the method works.",
             )
-            st.caption(":material/verified: Congenital malformations — no direct COVID mechanism")
+            st.caption(":material/verified: Congenital malformations, no direct COVID mechanism")
 
     if not passed:
         st.error(
-            "The negative control did not pass — per research_protocol.md §7 method 4, this "
+            "The negative control did not pass. Per research_protocol.md §7 method 4, this "
             "is a hard gate. Results on the other 6 causes should not be trusted until this "
             "is resolved.",
             icon=":material/error:",
@@ -153,7 +153,7 @@ row1 = st.container(horizontal=True)
 with row1:
     with st.container(border=True, width="stretch"):
         st.markdown(":material/insights: **Findings**")
-        st.caption("The plain-language summary — what we found, and the two results that contradicted our own priors.")
+        st.caption("The plain-language summary: what we found, and the two results that contradicted our own priors.")
         st.page_link("app_pages/findings.py", label="Read the findings", icon=":material/arrow_forward:")
     with st.container(border=True, width="stretch"):
         st.markdown(":material/monitor_heart: **Causes of death**")
@@ -164,11 +164,11 @@ row2 = st.container(horizontal=True)
 with row2:
     with st.container(border=True, width="stretch"):
         st.markdown(":material/map: **Geographic heterogeneity**")
-        st.caption("An interactive U.S. county map — where disruption was largest, and what predicts it.")
+        st.caption("An interactive U.S. county map: where disruption was largest, and what predicts it.")
         st.page_link("app_pages/geographic_heterogeneity.py", label="See the map", icon=":material/arrow_forward:")
     with st.container(border=True, width="stretch"):
         st.markdown(":material/fact_check: **Data quality**")
-        st.caption("Suppression, vintage bridging, the negative control, and sensitivity analysis — shown, not hidden.")
+        st.caption("Suppression, vintage bridging, the negative control, and sensitivity analysis: shown, not hidden.")
         st.page_link("app_pages/data_quality.py", label="Check the rigor", icon=":material/arrow_forward:")
 
 heterogeneity_synthetic_banner()

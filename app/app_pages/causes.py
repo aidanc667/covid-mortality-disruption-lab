@@ -14,7 +14,7 @@ synthetic_banner()
 st.caption(
     "Six major causes of death, tested against their own pre-pandemic trend. For each: what "
     "happened, how confident we are it's real, and what the research literature suggests could "
-    "plausibly explain it — background context this project's own mortality data cannot itself prove."
+    "plausibly explain it: background context this project's own mortality data cannot itself prove."
 )
 
 if not data_available():
@@ -143,7 +143,7 @@ st.caption(
 )
 if not r["cross_check_confirms_2020"]:
     st.caption(
-        "This isn't evidence against the result above — the primary method tests this one "
+        "This isn't evidence against the result above. The primary method tests this one "
         "pre-registered date specifically, while the cross-check searches the whole series for "
         "whichever single breakpoint fits best, which can legitimately land elsewhere. See Methods."
     )
@@ -161,7 +161,7 @@ if not _trend_shape_robust(cause):
 
 st.subheader("What could explain this?")
 st.caption(
-    "Background from the published research literature on pandemic-era mortality generally — "
+    "Background from the published research literature on pandemic-era mortality generally, "
     "not something this project's own mortality data tested directly (research_protocol.md §11)."
 )
 st.write(explanation["summary"])

@@ -22,7 +22,7 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.metric("Status", "Passed" if passed else "FAILED")
     with st.container(border=True):
-        st.caption("Classification", help="Computed on raw death counts (the actual gating metric), not age-adjusted rate — see note below.")
+        st.caption("Classification", help="Computed on raw death counts (the actual gating metric), not age-adjusted rate. See note below.")
         st.badge(
             neg_control["persistence_class_counts"],
             color="gray" if neg_control["persistence_class_counts"] == "No significant disruption" else "red",
@@ -32,13 +32,13 @@ with st.container(horizontal=True):
 
 st.caption(
     f"Cause: **{neg_control['cause']}**. Gate decision computed on {neg_control['gate_metric']}, "
-    f"not age-adjusted rate — see note below."
+    f"not age-adjusted rate. See note below."
 )
 
 if passed:
     st.success(
-        f"{neg_control['cause']} mortality — a cause concentrated in infancy with no "
-        "direct COVID mechanism — shows no significant disruption on raw death counts, "
+        f"{neg_control['cause']} mortality, a cause concentrated in infancy with no "
+        "direct COVID mechanism, shows no significant disruption on raw death counts, "
         "as expected. This does not prove the methodology is artifact-free, but a failure "
         "here would have been strong evidence that it is.",
         icon=":material/check_circle:",
@@ -46,7 +46,7 @@ if passed:
 else:
     st.error(
         "The negative control shows a significant disruption on raw death counts. Per "
-        "research_protocol.md §7 method 4, this is a hard gate — results on the other 6 "
+        "research_protocol.md §7 method 4, this is a hard gate. Results on the other 6 "
         "causes should not be trusted until this is resolved (check for a vintage-bridging "
         "artifact or a generic 2020 data-quality issue before trusting any other result on "
         "this page).",
@@ -58,7 +58,7 @@ with st.expander("Why raw counts, not age-adjusted rate?"):
     st.caption(
         f"For reference, the rate-based test alone gave: {neg_control['persistence_class_rate']} "
         f"(p={neg_control['p_value_rate']:.4g}). The 6 substantive test causes are unaffected by "
-        "this issue and still use age-adjusted rate as their primary outcome (research_protocol.md §3) — "
+        "this issue and still use age-adjusted rate as their primary outcome (research_protocol.md §3): "
         "all have rates well above this negative control's ~3/100k, where 1-decimal rounding is a much "
         "smaller fraction of the signal."
     )
@@ -78,7 +78,7 @@ with st.container(horizontal=True):
         )
 st.caption(
     "Benjamini-Hochberg correction is applied across the 6 substantive test causes as one "
-    "family (research_protocol.md §7a) — a stricter bar than testing each cause in isolation."
+    "family (research_protocol.md §7a), a stricter bar than testing each cause in isolation."
 )
 
 st.subheader("Heterogeneity-stage multiple testing")
@@ -96,14 +96,14 @@ n_unreliable = int((~bridging["reliable"]).sum())
 if n_unreliable == 0:
     st.success(
         "All causes' 2018–2019 overlap between the D76 (1999–2020) and D158 (2018–2024) "
-        "database vintages is within the 10% reliability threshold (research_protocol.md §9) — "
-        "in fact the median relative offset is 0% for every cause, since the two overlap years "
+        "database vintages is within the 10% reliability threshold (research_protocol.md §9). "
+        "In fact the median relative offset is 0% for every cause, since the two overlap years "
         "matched exactly on every metric (deaths, population, crude rate, age-adjusted rate).",
         icon=":material/check_circle:",
     )
 else:
     st.error(
-        f"{n_unreliable} cause(s) exceed the 10% vintage-bridging reliability threshold — their "
+        f"{n_unreliable} cause(s) exceed the 10% vintage-bridging reliability threshold; their "
         "results should be treated with extra caution.",
         icon=":material/error:",
     )
@@ -119,7 +119,7 @@ st.dataframe(
 )
 st.caption(
     "Measured from the 2018–2019 years present in both database vintages "
-    "(`src/cleaning/bridging.estimate_vintage_offset`). This does not correct the data — it "
+    "(`src/cleaning/bridging.estimate_vintage_offset`). This does not correct the data, it "
     "only measures the size of the jump, so a real discontinuity is never mistaken for a "
     "COVID effect."
 )
@@ -149,7 +149,7 @@ else:
             f"line (linear, the primary method). Part of what the primary method reads as a 2020 "
             f"disruption for {pronoun} could instead be the natural curvature of {possessive} "
             "pre-existing trend, poorly extrapolated by a straight line. This is a real, material "
-            "limitation, reported here rather than smoothed over — see `research_protocol.md`'s "
+            "limitation, reported here rather than smoothed over. See `research_protocol.md`'s "
             "2026-09-01 baseline-correction addendum for the full investigation and why a shorter, "
             "more recent baseline window doesn't fully resolve it here the way it did elsewhere.",
             icon=":material/warning:",
@@ -164,7 +164,7 @@ else:
     ]:
         check_rows = sens[sens["check"] == check_name]
         n_disagree = int((~check_rows["agrees"]).sum())
-        with st.expander(f"{check_label} — {n_disagree} disagreement(s)", expanded=(n_disagree > 0)):
+        with st.expander(f"{check_label}: {n_disagree} disagreement(s)", expanded=(n_disagree > 0)):
             st.caption(description)
             st.dataframe(
                 check_rows[["cause", "primary_classification", "primary_p_value", "alt_classification", "alt_p_value", "agrees"]],
@@ -184,7 +184,7 @@ else:
         "The negative control's baseline-window row (age-adjusted rate) disagreeing across windows "
         "reproduces the already-documented rounding artifact (see \"Why raw counts, not "
         "age-adjusted rate?\" above, and Findings → \"This wasn't the first choice\" for the full "
-        "story of why the gate switched to raw counts), not a new instability — its actual gate "
+        "story of why the gate switched to raw counts), not a new instability. Its actual gate "
         "metric (raw death counts, separate row "
         "above) is stable across both windows."
     )

@@ -10,7 +10,7 @@ st.title("County deep dive")
 heterogeneity_synthetic_banner()
 st.caption(
     "County-level heterogeneity data exists only as pre/post period aggregates for the "
-    "causes analyzed in the Geographic Heterogeneity page — not full annual trajectories "
+    "causes analyzed in the Geographic Heterogeneity page, not full annual trajectories "
     "like the original diabetes-only pilot. See research_protocol.md §4 for why county-level "
     "analysis uses coarser aggregation than the national/state series."
 )
@@ -56,7 +56,7 @@ with st.container(horizontal=True):
                 st.metric("Pre-period rate (crude)", f"{r['crude_rate_pre']:.1f}")
                 st.metric("Post-period rate (crude)", f"{r['crude_rate_post']:.1f}", delta=f"{r['disruption']:+.1f}")
             else:
-                st.caption("Excluded — insufficient non-missing years in one or both periods.")
+                st.caption("Excluded: insufficient non-missing years in one or both periods.")
 
 st.subheader("Context (real 2024 CHR&R data)")
 chr_df = load_chr_year(2024)

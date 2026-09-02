@@ -1,5 +1,5 @@
 """Cached loaders for precomputed pipeline outputs. The app never re-runs
-excess-mortality or heterogeneity analysis itself (brief section 46) — it
+excess-mortality or heterogeneity analysis itself (brief section 46); it
 only reads the parquet files scripts/run_covid_disruption_pipeline.py (or,
 once real WONDER data exists, the equivalent real pipeline) already wrote
 to outputs/models/.
@@ -158,7 +158,7 @@ def synthetic_banner() -> None:
             "not real mortality statistics. Every disruption, persistence "
             "classification, and association shown below is fabricated for "
             "pipeline development, generated to match this project's own "
-            "pre-registered priors (see Methods) — it does not validate them. "
+            "pre-registered priors (see Methods); it does not validate them. "
             "See `docs/manual_data_acquisition.md` to load real CDC WONDER data.",
             icon=":material/science:",
         )
@@ -177,7 +177,7 @@ def heterogeneity_synthetic_banner() -> None:
     if is_synthetic_active(marker_path=SYNTHETIC_HETEROGENEITY_MARKER):
         st.error(
             "County-level heterogeneity below is currently **synthetic "
-            "placeholder data** — no real county-level CDC WONDER pull "
+            "placeholder data**, no real county-level CDC WONDER pull "
             "exists yet (see `docs/manual_data_acquisition.md`'s "
             "'later, smaller scope' section). The national disruption and "
             "persistence results on other pages are real CDC WONDER data.",

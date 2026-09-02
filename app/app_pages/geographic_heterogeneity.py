@@ -12,7 +12,7 @@ st.title("Geographic heterogeneity")
 heterogeneity_synthetic_banner()
 st.caption(
     "Is county-level disruption magnitude associated with socioeconomic status, healthcare "
-    "access, or rurality? Associational only — see Methods for the causal-language policy."
+    "access, or rurality? Associational only. See Methods for the causal-language policy."
 )
 
 if not data_available():
@@ -33,7 +33,7 @@ st.caption(
     "(a colorblind-safe blue/orange scale, not red/green or red/blue, which are hard to "
     "distinguish for the ~8% of men with red-green color vision deficiency). "
     "Gray = excluded (fewer than 2 non-suppressed years in one or both periods). Hover a county "
-    "for its exact pre/post rates. Rates are **crude rate**, not age-adjusted — CDC WONDER does "
+    "for its exact pre/post rates. Rates are **crude rate**, not age-adjusted: CDC WONDER does "
     "not offer age-adjustment at county granularity for the 2018–2024 database "
     "(research_protocol.md's 2026-09-01 addendum)."
 )
@@ -50,7 +50,7 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
 
-st.subheader(f"Context-variable associations — {cause}")
+st.subheader(f"Context-variable associations: {cause}")
 cause_het_display = cause_het.copy()
 cause_het_display["slope"] = cause_het_display.apply(
     lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
@@ -74,7 +74,7 @@ st.caption(
     f"{n_fdr} of {len(cause_het)} context variables survive FDR correction across this "
     "cause's family of comparisons (research_protocol.md §10). Multiple correlated variables "
     "surviving together (e.g. uninsured rate, smoking, income) likely reflects that those "
-    "variables are themselves correlated in the real data, not independent effects — this "
+    "variables are themselves correlated in the real data, not independent effects. This "
     "analysis cannot separate them."
 )
 
@@ -91,7 +91,7 @@ if len(rural_row):
         f"**Rurality finding: read this before trusting it.** The counties *excluded* from this "
         f"analysis (too few non-suppressed years) are on average "
         f"**{bias_row['mean_excluded']*100:.0f}% rural**, vs. **{bias_row['mean_included']*100:.0f}% rural** "
-        f"for the counties actually included — suppression disproportionately drops small, rural "
+        f"for the counties actually included. Suppression disproportionately drops small, rural "
         f"counties, so this regression describes suburban/small-city counties far more than it "
         f"describes rural America.", icon=":material/warning:",
     )
@@ -102,14 +102,14 @@ if len(rural_row):
             f"For {cause}, the relationship holds up reasonably well as a robustness check: split "
             f"the *included* counties at the median rurality, and the rurality-disruption "
             f"relationship is still significant among the more-rural half (p={upper['p_value']:.3g}, "
-            f"n={int(upper['n'])}) — if anything it's stronger there than among the less-rural half "
+            f"n={int(upper['n'])}); if anything, it's stronger there than among the less-rural half "
             f"(p={lower['p_value']:.3g}). Still doesn't cover the excluded, most-rural counties above."
         )
     else:
         st.caption(
             f"For {cause}, this robustness check is a real concern: split the *included* counties "
             f"at the median rurality, and the relationship is driven almost entirely by the "
-            f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}) — among the "
+            f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}). Among the "
             f"more-rural half of the included sample, it's not significant "
             f"(p={upper['p_value']:.3g}, n={int(upper['n'])}). Read the pooled slope above with real "
             f"caution for this cause."

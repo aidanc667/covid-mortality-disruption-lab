@@ -14,7 +14,7 @@ with st.expander("Research question", icon=":material/help:", expanded=True):
         "socioeconomic status, healthcare access, and rurality?"
     )
     st.write(
-        "COVID-19 is treated as a system-wide shock, not the disease under study — the "
+        "COVID-19 is treated as a system-wide shock, not the disease under study. The "
         "question is scoped to *what/how much/where*, not *why*, since mortality data alone "
         "cannot separate direct viral effects from deferred care, isolation, or economic stress."
     )
@@ -29,18 +29,18 @@ with st.expander("Pre-registered hypotheses", icon=":material/fact_check:"):
         "| Diabetes mellitus | E10-E14 | Real acute disruption; persistence uncertain | High |\n"
         "| Alzheimer's disease | G30 | Large, isolation-driven | High |\n"
         "| Cerebrovascular disease | I60-I69 | Real but harder to detect (smaller N) | Moderate |\n"
-        "| Malignant neoplasms | C00-C97 | **Expected null** — measurement-lag comparison case | Low (by design) |\n"
-        "| Congenital malformations | Q00-Q99 | **Negative control** — expected null | Validation case |\n"
-        "| COVID-19 | U07.1 | Reference series, not a hypothesis test | — |\n"
+        "| Malignant neoplasms | C00-C97 | **Expected null** (measurement-lag comparison case) | Low (by design) |\n"
+        "| Congenital malformations | Q00-Q99 | **Negative control** (expected null) | Validation case |\n"
+        "| COVID-19 | U07.1 | Reference series, not a hypothesis test | N/A |\n"
     )
 
 with st.expander("Data sources and vintage bridging", icon=":material/database:"):
     st.write(
         "Baseline: 1999–2019, CDC WONDER \"Underlying Cause of Death, 1999-2020\" (database D76) "
         "for 4 of the 6 test causes. Diseases of heart and Cerebrovascular disease use a shorter, "
-        "corrected 2010–2019 baseline — see Known limitations for why."
+        "corrected 2010–2019 baseline. See Known limitations for why."
     )
-    st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158) — confirmed live: no 2025 data exists yet.")
+    st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158). Confirmed live: no 2025 data exists yet.")
     st.write(
         "The two databases use different population-estimate methodologies. The pre-trend is "
         "fit using 1999–2019 only; the entire 2020–2024 comparison uses D158 exclusively (one "
@@ -64,26 +64,26 @@ with st.expander("Statistical methods", icon=":material/query_stats:"):
     )
     st.write(
         "**Independent cross-check.** Three methods (reused unmodified from the project's "
-        "diabetes-pilot phase) — PELT, binary segmentation, and segmented regression — run on "
+        "diabetes-pilot phase), PELT, binary segmentation, and segmented regression, run on "
         "each bridged series, checking whether they land on a breakpoint near March 2020 "
         "without being told to. Disagreement here is **not** itself evidence against a "
-        "significant result — the primary method tests one specific, pre-registered date, "
+        "significant result. The primary method tests one specific, pre-registered date, "
         "while the cross-check methods search the whole series for whichever single breakpoint "
         "fits best, which can legitimately fall elsewhere without the 2020 date being wrong. "
         "On the real data, all 6 test causes have at least one cross-check method confirm a "
-        "breakpoint near 2020 — heart disease and cerebrovascular disease needed a baseline "
+        "breakpoint near 2020. Heart disease and cerebrovascular disease needed a baseline "
         "correction (see Known limitations) before this held; on the original, uncorrected "
         "baseline neither cause's cross-check had confirmed it."
     )
     st.write(
         "**Negative control.** The identical pipeline run on congenital-malformations "
-        "mortality — a cause concentrated in infancy with no *direct* COVID mechanism (prenatal/"
+        "mortality, a cause concentrated in infancy with no *direct* COVID mechanism (prenatal/"
         "obstetric care was also disrupted during the pandemic, so \"no plausible mechanism at "
-        "all\" would overstate this — it's still far more insulated from adult pandemic-era "
+        "all\" would overstate this; it's still far more insulated from adult pandemic-era "
         "behavior than any of the 6 test causes). A significant \"disruption\" there would "
         "indicate the method is detecting an artifact, not a real signal, and is a hard gate on "
         "trusting the other 6 causes. (Its gate decision uses raw death counts rather than "
-        "age-adjusted rate — the rate is only reported to 1 decimal by CDC WONDER, which at "
+        "age-adjusted rate: the rate is only reported to 1 decimal by CDC WONDER, which at "
         "this cause's low magnitude made the rate-based test oversensitive to rounding noise; "
         "see the Data Quality page.)"
     )
@@ -98,7 +98,7 @@ with st.expander("County-level heterogeneity", icon=":material/map:"):
         "For causes with a significant disruption, per-county disruption magnitude "
         "(aggregated post-period mean minus pre-period mean) is regressed against real "
         "County Health Rankings context variables (uninsured rate, smoking, obesity, income, "
-        "rurality). Associational only — see the causal-language policy below."
+        "rurality). Associational only; see the causal-language policy below."
     )
 
 with st.expander("Causal language policy", icon=":material/gavel:"):
@@ -109,22 +109,22 @@ with st.expander("Causal language policy", icon=":material/gavel:"):
 
 with st.expander("Known limitations", icon=":material/warning:"):
     st.write(
-        "- Observational, ecological design — no individual-level causal inference. The "
+        "- Observational, ecological design: no individual-level causal inference. The "
         "county-level heterogeneity stage carries **ecological fallacy** risk by name: a "
         "county-average relationship doesn't necessarily hold at the individual level\n"
         "- **Selection bias in the county-level heterogeneity sample**: counties excluded by the "
         "suppression filter are disproportionately rural (77.7% rural excluded vs. 31.5% "
         "included for diabetes; 74.4% vs. 23.8% for overdose). The rurality finding is more "
         "trustworthy for diabetes (holds up among more-rural included counties) than for drug "
-        "overdose (driven by less-rural counties, not significant among more-rural ones) — see "
+        "overdose (driven by less-rural counties, not significant among more-rural ones). See "
         "Geographic Heterogeneity for the full check\n"
         "- Mortality-vintage discontinuity between the two CDC WONDER databases\n"
         "- ICD-10 coding practices may have shifted during 2020–2021 due to strain on death-certification systems\n"
-        "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that — cancer shows a significant, still-persisting disruption, not the null originally expected\n"
+        "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that. Cancer shows a significant, still-persisting disruption, not the null originally expected\n"
         "- Small-county suppression at the county-level heterogeneity stage\n"
         "- CHR&R behavioral measures (smoking, obesity) are PLACES model-based small-area estimates, not raw counts\n"
         "- **Context-variable vintage is post-period, not pre-period**: all five heterogeneity-stage "
-        "context variables come from CHR&R's 2024 release — measured during or after the 2020–2024 "
+        "context variables come from CHR&R's 2024 release, measured during or after the 2020–2024 "
         "disruption window they're being regressed against, not a pre-pandemic baseline. Rurality is "
         "effectively static, but income and the uninsured rate plausibly moved during the pandemic "
         "itself, so this stage can't rule out some feedback from the disruption's own economic "
@@ -133,19 +133,20 @@ with st.expander("Known limitations", icon=":material/warning:"):
         "- Counties are not geographically independent (spatial autocorrelation not yet modeled)\n"
         "- Temporal autocorrelation of baseline residuals is not modeled, and measured to be large "
         "for most test causes (lag-1 autocorrelation 0.65–0.82 for diabetes, overdose, and "
-        "Alzheimer's; 0.50 for cerebrovascular disease; 0.12–0.19 for heart disease and cancer) — "
-        "the prediction-interval math assumes independence, so reported p-values are likely "
+        "Alzheimer's; 0.50 for cerebrovascular disease; 0.12–0.19 for heart disease and cancer). "
+        "The prediction-interval math assumes independence, so reported p-values are likely "
         "optimistic, not the tightest possible estimate\n"
         "- **Diseases of heart and Cerebrovascular disease use a corrected 2010–2019 baseline, not "
         "1999–2019 like the other four test causes**, after finding the longer window was already "
-        "diverging from their real trajectory before 2020 — see research_protocol.md's 2026-09-01 "
+        "diverging from their real trajectory before 2020. See research_protocol.md's 2026-09-01 "
         "addendum. Heart disease is now fully robust across every check; cerebrovascular disease is "
         "substantially improved but remains this project's single most uncertain \"Persisted\" "
         "result (its significance doesn't fully survive an alternate curved-trend check, p=0.096)\n"
-        "- \"Significant\" and \"large\" are different claims: cancer's disruption is real and "
-        "FDR-significant but small (+1.7% acute deviation) next to heart disease, diabetes, "
-        "cerebrovascular disease, or overdose (+26% to +41%) — see the Findings page for effect sizes\n"
-        "- All findings remain associational — the mechanism behind any confirmed disruption "
+        "- \"Significant\" and \"large\" are different claims: diabetes (+26.9%) and drug overdose "
+        "(+40.9%) show the largest 2020-21 deviations; cancer (+1.7%), heart disease (+7.8%), and "
+        "cerebrovascular disease (+8.8%) are all real and FDR-significant but modest by comparison. "
+        "See the Findings page for effect sizes\n"
+        "- All findings remain associational. The mechanism behind any confirmed disruption "
         "(direct viral effect vs. deferred care vs. isolation vs. economic stress) cannot be "
         "separated by mortality data alone"
     )
