@@ -139,14 +139,19 @@ else:
     quad_check = test_cause_checks[test_cause_checks["check"] == "baseline_trend_shape (linear vs quadratic)"]
     quad_disagree = quad_check.loc[~quad_check["agrees"], "cause"].tolist()
     if quad_disagree:
+        verb = "loses" if len(quad_disagree) == 1 else "lose"
+        pronoun = "this cause" if len(quad_disagree) == 1 else "these causes"
+        possessive = "its" if len(quad_disagree) == 1 else "their"
         st.error(
-            f"**{len(quad_disagree)} of 6 test causes are not robust to baseline trend shape:** "
-            f"{', '.join(quad_disagree)} lose significance when the pre-pandemic baseline is fit "
-            "as a curve (quadratic) instead of a straight line (linear, the primary method). Part "
-            "of what the primary method reads as a 2020 disruption for these causes could instead "
-            "be the natural curvature of their pre-existing trend, poorly extrapolated by a "
-            "straight line. This is a real, material limitation, reported here rather than smoothed "
-            "over — see `research_protocol.md`'s 2026-09-01 sensitivity addendum.",
+            f"**{len(quad_disagree)} of 6 test causes {'is' if len(quad_disagree) == 1 else 'are'} "
+            f"not robust to baseline trend shape:** {', '.join(quad_disagree)} {verb} significance "
+            "when the pre-pandemic baseline is fit as a curve (quadratic) instead of a straight "
+            f"line (linear, the primary method). Part of what the primary method reads as a 2020 "
+            f"disruption for {pronoun} could instead be the natural curvature of {possessive} "
+            "pre-existing trend, poorly extrapolated by a straight line. This is a real, material "
+            "limitation, reported here rather than smoothed over — see `research_protocol.md`'s "
+            "2026-09-01 baseline-correction addendum for the full investigation and why a shorter, "
+            "more recent baseline window doesn't fully resolve it here the way it did elsewhere.",
             icon=":material/warning:",
         )
     for check_name, check_label, description in [

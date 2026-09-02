@@ -78,8 +78,9 @@ st.caption(
     "trend, as a percent. Significance (p-value) and magnitude (deviation) are different claims: a "
     "cause can be statistically significant while still small in absolute terms, or vice versa. "
     "\"Robust to trend shape\" flags whether the result survives an alternate, curved baseline fit — "
-    "unchecked for heart disease and cerebrovascular disease, whose straight-line fit was already "
-    "diverging from the real pre-pandemic trend before 2020 (see Causes of death for the chart)."
+    "unchecked only for cerebrovascular disease. Diseases of heart had the same problem originally "
+    "but is now fully robust after its baseline was corrected to a shorter, more recent window "
+    "(see Causes of death for the chart, and research_protocol.md's 2026-09-01 addendum for why)."
 )
 
 st.subheader("The two results that weren't supposed to happen this way")
@@ -169,10 +170,12 @@ if sensitivity_check_available():
                 icon=":material/warning:",
             )
     st.caption(
-        "The trend-shape check found a real, material limitation: heart disease and cerebrovascular "
-        "disease's significance depends on assuming a straight-line (not curved) pre-pandemic trend. "
-        "Diabetes, drug overdose, and cancer hold up across every axis tested — those three are the "
-        "most robust of the 5 disrupted causes."
+        "The trend-shape check originally found this same problem for both heart disease and "
+        "cerebrovascular disease. Heart disease's baseline has since been corrected to a shorter, "
+        "more recent window and is now fully robust; cerebrovascular disease's significance still "
+        "depends partly on the straight-line assumption, though less than before the correction "
+        "(see research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and cancer hold "
+        "up across every axis tested without needing any correction."
     )
 else:
     st.info("Run `python -m scripts.run_sensitivity_check` to populate this section.", icon=":material/info:")

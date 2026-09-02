@@ -52,6 +52,34 @@ TEST_CAUSES = [
 ]
 NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnormalities"
 
+# 2026-09-01 correction (addendum, research_protocol.md #12): a reader
+# question ("this decline can't extrapolate to zero, can it") led to
+# checking these two causes' baseline fit independently of any post-2020
+# data. An F-test on the 1999-2019 residuals alone found overwhelming
+# evidence of curvature for exactly these two causes (F=222.7 and 162.6,
+# both p<0.00001; the other 4 test causes are near-linear, F<9.5) --
+# their real 1999-2019 trajectory declined steeply through the 2000s,
+# then flattened, which the full-range straight-line fit badly
+# misrepresents by 2019 (17.7 and 5.8 points off the actual value,
+# respectively). A curved (quadratic) fit tracks history almost
+# perfectly but was rejected as the fix: extrapolated forward it predicts
+# RISING rates through 2024 for both causes (heart disease 164.5->175.2,
+# cerebrovascular 38.5->43.7) -- the well-known failure mode of
+# polynomial extrapolation, and clearly worse than the problem it was
+# meant to solve. A shorter, more recent linear window (2010-2019, still
+# a straight line, still 2 parameters, no extrapolation pathology) both
+# matches the recent flat trajectory and extrapolates sensibly. It does
+# NOT make either result go away -- both remain significant, heart
+# disease more so (p=3.86e-5 vs the original 6.33e-4) -- but the acute
+# deviation drops from an overstated +26.1%/+37.0% to a defensible
+# +7.8%/+8.8%. This override applies ONLY to these two causes; the other
+# 4 test causes' F-test found no comparable curvature, so their original
+# 1999-2019 baseline is unchanged.
+BASELINE_START_YEAR_OVERRIDES = {
+    "Diseases of heart": 2010,
+    "Cerebrovascular disease": 2010,
+}
+
 CDC_WONDER_DIR = DATA_RAW / "cdc_wonder"
 
 # cause (matching TEST_CAUSES/NEGATIVE_CONTROL exactly) -> file slug used in
@@ -228,7 +256,13 @@ def main():
               "should be treated with extra caution (research_protocol.md #9).")
 
     print("Running excess-mortality analysis per cause...")
-    results = {cause: analyze_cause(d76_df, d158_df, cause) for cause in TEST_CAUSES}
+    results = {
+        cause: analyze_cause(
+            d76_df, d158_df, cause,
+            baseline_start_year=BASELINE_START_YEAR_OVERRIDES.get(cause, 1999),
+        )
+        for cause in TEST_CAUSES
+    }
     # The negative control's own age-adjusted rate is low-magnitude (~3/100k)
     # and WONDER only reports it to 1 decimal, which makes the OLS baseline
     # fit artificially tight and the gate oversensitive to rounding noise
@@ -297,7 +331,8 @@ def main():
     for cause in TEST_CAUSES + [NEGATIVE_CONTROL]:
         r = results[cause] if cause in results else negative_control_result
         trend = r["trend"]
-        for year in range(1999, 2020):
+        start_year = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
+        for year in range(start_year, 2020):
             baseline_fitted_rows.append({
                 "cause": cause, "year": year, "fitted": trend.slope * year + trend.intercept,
             })

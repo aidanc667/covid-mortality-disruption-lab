@@ -291,10 +291,13 @@ def build(data: dict) -> list:
     # --- 2. Methods ---
     story.append(Paragraph("2. Methods", styles["H1"]))
     story.append(Paragraph("<b>Primary method: known-date interrupted time series (\"excess mortality\").</b> "
-        "An expected trend is fit on 1999-2019 age-adjusted mortality rates, projected forward "
-        "through 2020-2024 with a 95% prediction interval, and a year is flagged as significantly "
-        "disrupted if the observed value falls outside that interval. The breakpoint (2020) is "
-        "fixed by the shock's known date, not searched for.", styles["Body"]))
+        "An expected trend is fit on pre-pandemic age-adjusted mortality rates (1999-2019 for 4 "
+        "of the 6 test causes; 2010-2019 for Diseases of heart and Cerebrovascular disease, "
+        "corrected after the full-range fit was found to misdescribe their real trajectory -- "
+        "section 4), projected forward through 2020-2024 with a 95% prediction interval, and a "
+        "year is flagged as significantly disrupted if the observed value falls outside that "
+        "interval. The breakpoint (2020) is fixed by the shock's known date, not searched for.",
+        styles["Body"]))
     story.append(Paragraph("<b>Three-way persistence classification.</b> For causes with a significant "
         "2020-2021 disruption: Persisted (still significant, same direction, through 2024), "
         "Resolved (shrank back within the interval), or Reversed (flipped sign).", styles["Body"]))
@@ -361,8 +364,8 @@ def build(data: dict) -> list:
         "\"Deviation\" is the effect size: how far the observed rate is from the expected "
         "pre-pandemic trend, as a percent. Significance and magnitude are different claims. "
         "\"Robust?\" marks whether the result survives an alternate, curved baseline fit "
-        "instead of the primary straight line; heart disease and cerebrovascular disease do not "
-        "(see section 4 for why).",
+        "instead of the primary straight line; cerebrovascular disease does not, though less "
+        "severely than before its baseline was corrected (see section 4 for why).",
         styles["Caption"]
     ))
     story.append(Spacer(1, 6))
@@ -420,8 +423,27 @@ def build(data: dict) -> list:
     # --- 4. Robustness ---
     story.append(Paragraph("4. Robustness", styles["H1"]))
     story.append(Paragraph(
-        "Three independent sensitivity checks re-fit the primary method one modeling choice at a "
-        "time.", styles["Body"]
+        "<b>A baseline correction, found through this exact process.</b> Diseases of heart and "
+        "Cerebrovascular disease originally used the same 1999-2019 baseline as the other four "
+        "test causes. The trend-shape check below found their significance didn't survive a "
+        "curved baseline; investigating why, using only 1999-2019 data with no reference to "
+        "2020+, found an F-test comparing linear vs. quadratic fits showed overwhelming curvature "
+        "for exactly these two causes (F=222.7 and F=162.6, both p&lt;0.00001, vs. F&lt;9.5 for "
+        "every other test cause) -- both declined steeply through the 2000s, then flattened, and "
+        "a straight line across the full period was already 17.7 and 5.8 points below the real "
+        "2019 value before the pandemic. A quadratic fit tracks history almost perfectly but was "
+        "rejected as the fix: extrapolated to 2020-2024 it predicts <i>rising</i> rates for both "
+        "causes, the standard failure mode of polynomial extrapolation. A shorter, more recent "
+        "linear window (2010-2019) has neither defect, and is now this project's baseline for "
+        "these two causes only. Both remain significant -- heart disease more confidently than "
+        "before -- but the reported deviation drops from an overstated 26-37% to a defensible "
+        "8-9%, and both causes now drift slightly toward their expected trend by 2024 rather than "
+        "away from it. Full investigation: research_protocol.md's 2026-09-01 addendum.",
+        styles["Body"]
+    ))
+    story.append(Paragraph(
+        "With that correction in place, three independent sensitivity checks re-fit the primary "
+        "method one modeling choice at a time.", styles["Body"]
     ))
     axis_labels = {
         "baseline_window (1999 vs 2010)": "Baseline window (1999-2019 vs. shorter 2010-2019)",
@@ -435,22 +457,27 @@ def build(data: dict) -> list:
         verdict = "All 6 test causes agree." if n_disagree == 0 else f"{n_disagree} cause(s) disagree: {', '.join(rows.loc[~rows['agrees'], 'cause'])}."
         story.append(Paragraph(f"<b>{label}.</b> {verdict}", styles["Body"]))
     story.append(Paragraph(
-        "The trend-shape check is the one that matters. Heart disease and cerebrovascular disease "
-        "lose significance when the pre-pandemic baseline is allowed to curve instead of being "
-        "forced into a straight line. Part of what the linear method reads as a 2020 disruption "
-        "for these two causes could instead be the natural curvature of their pre-existing trend. "
-        "Diabetes, drug overdose, and cancer hold up across every axis tested and are the most "
-        "robust of the 5 disrupted causes.", styles["Callout"]
+        "The trend-shape check, now run against each cause's corrected baseline, is the one that "
+        "matters most. Heart disease is now fully robust: it stays significant whether the "
+        "baseline is a straight line or a curve. Cerebrovascular disease is substantially "
+        "improved but not fully resolved -- its quadratic p-value moves from 0.37 under the old, "
+        "uncorrected full-range comparison to a much closer 0.096 under the corrected window, "
+        "better, but still on the wrong side of 0.05. It remains this project's single most "
+        "uncertain \"Persisted\" classification. Diabetes, drug overdose, and cancer were never "
+        "affected by any of this and hold up across every axis tested.", styles["Callout"]
     ))
     story.append(Paragraph(
         "Separately, lag-1 autocorrelation, a measure of whether one year's unexpected result "
         "tends to be followed by another, was calculated for each cause's own pre-pandemic "
-        "residuals. It is large for 5 of 6 causes (0.65-0.93; only cancer is low, at 0.19). The "
-        "prediction-interval math assumes independent year-to-year residuals, which this data "
-        "doesn't fully satisfy, so the reported p-values throughout this report are likely more "
-        "confident than a model accounting for this would produce. This doesn't overturn the "
-        "results (the deviations found are large, and the negative control still passed), but it "
-        "is a genuine limitation worth taking seriously.", styles["Body"]
+        "residuals. It is large for diabetes, overdose, and Alzheimer's (0.65-0.82); moderate for "
+        "cerebrovascular disease (0.50); and low for heart disease and cancer (0.12-0.19) -- heart "
+        "disease's and cerebrovascular disease's dropped sharply after their baseline correction "
+        "(from 0.92 and 0.93 on the old full-range baseline), since a shorter window's residuals "
+        "are far less serially smooth than a 21-year decline. The prediction-interval math assumes "
+        "independent year-to-year residuals, which the remaining causes' baselines don't fully "
+        "satisfy, so some reported p-values in this report are likely more confident than a model "
+        "accounting for this would produce. This doesn't overturn the results, but it is a genuine "
+        "limitation worth taking seriously.", styles["Body"]
     ))
 
     n_bridge_unreliable = int((~bridging["reliable"]).sum())
@@ -534,12 +561,17 @@ def build(data: dict) -> list:
         "contradicts that: cancer shows a significant, still-persisting disruption rather than "
         "the null originally expected.",
         "Temporal autocorrelation of baseline residuals is not modeled and is empirically large "
-        "(0.65-0.93 for 5 of 6 test causes), so reported p-values are likely optimistic.",
-        "“Significant” and “large” are different claims: cancer's disruption is "
-        "real but small (+1.7% acute) next to heart disease, diabetes, cerebrovascular disease, "
-        "or overdose (+26% to +41%).",
-        "Heart disease and cerebrovascular disease's significance is not robust to the choice of "
-        "linear vs. curved baseline trend shape.",
+        "for most test causes (0.65-0.82 for diabetes, overdose, and Alzheimer's; 0.50 for "
+        "cerebrovascular disease; 0.12-0.19 for heart disease and cancer), so reported p-values "
+        "for those causes are likely optimistic.",
+        "“Significant” and “large” are different claims: drug overdose and diabetes show the "
+        "largest disruptions (15-41%), while cancer, heart disease, and cerebrovascular disease "
+        "are all real and FDR-significant but modest by comparison (3-9%).",
+        "Diseases of heart and Cerebrovascular disease use a corrected 2010-2019 baseline, not "
+        "1999-2019 like the other four test causes, after finding the longer window was already "
+        "diverging from their real trajectory before 2020 (section 4). Heart disease is now fully "
+        "robust to the choice of linear vs. curved baseline trend shape; cerebrovascular disease "
+        "is substantially improved but remains this project's single most uncertain result.",
         "County-level heterogeneity uses crude rate, not age-adjusted rate, because WONDER does "
         "not offer age-adjustment at county granularity for the 2018-2024 database. Measured "
         "disruption magnitude may partly reflect each county's own population-aging trajectory.",

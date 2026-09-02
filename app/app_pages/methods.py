@@ -35,7 +35,11 @@ with st.expander("Pre-registered hypotheses", icon=":material/fact_check:"):
     )
 
 with st.expander("Data sources and vintage bridging", icon=":material/database:"):
-    st.write("Baseline: 1999–2019, CDC WONDER \"Underlying Cause of Death, 1999-2020\" (database D76).")
+    st.write(
+        "Baseline: 1999–2019, CDC WONDER \"Underlying Cause of Death, 1999-2020\" (database D76) "
+        "for 4 of the 6 test causes. Diseases of heart and Cerebrovascular disease use a shorter, "
+        "corrected 2010–2019 baseline — see Known limitations for why."
+    )
     st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158) — confirmed live: no 2025 data exists yet.")
     st.write(
         "The two databases use different population-estimate methodologies. The pre-trend is "
@@ -47,9 +51,10 @@ with st.expander("Data sources and vintage bridging", icon=":material/database:"
 with st.expander("Statistical methods", icon=":material/query_stats:"):
     st.write(
         "**Known-date interrupted time series (\"excess mortality\").** Fit an expected trend "
-        "on 1999–2019, project it forward with a 95% prediction interval, and flag a year as "
-        "significantly disrupted if the observed value falls outside that interval. The "
-        "breakpoint (2020) is fixed by the shock's known date, not searched for."
+        "on the pre-pandemic baseline (1999–2019 for 4 of the 6 test causes, 2010–2019 for the "
+        "2 causes with a corrected window), project it forward with a 95% prediction interval, "
+        "and flag a year as significantly disrupted if the observed value falls outside that "
+        "interval. The breakpoint (2020) is fixed by the shock's known date, not searched for."
     )
     st.write(
         "**Three-way persistence classification.** For causes with a significant acute-phase "
@@ -65,8 +70,10 @@ with st.expander("Statistical methods", icon=":material/query_stats:"):
         "significant result — the primary method tests one specific, pre-registered date, "
         "while the cross-check methods search the whole series for whichever single breakpoint "
         "fits best, which can legitimately fall elsewhere without the 2020 date being wrong. "
-        "On the real data, 2 of 6 test causes (heart disease, cerebrovascular disease) show "
-        "this disagreement despite a large, significant primary-method result for each."
+        "On the real data, all 6 test causes have at least one cross-check method confirm a "
+        "breakpoint near 2020 — heart disease and cerebrovascular disease needed a baseline "
+        "correction (see Known limitations) before this held; on the original, uncorrected "
+        "baseline neither cause's cross-check had confirmed it."
     )
     st.write(
         "**Negative control.** The identical pipeline run on congenital-malformations "
@@ -125,8 +132,16 @@ with st.expander("Known limitations", icon=":material/warning:"):
         "- Multiple testing across both the 6-cause family and the per-cause context-variable family\n"
         "- Counties are not geographically independent (spatial autocorrelation not yet modeled)\n"
         "- Temporal autocorrelation of baseline residuals is not modeled, and measured to be large "
-        "(lag-1 autocorrelation 0.65–0.93 for 5 of 6 test causes) — the prediction-interval math "
-        "assumes independence, so reported p-values are likely optimistic, not the tightest possible estimate\n"
+        "for most test causes (lag-1 autocorrelation 0.65–0.82 for diabetes, overdose, and "
+        "Alzheimer's; 0.50 for cerebrovascular disease; 0.12–0.19 for heart disease and cancer) — "
+        "the prediction-interval math assumes independence, so reported p-values are likely "
+        "optimistic, not the tightest possible estimate\n"
+        "- **Diseases of heart and Cerebrovascular disease use a corrected 2010–2019 baseline, not "
+        "1999–2019 like the other four test causes**, after finding the longer window was already "
+        "diverging from their real trajectory before 2020 — see research_protocol.md's 2026-09-01 "
+        "addendum. Heart disease is now fully robust across every check; cerebrovascular disease is "
+        "substantially improved but remains this project's single most uncertain \"Persisted\" "
+        "result (its significance doesn't fully survive an alternate curved-trend check, p=0.096)\n"
         "- \"Significant\" and \"large\" are different claims: cancer's disruption is real and "
         "FDR-significant but small (+1.7% acute deviation) next to heart disease, diabetes, "
         "cerebrovascular disease, or overdose (+26% to +41%) — see the Findings page for effect sizes\n"

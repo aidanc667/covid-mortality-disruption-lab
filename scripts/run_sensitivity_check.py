@@ -20,6 +20,7 @@ from src.analysis.excess_mortality import benjamini_hochberg
 from src.utils.config import OUTPUTS_MODELS
 from scripts.run_covid_disruption_pipeline import (
     ACUTE_YEARS, TEST_CAUSES, NEGATIVE_CONTROL, load_real_national_data, analyze_cause,
+    BASELINE_START_YEAR_OVERRIDES,
 )
 
 ALT_BASELINE_START_YEAR = 2010
@@ -81,14 +82,25 @@ def main():
 
     rows = []
 
-    # Axis 1: baseline window (1999-2019 vs 2010-2019)
-    print(f"Axis 1: baseline window (1999 vs {ALT_BASELINE_START_YEAR})...")
+    # Axis 1: baseline window. For the 4 causes still on the original
+    # 1999-2019 window, primary=1999 / alt=2010 as before. For the 2 causes
+    # already corrected to a 2010-2019 primary window (research_protocol.md's
+    # 2026-09-01 baseline-window addendum), primary/alt are flipped so this
+    # axis still tests "does window choice matter" around whichever window
+    # is actually in use, rather than comparing two windows neither of which
+    # is the real primary.
+    print("Axis 1: baseline window...")
     window_p = {}
     for cause in TEST_CAUSES + [NEGATIVE_CONTROL]:
-        primary = analyze_cause(d76_df, d158_df, cause, baseline_start_year=1999)
-        alt = analyze_cause(d76_df, d158_df, cause, baseline_start_year=ALT_BASELINE_START_YEAR)
+        primary_start = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
+        alt_start = 1999 if cause in BASELINE_START_YEAR_OVERRIDES else ALT_BASELINE_START_YEAR
+        primary = analyze_cause(d76_df, d158_df, cause, baseline_start_year=primary_start)
+        alt = analyze_cause(d76_df, d158_df, cause, baseline_start_year=alt_start)
         window_p[cause] = (primary["p_value"], alt["p_value"])
         rows.append({
+            # Check name stays constant across all causes -- app pages and
+            # the report filter on this exact string -- even though which
+            # year is "primary" vs "alt" flips for the 2 corrected causes.
             "cause": cause, "check": "baseline_window (1999 vs 2010)",
             "primary_classification": primary["persistence_class"], "primary_p_value": primary["p_value"],
             "alt_classification": alt["persistence_class"], "alt_p_value": alt["p_value"],
@@ -112,11 +124,14 @@ def main():
         "agrees": nc_primary_counts["persistence_class"] == nc_alt_counts["persistence_class"],
     })
 
-    # Axis 2: significance threshold (alpha=0.05 vs alpha=0.01)
+    # Axis 2: significance threshold (alpha=0.05 vs alpha=0.01). Both sides
+    # use each cause's actual primary baseline window (1999, or 2010 for the
+    # 2 corrected causes) -- only alpha varies.
     print(f"Axis 2: significance threshold (0.05 vs {ALT_ALPHA})...")
     for cause in TEST_CAUSES:
-        primary = analyze_cause(d76_df, d158_df, cause, alpha=0.05)
-        alt = analyze_cause(d76_df, d158_df, cause, alpha=ALT_ALPHA)
+        primary_start = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
+        primary = analyze_cause(d76_df, d158_df, cause, baseline_start_year=primary_start, alpha=0.05)
+        alt = analyze_cause(d76_df, d158_df, cause, baseline_start_year=primary_start, alpha=ALT_ALPHA)
         rows.append({
             "cause": cause, "check": f"significance_threshold (0.05 vs {ALT_ALPHA})",
             "primary_classification": primary["persistence_class"], "primary_p_value": primary["p_value"],
@@ -124,11 +139,16 @@ def main():
             "agrees": primary["persistence_class"] == alt["persistence_class"],
         })
 
-    # Axis 3: baseline trend shape (linear vs quadratic)
+    # Axis 3: baseline trend shape (linear vs quadratic). Both sides fit on
+    # the SAME baseline window (each cause's actual primary) -- otherwise
+    # this would compare "linear on 2010-2019" against "quadratic on
+    # 1999-2019" for the 2 corrected causes, which isn't a fair test of
+    # trend shape alone.
     print("Axis 3: baseline trend shape (linear vs quadratic)...")
     for cause in TEST_CAUSES:
-        primary = analyze_cause(d76_df, d158_df, cause)
-        baseline = d76_df[(d76_df["cause"] == cause) & (d76_df["year"] <= 2019)].sort_values("year")
+        primary_start = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
+        primary = analyze_cause(d76_df, d158_df, cause, baseline_start_year=primary_start)
+        baseline = d76_df[(d76_df["cause"] == cause) & (d76_df["year"] >= primary_start) & (d76_df["year"] <= 2019)].sort_values("year")
         post = d158_df[(d158_df["cause"] == cause) & (d158_df["year"] >= 2020)].sort_values("year")
         quad_p, quad_class = fit_quadratic_and_test(
             baseline["year"].to_numpy(), baseline["age_adjusted_rate"].to_numpy(),

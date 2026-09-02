@@ -101,16 +101,22 @@ CAUSE_EXPLANATIONS = {
             ("Compounding for existing heart disease", "People with pre-existing cardiovascular disease who contracted COVID-19 faced substantially higher in-hospital mortality risk than those without it."),
         ],
         "note": (
-            "Two real caveats, not just the supportive case above. First, this is the cause where "
-            "our own sensitivity analysis found the least robust result: the significant disruption "
-            "depends on assuming the pre-pandemic trend was a straight line rather than a curve — "
-            "see the Robustness section. Second, the broader literature itself flags attribution as "
-            "a genuine confound here: a death in a cardiac patient triggered by COVID-19 infection "
-            "could reasonably be coded as either heart disease or COVID-19 depending on "
-            "documentation practices, and at least one review of this literature specifically "
-            "described the underlying studies as \"generally poorly conducted,\" calling for better "
-            "designs before drawing firm conclusions about how much of the excess is genuinely "
-            "cardiovascular versus miscoded COVID."
+            "One methodological correction and one real caveat, not just the supportive case above. "
+            "First: this project's own sensitivity check initially found heart disease's significant "
+            "disruption depended on assuming the pre-pandemic trend was a straight line, because a "
+            "straight line fit across 1999-2019 was already diverging from heart disease's real "
+            "(steep-decline-then-plateau) trajectory before 2020 even happened. Corrected by fitting "
+            "the baseline to the most recent decade (2010-2019, still a straight line, just a shorter "
+            "and more relevant window) — this makes the result more confidently significant, not less "
+            "(p=3.9e-5), while cutting the reported effect size from an overstated +26% to a "
+            "defensible +7.8% — see the Robustness section and research_protocol.md's 2026-09-01 "
+            "addendum for the full investigation. Second, a real, unresolved caveat: the broader "
+            "literature itself flags attribution as a genuine confound here — a death in a cardiac "
+            "patient triggered by COVID-19 infection could reasonably be coded as either heart disease "
+            "or COVID-19 depending on documentation practices, and at least one review of this "
+            "literature specifically described the underlying studies as \"generally poorly "
+            "conducted,\" calling for better designs before drawing firm conclusions about how much "
+            "of the excess is genuinely cardiovascular versus miscoded COVID."
         ),
         "sources": [
             {
@@ -136,17 +142,20 @@ CAUSE_EXPLANATIONS = {
             ("Cytokine storm", "The severe inflammatory immune response some COVID-19 patients experience is itself associated with increased acute stroke risk."),
         ],
         "note": (
-            "Like heart disease, this cause's significant result in our own analysis depends on "
-            "assuming a linear (not curved) pre-pandemic baseline trend — the least robust of the "
-            "5 disrupted causes alongside heart disease. There's also a real tension worth naming "
-            "against the broader national picture: a CDC data brief found the U.S. stroke death "
-            "rate for adults 45-64 rose through 2021 but then declined through 2022 — a partial "
-            "reversal — while this project's own national analysis finds cerebrovascular disease "
-            "getting worse, not better, through 2024 (+57% vs. expected trend, up from +37% in "
-            "2020-21). The two aren't necessarily contradictory (different age groups, all-ages vs. "
-            "45-64, and 2023-2024 aren't covered by the CDC brief), but it's a real discrepancy "
-            "worth being aware of rather than treating this project's persistence finding as the "
-            "last word on the national stroke trend."
+            "Like heart disease, this cause's baseline was corrected from the full 1999-2019 range "
+            "to a shorter, more recent 2010-2019 window, after finding the longer straight-line fit "
+            "was already diverging from the real (steep-decline-then-plateau) trajectory before 2020 "
+            "(research_protocol.md's 2026-09-01 addendum has the full investigation). That correction "
+            "cut the reported effect size from an overstated +37% to a more defensible +8.8%. Unlike "
+            "heart disease, though, this one isn't fully resolved: cerebrovascular disease is still "
+            "this project's single most uncertain \"Persisted\" result, its significance is real under "
+            "the corrected baseline but doesn't fully survive an alternate curved-trend check either "
+            "(p=0.096, close to but not under 0.05) — see the Robustness section. One thing the "
+            "correction did resolve: a CDC data brief found the U.S. stroke death rate for adults "
+            "45-64 rose through 2021 but then declined through 2022, a partial reversal, and this "
+            "project's own corrected numbers now tell a consistent story rather than a conflicting "
+            "one — the deviation from trend eases slightly by 2024 (+6.1%, down from +8.8% in "
+            "2020-21) instead of the growing gap an earlier, uncorrected baseline had shown."
         ),
         "sources": [
             {

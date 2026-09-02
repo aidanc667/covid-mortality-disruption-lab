@@ -130,14 +130,16 @@ expected_line = (
 onset_rule = alt.Chart(pd.DataFrame({"year": [2020]})).mark_rule(color="#9CA3AF", strokeDash=[2, 2]).encode(x="year:O")
 
 chart = (band + observed_line + expected_line + onset_rule).properties(height=320)
+baseline_start = int(fitted["year"].min()) if len(fitted) else 1999
+total_years = 2024 - baseline_start + 1
 st.altair_chart(chart, width="stretch")
 st.caption(
-    f"Solid line: observed. Dashed gray line: the same straight-line trend fit across all 26 "
-    f"years, both where it was fit (1999–2019, so you can judge for yourself how well it tracks "
-    f"the real pre-pandemic trajectory) and where it's projected forward (2020–2024, shaded band: "
-    f"its 95% prediction interval, the only years actually tested). Independent cross-check "
-    f"(PELT, binary segmentation, segmented regression): {r['cross_check_methods_agreeing']} of 3 "
-    f"methods confirm a breakpoint near 2020."
+    f"Solid line: observed. Dashed gray line: the same straight-line trend fit across all "
+    f"{total_years} years, both where it was fit ({baseline_start}–2019, so you can judge for "
+    f"yourself how well it tracks the real pre-pandemic trajectory) and where it's projected "
+    f"forward (2020–2024, shaded band: its 95% prediction interval, the only years actually "
+    f"tested). Independent cross-check (PELT, binary segmentation, segmented regression): "
+    f"{r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint near 2020."
 )
 if not r["cross_check_confirms_2020"]:
     st.caption(
@@ -148,11 +150,13 @@ if not r["cross_check_confirms_2020"]:
 
 if not _trend_shape_robust(cause):
     st.warning(
-        "**Robustness flag:** this result loses significance under a curved (quadratic) "
-        "baseline trend instead of the primary straight-line assumption. Look at the dashed "
-        "line above through 1999–2019: it was already diverging from the actual trend well "
-        "before 2020, which distorts the apparent size of the 2020+ gap. See Data Quality for "
-        "the full sensitivity breakdown.", icon=":material/warning:",
+        "**Robustness flag:** this is now this project's single most uncertain \"Persisted\" "
+        "result. Its baseline was already corrected once, from the full 1999–2019 range to the "
+        "shorter, more recent window shown dashed above, after the original full-range fit was "
+        "found to badly misdescribe the real pre-pandemic trend (see research_protocol.md's "
+        "2026-09-01 addendum). That correction made the result more defensible, but even the "
+        "corrected window's significance still doesn't fully survive an alternate curved-trend "
+        "check. See Data Quality for the full sensitivity breakdown.", icon=":material/warning:",
     )
 
 st.subheader("What could explain this?")
