@@ -180,6 +180,23 @@ if sensitivity_check_available():
         "(see research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and cancer hold "
         "up across every axis tested without needing any correction."
     )
+
+    hac_disagree = summary[(summary["p_value"] < 0.05) != (summary["hac_p_value"] < 0.05)]["cause"].tolist()
+    if not hac_disagree:
+        st.success(
+            "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant causes "
+            "stay significant. The classical p-value assumes independent baseline years, which is "
+            "measurably false for several causes (autocorrelation up to 0.82); correcting for it "
+            "raises those p-values by roughly 1-2 orders of magnitude, but none cross back over 0.05.",
+            icon=":material/check_circle:",
+        )
+    else:
+        st.warning(
+            f"**Autocorrelation-robust standard errors (Newey-West/HAC):** {len(hac_disagree)} "
+            f"cause(s) disagree with the classical result ({', '.join(hac_disagree)}). See Causes "
+            "of death for each cause's HAC p-value.",
+            icon=":material/warning:",
+        )
 else:
     st.info("Run `python -m scripts.run_sensitivity_check` to populate this section.", icon=":material/info:")
 

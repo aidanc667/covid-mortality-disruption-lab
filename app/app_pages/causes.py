@@ -106,17 +106,18 @@ with st.container(horizontal=True):
             help="The pre-registered primary test: are 2020 and 2021 combined significantly off trend?",
         )
 
-# Both of these are deliberately their own separate, labeled rows rather
-# than extra cards squeezed into the row above: at normal window widths
-# Streamlit truncates metric labels to "p-value (2020..." and they become
-# visually indistinguishable, which is exactly how a reader can miss that
-# a second or third number exists at all.
-st.caption(
-    "Same acute 2020–21 test, corrected for a real limitation: the primary p-value above assumes "
-    "each baseline year is independent noise, which measured autocorrelation shows isn't true for "
-    "this cause. Does the result survive an autocorrelation-robust standard error instead?"
-)
-with st.container(border=True):
+# Both secondary checks live inside one collapsed-by-default expander
+# rather than as always-visible full-width blocks: for most causes they
+# confirm the primary result without adding new information, so showing
+# them at full size on every visit was pure clutter. Auto-expanded only
+# when there's something genuinely worth seeing without an extra click
+# (Alzheimer's delayed-disruption case).
+with st.expander("Robustness checks: does the result hold up under alternate assumptions?", expanded=_delayed_disruption(r)):
+    st.caption(
+        "Same acute 2020–21 test, corrected for a real limitation: the primary p-value above assumes "
+        "each baseline year is independent noise, which measured autocorrelation shows isn't true for "
+        "this cause. Does the result survive an autocorrelation-robust standard error instead?"
+    )
     st.metric(
         "Autocorrelation-robust p-value (HAC)", f"{r['hac_p_value']:.2g}",
         help="Newey-West (HAC) standard errors instead of the classical formula, which assumes "
@@ -125,11 +126,10 @@ with st.container(border=True):
              "acute 2020–21 window; only the uncertainty calculation changes. See Methods for why "
              "this matters and how it's computed.",
     )
-st.caption(
-    "Secondary check: does the disruption still show up if all five "
-    "post-2020 years are pooled instead of just the acute 2020–21 window?"
-)
-with st.container(border=True):
+    st.caption(
+        "Secondary check: does the disruption still show up if all five "
+        "post-2020 years are pooled instead of just the acute 2020–21 window?"
+    )
     st.metric(
         "Full-period p-value (2020–2024)", f"{r['full_period_p_value']:.2g}",
         delta=f"{r['full_period_pct_deviation']:+.1f}% average deviation", delta_color="off",
