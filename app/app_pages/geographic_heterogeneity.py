@@ -7,6 +7,7 @@ from app.components.data_loading import (
     HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS, scale_context_slope_for_display,
 )
 from app.components.county_map import render_county_choropleth
+from src.ingestion.county_health_rankings import load_year as load_chr_year
 
 st.title("Geographic heterogeneity")
 heterogeneity_synthetic_banner()
@@ -27,24 +28,33 @@ if cause is None:
 cause_het = het[het["cause"] == cause].sort_values("p_value")
 county_disruption = load_county_disruption(cause)
 
+n_counties = len(county_disruption)
+total_us_counties = load_chr_year(2024)["county_fips"].nunique()
+excluded_pct = 1 - n_counties / total_us_counties
+
 st.subheader("Where disruption was largest")
 st.caption(
-    "Blue = mortality rate fell relative to pre-pandemic trend. Orange = mortality rate rose "
-    "(a colorblind-safe blue/orange scale, not red/green or red/blue, which are hard to "
-    "distinguish for the ~8% of men with red-green color vision deficiency). "
-    "Gray = excluded (fewer than 2 non-suppressed years in one or both periods). Hover a county "
-    "for its exact pre/post rates. Rates are **crude rate**, not age-adjusted: CDC WONDER does "
-    "not offer age-adjustment at county granularity for the 2018–2024 database "
+    f"Only {n_counties} of {total_us_counties} U.S. counties ({1 - excluded_pct:.0%}) have enough "
+    f"non-suppressed years of data to appear here at all; the other {excluded_pct:.0%}, shown in "
+    f"gray, are excluded, not zero. Blue = mortality rate fell relative to pre-pandemic trend. "
+    "Orange = mortality rate rose (a colorblind-safe blue/orange scale, not red/green or red/blue, "
+    "which are hard to distinguish for the ~8% of men with red-green color vision deficiency). "
+    "Hover a county for its exact pre/post rates. Rates are **crude rate**, not age-adjusted: CDC "
+    "WONDER does not offer age-adjustment at county granularity for the 2018–2024 database "
     "(research_protocol.md's 2026-09-01 addendum)."
 )
 st.altair_chart(render_county_choropleth(county_disruption, cause), width="stretch")
 
-n_counties = len(county_disruption)
 worsened = int((county_disruption["disruption"] > 0).sum())
 improved = int((county_disruption["disruption"] < 0).sum())
 with st.container(horizontal=True):
     with st.container(border=True):
-        st.metric("Counties included", n_counties)
+        st.metric(
+            "Counties included", f"{n_counties} of {total_us_counties}",
+            delta=f"{1 - excluded_pct:.0%} of all U.S. counties", delta_color="off",
+            help="The rest are excluded for insufficient non-suppressed years of data, "
+                 "disproportionately rural counties -- see the rurality caveat below.",
+        )
     with st.container(border=True):
         st.metric("Rate rose (worse)", f"{worsened} ({worsened / n_counties:.0%})")
     with st.container(border=True):

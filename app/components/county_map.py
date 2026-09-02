@@ -17,7 +17,11 @@ def render_county_choropleth(disruption_df: pd.DataFrame, cause: str, value_col:
     a real fetch of the topojson, not assumed) and `value_col`. Counties
     with no matching row (excluded upstream for insufficient non-suppressed
     years) render in a neutral gray rather than the color scale, so
-    missing data is visually distinct from a real zero."""
+    missing data is visually distinct from a real zero. #9CA3AF (not the
+    much lighter #E5E7EB originally used here) -- a reader correctly
+    pointed out that the lighter shade was barely distinguishable from the
+    page's own white background, making "excluded" look like "no county
+    here at all" rather than a deliberate, readable data choice."""
     counties = alt.topo_feature(COUNTIES_TOPOJSON_URL, "counties")
     states = alt.topo_feature(STATES_TOPOJSON_URL, "states")
 
@@ -45,7 +49,7 @@ def render_county_choropleth(disruption_df: pd.DataFrame, cause: str, value_col:
                     title="Disruption",
                     legend=alt.Legend(orient="bottom", gradientLength=280),
                 ),
-                alt.value("#E5E7EB"),
+                alt.value("#9CA3AF"),
             ),
             tooltip=[
                 alt.Tooltip("county_fips:N", title="County FIPS"),
