@@ -45,6 +45,20 @@ HETEROGENEITY_VALUE_COL = "crude_rate"
 
 ACUTE_YEARS = (2020, 2021)
 POST_ACUTE_YEARS = (2022, 2024)
+# Secondary, non-gating metric added 2026-09-02: a reader asked whether the
+# acute-only (2020-2021) p-value undercounts disruption that keeps evolving
+# after the acute window, since COVID's effects on other causes plausibly
+# don't stop after two years. Pooling all of 2020-2024 does surface a real
+# case the acute-only test misses (Alzheimer's disease: p=0.81 acute-only vs
+# p=0.0019 full-period, driven by a decline that only became individually
+# significant in 2023-2024) -- but it is NOT used to replace ACUTE_YEARS as
+# the classification gate or the FDR family, because averaging 5 years can
+# just as easily hide a real reversal (drug overdose spikes +40.9% acutely
+# then swings to -4.3% by 2024; pooled into one number it still reads
+# "significant, +31%," erasing the fact that the direction flipped, which is
+# exactly what classify_persistence's 3-way scheme exists to preserve). This
+# is reported alongside the primary acute p-value, never instead of it.
+FULL_PERIOD_YEARS = (2020, 2024)
 OVERLAP_YEARS = [2018, 2019]
 TEST_CAUSES = [
     "Diseases of heart", "Diabetes mellitus", "Alzheimer's disease",
@@ -173,6 +187,7 @@ def analyze_cause(
     )
     deviations = compute_deviations(trend, post["year"].to_numpy(), post[value_col].to_numpy(), alpha=alpha)
     p_value = compute_acute_pvalue(trend, deviations, ACUTE_YEARS)
+    full_period_p_value = compute_acute_pvalue(trend, deviations, FULL_PERIOD_YEARS)
     # The combined-period p-value test gates persistence classification,
     # not the per-year prediction-interval flags -- they're different
     # tests that can disagree on borderline cases (found during synthetic
@@ -221,13 +236,23 @@ def analyze_cause(
         float(latest_devs[0].deviation / latest_devs[0].expected * 100)
         if latest_devs and not np.isnan(latest_devs[0].deviation) else float("nan")
     )
+    full_period_devs = [
+        d for d in deviations
+        if FULL_PERIOD_YEARS[0] <= d.year <= FULL_PERIOD_YEARS[1] and not np.isnan(d.deviation)
+    ]
+    full_period_pct = (
+        float(np.mean([d.deviation / d.expected for d in full_period_devs]) * 100)
+        if full_period_devs else float("nan")
+    )
 
     return {
         "cause": cause,
         "persistence_class": persistence,
         "p_value": p_value,
+        "full_period_p_value": full_period_p_value,
         "acute_pct_deviation": acute_pct,
         "latest_pct_deviation": latest_pct,
+        "full_period_pct_deviation": full_period_pct,
         "residual_autocorrelation": autocorrelation,
         "cross_check_confirms_2020": cross_check_near_2020,
         "cross_check_methods_agreeing": cross_check_methods_agreeing,
@@ -295,9 +320,11 @@ def main():
             "cause": cause,
             "persistence_class": r["persistence_class"],
             "p_value": r["p_value"],
+            "full_period_p_value": r["full_period_p_value"],
             "fdr_significant": fdr_survives[cause],
             "acute_pct_deviation": r["acute_pct_deviation"],
             "latest_pct_deviation": r["latest_pct_deviation"],
+            "full_period_pct_deviation": r["full_period_pct_deviation"],
             "residual_autocorrelation": r["residual_autocorrelation"],
             "cross_check_confirms_2020": r["cross_check_confirms_2020"],
             "cross_check_methods_agreeing": r["cross_check_methods_agreeing"],
