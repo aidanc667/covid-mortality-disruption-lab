@@ -18,7 +18,7 @@ Both of these were decided in writing, with a stated confidence level, before an
 
 Excess-mortality analysis is the real technique public health agencies use to estimate a pandemic's true toll beyond its officially attributed death count, and to catch the damage that never shows up in a case count at all — deferred cancer screening, interrupted addiction treatment, delayed cardiac care. Running it across six causes at once, with a shared statistical pipeline and a hypothesis locked in advance for each one, turns a single case study into something closer to a small research program. That's also what makes it a useful project to read closely: it isn't just a dashboard of pandemic statistics, it's a demonstration of what happens when you follow a rigorous method all the way through, including the parts where the data disagrees with you.
 
-## Rigor, shown rather than claimed
+## Rigor
 
 - **Pre-registered hypotheses.** Every cause's predicted direction and confidence level was written down before the 2020-2024 data was ever pulled ([`docs/research_protocol.md`](docs/research_protocol.md)).
 - **A negative control.** The identical pipeline is run on a cause with no direct COVID mechanism; a significant result there would mean the method is just detecting noise. It passed — and the project documents, rather than hides, that the *first* negative control it tried (accidental drowning) genuinely failed, and explains why that's not a contradiction.
