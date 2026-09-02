@@ -16,7 +16,7 @@ import pandas as pd
 
 from src.analysis.excess_mortality import (
     fit_baseline_trend, compute_deviations, classify_persistence,
-    compute_acute_pvalue, benjamini_hochberg, compute_residual_autocorrelation,
+    compute_acute_pvalue, compute_hac_pvalue, benjamini_hochberg, compute_residual_autocorrelation,
 )
 from src.analysis.changepoints import fit_pelt, fit_binseg, fit_segmented_regression
 from src.analysis.heterogeneity import (
@@ -188,6 +188,18 @@ def analyze_cause(
     deviations = compute_deviations(trend, post["year"].to_numpy(), post[value_col].to_numpy(), alpha=alpha)
     p_value = compute_acute_pvalue(trend, deviations, ACUTE_YEARS)
     full_period_p_value = compute_acute_pvalue(trend, deviations, FULL_PERIOD_YEARS)
+    # Autocorrelation-robust version of the same acute-window test
+    # (research_protocol.md #12/2026-09-02 addendum): the classical
+    # p_value above assumes independent year-to-year residuals, which
+    # measured autocorrelation (0.50-0.82 for half the test causes) shows
+    # is false. hac_p_value re-derives the same test with a Newey-West
+    # sandwich covariance for the fitted line's uncertainty and an exact
+    # (for this project's 2-year acute window) autocovariance-based
+    # variance for the new observations, instead of assuming independence.
+    hac_p_value = compute_hac_pvalue(
+        baseline["year"].to_numpy(), baseline[value_col].to_numpy(),
+        post["year"].to_numpy(), post[value_col].to_numpy(), ACUTE_YEARS,
+    )
     # The combined-period p-value test gates persistence classification,
     # not the per-year prediction-interval flags -- they're different
     # tests that can disagree on borderline cases (found during synthetic
@@ -250,6 +262,7 @@ def analyze_cause(
         "persistence_class": persistence,
         "p_value": p_value,
         "full_period_p_value": full_period_p_value,
+        "hac_p_value": hac_p_value,
         "acute_pct_deviation": acute_pct,
         "latest_pct_deviation": latest_pct,
         "full_period_pct_deviation": full_period_pct,
@@ -321,6 +334,7 @@ def main():
             "persistence_class": r["persistence_class"],
             "p_value": r["p_value"],
             "full_period_p_value": r["full_period_p_value"],
+            "hac_p_value": r["hac_p_value"],
             "fdr_significant": fdr_survives[cause],
             "acute_pct_deviation": r["acute_pct_deviation"],
             "latest_pct_deviation": r["latest_pct_deviation"],

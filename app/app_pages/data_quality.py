@@ -102,8 +102,9 @@ if n_unreliable == 0:
         icon=":material/check_circle:",
     )
 else:
+    cause_word, verb = ("cause", "exceeds") if n_unreliable == 1 else ("causes", "exceed")
     st.error(
-        f"{n_unreliable} cause(s) exceed the 10% vintage-bridging reliability threshold; their "
+        f"{n_unreliable} {cause_word} {verb} the 10% vintage-bridging reliability threshold; their "
         "results should be treated with extra caution.",
         icon=":material/error:",
     )
@@ -164,7 +165,8 @@ else:
     ]:
         check_rows = sens[sens["check"] == check_name]
         n_disagree = int((~check_rows["agrees"]).sum())
-        with st.expander(f"{check_label}: {n_disagree} disagreement(s)", expanded=(n_disagree > 0)):
+        disagree_word = "disagreement" if n_disagree == 1 else "disagreements"
+        with st.expander(f"{check_label}: {n_disagree} {disagree_word}", expanded=(n_disagree > 0)):
             st.caption(description)
             st.dataframe(
                 check_rows[["cause", "primary_classification", "primary_p_value", "alt_classification", "alt_p_value", "agrees"]],

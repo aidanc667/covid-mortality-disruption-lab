@@ -92,6 +92,31 @@ with st.expander("Statistical methods", icon=":material/query_stats:"):
         "the 6 substantive test causes as one family, separately from the heterogeneity-stage "
         "correction applied per cause across its context variables."
     )
+    st.write(
+        "**Full-period p-value (secondary, not primary).** Alongside the pre-registered acute "
+        "(2020-2021) test, each cause also gets a p-value pooling all five post-2020 years, using "
+        "the identical t-test just over a wider window. This isn't used to replace the acute test or "
+        "gate classification: averaging more years can hide a real reversal (drug overdose spikes, "
+        "then declines below trend by 2024) as easily as it can reveal a delayed effect. It exists "
+        "to catch disruptions the acute window is too narrow to see, which is exactly what it finds "
+        "for Alzheimer's disease (not significant at 2020-2021, but significant once 2022-2024 are "
+        "included, see Causes of death)."
+    )
+    st.write(
+        "**Autocorrelation-robust p-value (Newey-West/HAC).** The primary p-value's prediction-"
+        "interval math assumes each baseline year's deviation from the fitted line is independent "
+        "noise. Measured lag-1 autocorrelation is 0.50-0.82 for diabetes, drug overdose, Alzheimer's, "
+        "and cerebrovascular disease, meaning a rough year really does tend to be followed by another "
+        "rough year for these causes, which the classical formula doesn't know and can't account for. "
+        "This produces a second p-value for the identical acute (2020-2021) window and identical "
+        "trend line, replacing only the uncertainty calculation: a Newey-West sandwich covariance for "
+        "the fitted line's own uncertainty, plus the exact variance of a mean of 2 new correlated "
+        "observations (derived directly from the baseline's own lag-0 and lag-1 autocovariances, "
+        "not assumed independent). On the real data this raises several causes' p-values by 1-2 "
+        "orders of magnitude (e.g. drug overdose: 5.98e-8 to 2.5e-5) without changing which causes "
+        "clear significance -- all 5 previously significant causes remain significant under this "
+        "correction. See research_protocol.md's 2026-09-02 addendum for the full derivation."
+    )
 
 with st.expander("County-level heterogeneity", icon=":material/map:"):
     st.write(
@@ -131,11 +156,14 @@ with st.expander("Known limitations", icon=":material/warning:"):
         "aftermath into the context variable\n"
         "- Multiple testing across both the 6-cause family and the per-cause context-variable family\n"
         "- Counties are not geographically independent (spatial autocorrelation not yet modeled)\n"
-        "- Temporal autocorrelation of baseline residuals is not modeled, and measured to be large "
-        "for most test causes (lag-1 autocorrelation 0.65–0.82 for diabetes, overdose, and "
-        "Alzheimer's; 0.50 for cerebrovascular disease; 0.12–0.19 for heart disease and cancer). "
-        "The prediction-interval math assumes independence, so reported p-values are likely "
-        "optimistic, not the tightest possible estimate\n"
+        "- The primary p-value's prediction-interval math assumes independent baseline residuals, "
+        "which is measurably false for half the test causes (lag-1 autocorrelation 0.65–0.82 for "
+        "diabetes, overdose, and Alzheimer's; 0.50 for cerebrovascular disease; 0.12–0.19 for heart "
+        "disease and cancer, where the assumption roughly holds). This was a disclosed-but-unmodeled "
+        "gap; a Newey-West (HAC) autocorrelation-robust version of the test is now also reported "
+        "(see Statistical methods above and Causes of death). It raises the classical p-value for "
+        "the high-autocorrelation causes by roughly 1-2 orders of magnitude, but all 5 causes "
+        "previously found significant remain significant under it\n"
         "- **Diseases of heart and Cerebrovascular disease use a corrected 2010–2019 baseline, not "
         "1999–2019 like the other four test causes**, after finding the longer window was already "
         "diverging from their real trajectory before 2020. See research_protocol.md's 2026-09-01 "

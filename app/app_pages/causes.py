@@ -106,11 +106,25 @@ with st.container(horizontal=True):
             help="The pre-registered primary test: are 2020 and 2021 combined significantly off trend?",
         )
 
-# Full-period p-value is deliberately its own separate, labeled row rather
-# than a 5th card squeezed into the row above: at normal window widths
-# Streamlit truncates both metric labels to "p-value (2020..." and they
-# become visually indistinguishable, which is exactly how a reader can miss
-# that this second number exists at all.
+# Both of these are deliberately their own separate, labeled rows rather
+# than extra cards squeezed into the row above: at normal window widths
+# Streamlit truncates metric labels to "p-value (2020..." and they become
+# visually indistinguishable, which is exactly how a reader can miss that
+# a second or third number exists at all.
+st.caption(
+    "Same acute 2020–21 test, corrected for a real limitation: the primary p-value above assumes "
+    "each baseline year is independent noise, which measured autocorrelation shows isn't true for "
+    "this cause. Does the result survive an autocorrelation-robust standard error instead?"
+)
+with st.container(border=True):
+    st.metric(
+        "Autocorrelation-robust p-value (HAC)", f"{r['hac_p_value']:.2g}",
+        help="Newey-West (HAC) standard errors instead of the classical formula, which assumes "
+             "independent year-to-year residuals -- measured autocorrelation is 0.50-0.82 for half "
+             "the test causes, so that assumption is often false here. Keeps the same trend line and "
+             "acute 2020–21 window; only the uncertainty calculation changes. See Methods for why "
+             "this matters and how it's computed.",
+    )
 st.caption(
     "Secondary check: does the disruption still show up if all five "
     "post-2020 years are pooled instead of just the acute 2020–21 window?"
@@ -119,12 +133,8 @@ with st.container(border=True):
     st.metric(
         "Full-period p-value (2020–2024)", f"{r['full_period_p_value']:.2g}",
         delta=f"{r['full_period_pct_deviation']:+.1f}% average deviation", delta_color="off",
-        help="Pools all five post-2020 years instead of just the acute 2020–21 window, since a "
-             "disruption can keep evolving well past the acute phase. Can disagree with the primary "
-             "test, most notably for Alzheimer's disease, where a real decline that only became "
-             "individually significant in 2023–2024 is invisible to the acute-only test but shows "
-             "up clearly here. Not used to replace the primary test or the headline result above: "
-             "see the Methods page for why.",
+        help="Pools all five post-2020 years instead of just the acute 2020–21 window. Not used to "
+             "replace the primary test or the headline result above; see Methods for why.",
     )
 
 # --- Trajectory chart ---
@@ -222,29 +232,23 @@ st.caption(
     f"{total_years} years, both where it was fit ({baseline_start}–2019, so you can judge for "
     f"yourself how well it tracks the real pre-pandemic trajectory) and where it's projected "
     f"forward (2020–2024, shaded band: its 95% prediction interval, the only years actually "
-    f"tested). The filled gap between the two lines is colored red where observed ran above "
-    f"trend and blue where it ran below, so the size of the deviation doesn't depend on "
-    f"eyeballing two overlapping lines: a thin band can still be significant if this cause's "
-    f"own pre-pandemic noise was small, and a thick band can still be non-significant if it "
-    f"wasn't. Hover a point on the solid line to see whether that specific year fell inside or "
-    f"outside the interval; the primary p-value (2020–21) pools those two years together, so a "
-    f"single year can look unremarkable on its own while the combined result is still "
-    f"significant. The 2020–24 p-value above pools all five years instead, as a secondary check "
-    f"for disruption that shows up only later. "
+    f"tested). The filled gap is colored red where observed ran above trend and blue where it "
+    f"ran below: a thin band can still be significant if this cause's own pre-pandemic noise was "
+    f"small, and a thick band can still be non-significant if it wasn't. Hover a point on the "
+    f"solid line for that year's status; the primary p-value pools 2020 and 2021 together, so a "
+    f"single unremarkable-looking year can still belong to a significant combined result. "
     f"Independent cross-check (PELT, binary segmentation, segmented regression): "
     f"{r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint near 2020."
 )
 if _delayed_disruption(r):
     st.info(
-        f"**{cause} looks unremarkable in 2020–21** (p = {r['p_value']:.2g}), which is why its "
-        f"headline result above is \"No significant disruption.\" But pooled across all of "
-        f"2020–2024, the same test finds a real, later decline (p = {r['full_period_p_value']:.2g}, "
-        f"averaging {r['full_period_pct_deviation']:+.1f}% vs. trend): notice in the chart how the "
-        f"gap widens and turns blue in the most recent years. This project's primary classification "
-        f"stays scoped to the pre-registered acute window rather than switching after the fact to "
-        f"whichever window makes a cause look significant, so the headline result above is correct "
-        f"as reported. This is a real, additional finding the acute-only test just isn't built to "
-        f"catch: a disruption that arrived late rather than at onset.",
+        f"**{cause}** shows no significant disruption in the pre-registered 2020–21 window "
+        f"(p = {r['p_value']:.2g}), but pooling all five post-2020 years finds a real, later "
+        f"decline instead (p = {r['full_period_p_value']:.2g}, averaging "
+        f"{r['full_period_pct_deviation']:+.1f}% vs. trend); watch the gap widen and turn blue "
+        f"after 2021. The headline result above is still correct as reported: this project doesn't "
+        f"switch its primary test window after seeing which one is significant. This is an "
+        f"additional finding, not a contradiction.",
         icon=":material/schedule:",
     )
 if not r["cross_check_confirms_2020"]:

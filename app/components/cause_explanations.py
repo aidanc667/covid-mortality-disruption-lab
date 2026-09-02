@@ -28,7 +28,7 @@ CAUSE_EXPLANATIONS = {
         ),
         "mechanisms": [
             ("Using alone, with no one to intervene", "Isolation meant more people used drugs without anyone present who could call for help or administer naloxone if an overdose occurred, widely cited as a leading factor in the 2020-2021 spike."),
-            ("A more dangerous drug supply", "Illicitly manufactured fentanyl, far more potent and unpredictable than heroin, was already driving a rising trend before 2020 and accounted for roughly 80% of opioid overdose deaths in the pandemic's early months."),
+            ("A more dangerous drug supply", "Illicitly manufactured fentanyl, far more potent and unpredictable than heroin, was already driving a rising trend before 2020 and was involved in 64% of all U.S. overdose deaths in the year spanning May 2020 to April 2021, the first 12-month period to top 100,000 deaths."),
             ("Disrupted treatment access", "In-clinic methadone treatment dropped by about two-thirds and counseling by about 38% early in the pandemic, as many treatment programs required in-person visits that became harder to access."),
             ("Economic and psychological stress", "Job loss, disrupted routines, and increased mental health distress are commonly cited as amplifying substance use during the pandemic, though this is harder to measure directly than the supply and access factors above."),
         ],
@@ -41,8 +41,12 @@ CAUSE_EXPLANATIONS = {
         ),
         "sources": [
             {
-                "citation": "Centers for Disease Control and Prevention. Increase in Fatal Drug Overdoses Across the United States Driven by Synthetic Opioids Before and During the COVID-19 Pandemic. CDC Health Advisory. March 2024.",
+                "citation": "Centers for Disease Control and Prevention. Increase in Fatal Drug Overdoses Across the United States Driven by Synthetic Opioids Before and During the COVID-19 Pandemic. CDC Health Advisory CDCHAN-00438. December 17, 2020.",
                 "url": "https://cdc.gov/overdose-prevention/media/pdfs/2024/03/Increase-in-fatal-drug-overdoses-across-us-driven-by-synthetic-opioids-before-and-during-COVID-19.pdf",
+            },
+            {
+                "citation": "O'Donnell J, Tanz LJ, Gladden RM, Davis NL, Bitting J. Trends in and Characteristics of Drug Overdose Deaths Involving Illicitly Manufactured Fentanyls — United States, 2019-2020. MMWR Morb Mortal Wkly Rep. 2021;70(50):1740-1746. doi:10.15585/mmwr.mm7050e3",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8675656/",
             },
             {
                 "citation": "Commonwealth Fund. The Spike in Drug Overdose Deaths During the COVID-19 Pandemic and Policy Options to Move Forward. Commonwealth Fund To the Point (blog). 2021.",
@@ -56,7 +60,7 @@ CAUSE_EXPLANATIONS = {
     },
     "Diabetes mellitus": {
         "summary": (
-            "U.S. diabetes-related mortality rose an estimated 17% in the first two years of the "
+            "U.S. diabetes-related mortality rose more than 30% in the first two years of the "
             "pandemic, with roughly two-thirds of that excess attributed directly to COVID-19 "
             "infection itself and the rest to disrupted routine care."
         ),
@@ -131,12 +135,12 @@ CAUSE_EXPLANATIONS = {
     },
     "Cerebrovascular disease": {
         "summary": (
-            "Stroke care saw a documented worldwide drop of over 30% in patients seeking emergency "
-            "treatment during the pandemic, at the same time COVID-19 infection itself appears to "
-            "directly raise stroke risk through several biological pathways."
+            "A global multi-center study found stroke hospital admissions fell 19.2% during the "
+            "pandemic, at the same time COVID-19 infection itself appears to directly raise stroke "
+            "risk through several biological pathways."
         ),
         "mechanisms": [
-            ("Delayed emergency presentation", "A worldwide drop of over 30% in patients seeking emergency care for stroke or TIA symptoms was documented during the pandemic. Quarantine and fear of infection meant some patients missed the narrow treatment window where clot-dissolving drugs and clot-retrieval procedures are effective."),
+            ("Delayed emergency presentation", "A study spanning many stroke centers worldwide found hospital admissions for stroke fell 19.2% during the pandemic, with steeper drops at centers carrying the highest COVID-19 caseload; a single Hungarian tertiary center reported an even larger 29% drop in ischemic stroke admissions specifically. Quarantine and fear of infection meant some patients missed the narrow treatment window where clot-dissolving drugs and clot-retrieval procedures are effective."),
             ("Hypercoagulation from infection", "SARS-CoV-2 infection is associated with markedly elevated D-dimer levels (a clotting marker), suggesting it can trigger a hypercoagulable state that directly causes ischemic stroke."),
             ("Blood pressure effects", "The way SARS-CoV-2 interacts with the ACE2 receptor can disrupt normal blood pressure regulation, potentially elevating hemorrhagic stroke risk."),
             ("Cytokine storm", "The severe inflammatory immune response some COVID-19 patients experience is itself associated with increased acute stroke risk."),
@@ -163,7 +167,11 @@ CAUSE_EXPLANATIONS = {
                 "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7652923/",
             },
             {
-                "citation": "Héja M, Fekete I, Márton S, Horváth L, Fekete K. Impact of COVID-19 pandemic on acute stroke care in a tertiary stroke centre. Sci Rep. 2024;14. doi:10.1038/s41598-024-83016-z",
+                "citation": "Nogueira RG, Abdalkader M, Qureshi MM, et al. Global impact of COVID-19 on stroke care. Int J Stroke. 2021;16(5):573-584. doi:10.1177/1747493021991652",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8010375/",
+            },
+            {
+                "citation": "Héja M, Fekete I, Márton S, Horváth L, Fekete K. Impact of COVID-19 pandemic on acute stroke care in a tertiary stroke centre. Sci Rep. 2024;14:31408. doi:10.1038/s41598-024-83016-z",
                 "url": "https://www.nature.com/articles/s41598-024-83016-z",
             },
             {
@@ -174,10 +182,11 @@ CAUSE_EXPLANATIONS = {
     },
     "Malignant neoplasms": {
         "summary": (
-            "Cancer screening rates fell 30-60% during pandemic lockdowns, and published models "
-            "project this could raise breast and colorectal cancer deaths by up to 9.6% and 16.6% "
-            "respectively within five years, a longer-horizon effect our 2024 data window may be "
-            "catching only the earliest part of."
+            "U.S. cancer screening rates fell 30-60% during pandemic lockdowns, and a modeling "
+            "study using England's national cancer registry projected this kind of delay could raise "
+            "breast and colorectal cancer deaths by up to 9.6% and 16.6% respectively within five "
+            "years, a longer-horizon effect our 2024 data window may be catching only the earliest "
+            "part of."
         ),
         "mechanisms": [
             ("Postponed screening", "Screening for colorectal, breast, prostate, cervical, and other cancers was widely postponed as hospitals redirected capacity to COVID-19 care, with studies reporting 30-60% declines in screening rates."),
@@ -208,7 +217,7 @@ CAUSE_EXPLANATIONS = {
                 "url": "https://arxiv.org/abs/2405.05643",
             },
             {
-                "citation": "Luo Q, et al. Impact of the COVID-19 pandemic on cancer incidence and mortality. Lancet Public Health. 2022;7(6):e490-e491. doi:10.1016/S2468-2667(22)00111-6",
+                "citation": "Wells CR, Galvani AP. Impact of the COVID-19 pandemic on cancer incidence and mortality. Lancet Public Health. 2022;7(6):e490-e491. doi:10.1016/S2468-2667(22)00111-6",
                 "url": "https://www.thelancet.com/journals/lanpub/article/PIIS2468-2667(22)00111-6/fulltext",
             },
         ],
@@ -224,13 +233,16 @@ CAUSE_EXPLANATIONS = {
             ("A definitional gap in our own method", "This project counts a death only when Alzheimer's is coded as the sole *underlying* cause of death. Published national research that instead counts Alzheimer's and related dementias as an underlying OR contributing cause found a large excess: an estimated 94,688 excess deaths with ADRD involved in the pandemic's first year alone. Many dementia patients who died of COVID-19 likely had COVID-19, not Alzheimer's, recorded as the underlying cause, with dementia listed only as a contributing condition, invisible to our narrower query."),
             ("Isolation and care-facility disruption (the original hypothesis)", "The pre-registered reasoning was that pandemic isolation and disrupted nursing-home/care-facility routines would show up as excess Alzheimer's mortality, and broader published research confirms this was real, particularly in the pandemic's first year and especially in long-term care settings."),
             ("A pattern that faded fast", "Published research also found the excess ADRD mortality reported using the broader (underlying-or-contributing) definition declined sharply from the first pandemic year to the second, consistent with a real but short-lived effect that a 2020-2024 analysis using only 2020-2021 as its 'acute' window might partially miss if it faded unusually quickly for this specific cause."),
+            ("A later decline this project did find", "Pooling all five post-2020 years instead of just the acute window turns up a real signal the acute-only test misses: Alzheimer's mortality ran increasingly below trend by 2023-2024. One plausible explanation is mortality displacement (sometimes called 'harvesting'): patients who would otherwise have died in these later years may already have died earlier in the pandemic. This project's own data can't confirm that mechanism, only the later decline itself. See the Deep dive tab for the numbers."),
         ],
         "note": (
             "This is one of this project's most important nuances: 'no significant disruption' "
-            "describes what our specific method (underlying-cause-only, national rate) found. It "
-            "does not mean isolation and care-facility disruption had no real effect on people "
-            "with Alzheimer's. Broader research using a different, more inclusive definition of "
-            "how a dementia death is counted found a substantial one."
+            "describes what our specific method (underlying-cause-only, national rate) found for "
+            "the pre-registered 2020-2021 window. It does not mean isolation and care-facility "
+            "disruption had no real effect on people with Alzheimer's. Broader research using a "
+            "different, more inclusive definition of how a dementia death is counted found a "
+            "substantial one, and this project's own full-period check (2020-2024) finds a real, "
+            "later effect too, just not the immediate one originally hypothesized."
         ),
         "sources": [
             {

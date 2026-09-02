@@ -78,7 +78,7 @@ st.caption(
     "trend, as a percent. Significance (p-value) and magnitude (deviation) are different claims: a "
     "cause can be statistically significant while still small in absolute terms, or vice versa. "
     "\"Robust to trend shape\" flags whether the result survives an alternate, curved baseline fit, "
-    "unchecked only for cerebrovascular disease. Diseases of heart had the same problem originally "
+    "which only cerebrovascular disease fails. Diseases of heart had the same problem originally "
     "but is now fully robust after its baseline was corrected to a shorter, more recent window "
     "(see Causes of death for the chart, and research_protocol.md's 2026-09-01 addendum for why)."
 )
@@ -100,10 +100,10 @@ with st.container(border=True):
         f"The pre-registered prior for malignant neoplasms was explicitly a null result, with \"low\" "
         "confidence by design. The reasoning was that delayed cancer screening and treatment during "
         "the pandemic would take years longer than the 2024 data window to show up as excess "
-        f"mortality. Instead, cancer shows a **{cancer['persistence_class'].lower()}** disruption "
-        f"(p = {cancer['p_value']:.3g}, survives FDR correction), though a real, FDR-significant, "
-        f"still-persisting one, its magnitude is modest ({cancer['acute_pct_deviation']:+.1f}% in "
-        f"2020–21, {cancer['latest_pct_deviation']:+.1f}% by 2024) next to the larger disruptions below. "
+        f"mortality. Instead, cancer shows a real, FDR-significant **{cancer['persistence_class'].lower()}** "
+        f"disruption (p = {cancer['p_value']:.3g}), though its magnitude is modest "
+        f"({cancer['acute_pct_deviation']:+.1f}% in 2020–21, {cancer['latest_pct_deviation']:+.1f}% by "
+        f"2024) next to the larger disruptions below. "
         "Either the deferred-care effect on cancer mortality moved faster than expected, or something "
         "else is contributing. This analysis can't distinguish between those, but the result itself is "
         "real and worth investigating further."
@@ -116,7 +116,9 @@ with st.container(border=True):
         "pandemic-era isolation and care-facility disruption would show up clearly in dementia "
         f"mortality. It didn't, with p = {alz['p_value']:.2g}, nowhere close to significant. This doesn't "
         "mean isolation had no effect on people with Alzheimer's. It means that effect, if real, isn't "
-        "visible in national mortality *rates* over this window using this method."
+        "visible in national mortality *rates* over this window using this method. Pooling all five "
+        "post-2020 years instead of just the acute window does turn up a real, later decline "
+        f"(p = {alz['full_period_p_value']:.2g}); see Causes of death for the numbers."
     )
 
 st.subheader("Validating the method itself: the negative control")
@@ -164,8 +166,9 @@ if sensitivity_check_available():
             st.success(f"**{label}:** all 6 test causes agree. Not an artifact of this choice.", icon=":material/check_circle:")
         else:
             disagreeing = check_rows.loc[~check_rows["agrees"], "cause"].tolist()
+            cause_word, verb = ("cause", "disagrees") if n_disagree == 1 else ("causes", "disagree")
             st.warning(
-                f"**{label}:** {n_disagree} cause(s) disagree ({', '.join(disagreeing)}). "
+                f"**{label}:** {n_disagree} {cause_word} {verb} ({', '.join(disagreeing)}). "
                 "See Data Quality for the full breakdown.",
                 icon=":material/warning:",
             )
@@ -210,7 +213,8 @@ st.write(
     "causes. Higher median household income predicts **smaller** disruption for both. Higher rurality "
     "predicts **smaller** disruption for both, the one genuinely counterintuitive result, running "
     "against a common assumption that rural areas were hit hardest by pandemic-era healthcare "
-    "disruption. These are associations, not causal claims: this county-level stage also uses crude "
+    "disruption, though for drug overdose this specific relationship falls just short of FDR "
+    "significance (diabetes clears it comfortably). These are associations, not causal claims: this county-level stage also uses crude "
     "rate rather than age-adjusted rate (WONDER doesn't offer age-adjustment at county granularity), "
     "so part of any measured disruption could reflect each county's own population-aging trajectory "
     "rather than a COVID-era shift. See Data Quality for the full caveat."

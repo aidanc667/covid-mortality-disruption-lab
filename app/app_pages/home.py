@@ -143,8 +143,11 @@ else:
             icon=":material/error:",
         )
 
+    # Test count is a static badge, not computed live (running pytest inside
+    # a deployed Streamlit app would be slow and fragile) -- update this
+    # number by hand when tests/ changes; verify with `pytest --collect-only -q`.
     st.caption(
-        ":green-badge[96 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[106 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 

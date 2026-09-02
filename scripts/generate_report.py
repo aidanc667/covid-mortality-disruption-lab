@@ -395,7 +395,13 @@ def build(data: dict) -> list:
         f"and care-facility disruption would show up clearly in dementia mortality. It didn't "
         f"(p = {alz['p_value']:.2g}). That doesn't mean isolation had no effect on people with "
         f"Alzheimer's. If there is a real effect, it simply isn't visible in national mortality "
-        f"rates over this window, using this method.",
+        f"rates over this window, using this method. Pooling all five post-2020 years instead of "
+        f"just the acute window does turn up a real, later decline (p = {alz['full_period_p_value']:.2g}, "
+        f"averaging {alz['full_period_pct_deviation']:+.1f}% vs. trend), consistent with mortality "
+        f"displacement: patients who would otherwise have died in 2023-2024 may already have died "
+        f"earlier in the pandemic. This project's own primary classification stays scoped to the "
+        f"pre-registered acute window rather than switching after the fact, so the headline result "
+        f"above is correct as reported; this is an additional finding, not a contradiction.",
         styles["Body"]
     ))
 
@@ -454,7 +460,12 @@ def build(data: dict) -> list:
     for check_key, label in axis_labels.items():
         rows = sens[(sens["check"] == check_key) & (sens["cause"].isin(test_causes))]
         n_disagree = int((~rows["agrees"]).sum())
-        verdict = "All 6 test causes agree." if n_disagree == 0 else f"{n_disagree} cause(s) disagree: {', '.join(rows.loc[~rows['agrees'], 'cause'])}."
+        cause_word, verb = ("cause", "disagrees") if n_disagree == 1 else ("causes", "disagree")
+        verdict = (
+            "All 6 test causes agree."
+            if n_disagree == 0
+            else f"{n_disagree} {cause_word} {verb}: {', '.join(rows.loc[~rows['agrees'], 'cause'])}."
+        )
         story.append(Paragraph(f"<b>{label}.</b> {verdict}", styles["Body"]))
     story.append(Paragraph(
         "The trend-shape check, now run against each cause's corrected baseline, is the one that "
@@ -473,17 +484,21 @@ def build(data: dict) -> list:
         "cerebrovascular disease (0.50); and low for heart disease and cancer (0.12-0.19) -- heart "
         "disease's and cerebrovascular disease's dropped sharply after their baseline correction "
         "(from 0.92 and 0.93 on the old full-range baseline), since a shorter window's residuals "
-        "are far less serially smooth than a 21-year decline. The prediction-interval math assumes "
-        "independent year-to-year residuals, which the remaining causes' baselines don't fully "
-        "satisfy, so some reported p-values in this report are likely more confident than a model "
-        "accounting for this would produce. This doesn't overturn the results, but it is a genuine "
-        "limitation worth taking seriously.", styles["Body"]
+        "are far less serially smooth than a 21-year decline. The classical prediction-interval math "
+        "assumes independent year-to-year residuals, which the high-autocorrelation causes' "
+        "baselines don't satisfy, so a Newey-West (HAC) autocorrelation-robust version of the same "
+        "acute-window test was built and is reported alongside the classical p-value: it raises "
+        "diabetes, drug overdose, and cerebrovascular disease's p-values by roughly 1-2 orders of "
+        "magnitude, but all 5 causes previously found significant remain significant under it. This "
+        "is a genuine correction, not just a disclosed caveat, and it is a reassuring result rather "
+        "than a damaging one.", styles["Body"]
     ))
 
     n_bridge_unreliable = int((~bridging["reliable"]).sum())
+    bridge_cause_word, bridge_verb = ("cause", "exceeds") if n_bridge_unreliable == 1 else ("causes", "exceed")
     story.append(Paragraph(
         f"Vintage-bridging reliability (D76 vs. D158 database overlap, 2018-2019): "
-        f"{'all causes fall within the 10% reliability threshold' if n_bridge_unreliable == 0 else f'{n_bridge_unreliable} cause(s) exceed the threshold'}. "
+        f"{'all causes fall within the 10% reliability threshold' if n_bridge_unreliable == 0 else f'{n_bridge_unreliable} {bridge_cause_word} {bridge_verb} the threshold'}. "
         f"The median relative offset was 0% for every cause tested.", styles["Body"]
     ))
 
@@ -560,10 +575,12 @@ def build(data: dict) -> list:
         "Cancer's pre-registered prior was an expected null result, and the real result "
         "contradicts that: cancer shows a significant, still-persisting disruption rather than "
         "the null originally expected.",
-        "Temporal autocorrelation of baseline residuals is not modeled and is empirically large "
-        "for most test causes (0.65-0.82 for diabetes, overdose, and Alzheimer's; 0.50 for "
-        "cerebrovascular disease; 0.12-0.19 for heart disease and cancer), so reported p-values "
-        "for those causes are likely optimistic.",
+        "The classical p-value assumes independent baseline residuals, which is empirically false "
+        "for several causes (autocorrelation 0.65-0.82 for diabetes, overdose, and Alzheimer's; "
+        "0.50 for cerebrovascular disease; 0.12-0.19, roughly independent, for heart disease and "
+        "cancer). A Newey-West (HAC) autocorrelation-robust version of the test is now also "
+        "reported (section 4): p-values rise for the high-autocorrelation causes, but all 5 "
+        "previously-significant causes remain significant.",
         "“Significant” and “large” are different claims: drug overdose and diabetes show the "
         "largest disruptions (15-41%), while cancer, heart disease, and cerebrovascular disease "
         "are all real and FDR-significant but modest by comparison (3-9%).",

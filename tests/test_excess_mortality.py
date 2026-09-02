@@ -231,3 +231,69 @@ def test_compute_acute_pvalue_returns_one_when_all_acute_years_missing():
     deviations = compute_deviations(trend, np.array([2020, 2021]), np.array([np.nan, np.nan]))
     p = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
     assert p == 1.0
+
+
+from src.analysis.excess_mortality import compute_hac_pvalue
+
+
+def test_compute_hac_pvalue_raises_for_non_two_year_window():
+    years = np.arange(1999, 2020)
+    values = 20.0 + np.zeros(21)
+    with pytest.raises(ValueError):
+        compute_hac_pvalue(years, values, np.array([2020, 2021, 2022]), np.array([21.0, 21.0, 21.0]), (2020, 2022))
+
+
+def test_compute_hac_pvalue_returns_one_when_acute_years_missing():
+    years = np.arange(1999, 2020)
+    values = 20.0 + np.array([0.1, -0.1, 0.05, -0.05, 0.0] * 4 + [0.02])
+    p = compute_hac_pvalue(years, values, np.array([2020, 2021]), np.array([np.nan, np.nan]), (2020, 2021))
+    assert p == 1.0
+
+
+def test_compute_hac_pvalue_close_to_classical_when_baseline_noise_is_independent():
+    """Near-zero autocorrelation is exactly the case the classical formula
+    already assumes, so HAC's correction should have little to correct:
+    the two p-values should land in the same ballpark."""
+    years = np.arange(1999, 2020)
+    rng = np.random.default_rng(7)
+    residuals = rng.normal(0, 0.3, size=len(years))
+    values = 20.0 + 0.1 * (years - years.mean()) + residuals
+
+    trend = fit_baseline_trend(years, values)
+    post_years = np.array([2020, 2021])
+    post_values = np.array([25.0, 26.0])
+    deviations = compute_deviations(trend, post_years, post_values)
+
+    p_classical = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
+    p_hac = compute_hac_pvalue(years, values, post_years, post_values, (2020, 2021))
+    assert p_classical < 0.05
+    assert p_hac < 0.05
+    assert abs(np.log10(p_hac + 1e-300) - np.log10(p_classical + 1e-300)) < 1.5
+
+
+def test_compute_hac_pvalue_less_confident_than_classical_for_smooth_autocorrelated_baseline():
+    """A baseline that wanders in smooth multi-year runs (strong positive
+    lag-1 autocorrelation) is exactly the case research_protocol.md #12
+    flags: the classical test treats each year as independent evidence,
+    so it should be considerably more confident (smaller p-value) than
+    HAC, which recognizes the baseline doesn't actually contain that many
+    independent data points."""
+    years = np.arange(1999, 2020).astype(float)
+    # A slow half-period sine wave over the baseline span is smooth (each
+    # year strongly resembles its neighbor) and, over a full span centered
+    # on the mean, close to orthogonal to a linear trend.
+    t = years - years.mean()
+    residuals = 2.0 * np.sin(2 * np.pi * t / (2 * len(years)))
+    values = 20.0 + 0.1 * t + residuals
+
+    trend = fit_baseline_trend(years, values)
+    autocorr = compute_residual_autocorrelation(years, values, trend, lag=1)
+    assert autocorr > 0.7  # confirms this baseline is genuinely smooth/autocorrelated
+
+    post_years = np.array([2020, 2021])
+    post_values = np.array([25.0, 25.5])
+    deviations = compute_deviations(trend, post_years, post_values)
+
+    p_classical = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
+    p_hac = compute_hac_pvalue(years, values, post_years, post_values, (2020, 2021))
+    assert p_hac > p_classical

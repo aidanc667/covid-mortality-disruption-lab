@@ -204,6 +204,116 @@ def compute_acute_pvalue(
     return float(p_value)
 
 
+def compute_hac_pvalue(
+    baseline_years: np.ndarray, baseline_values: np.ndarray,
+    post_years: np.ndarray, post_values: np.ndarray,
+    acute_years: tuple[int, int], max_lag: int | None = None,
+) -> float:
+    """Same acute-window test as compute_acute_pvalue, but with Newey-West
+    (HAC) autocorrelation-robust standard errors instead of the classical
+    OLS prediction-interval formula, which assumes independent residuals
+    year to year -- research_protocol.md #12 documents this as a real,
+    likely understated limitation: measured lag-1 autocorrelation is
+    0.50-0.82 for half the test causes (diabetes, drug overdose,
+    Alzheimer's, cerebrovascular disease), not the near-zero the classical
+    formula effectively assumes.
+
+    Refits the baseline regression independently (BaselineTrend only
+    stores summary statistics -- n, x_mean, sxx, residual_std -- not the
+    raw per-year residuals HAC needs) using a small-sample Newey-West lag
+    length (Newey & West 1994's rule of thumb, floor(4*(n/100)^(2/9)),
+    which works out to 1-2 lags for this project's 10-21-year baselines).
+
+    Two pieces combine into the total prediction variance:
+    1. HAC-robust uncertainty in the fitted line's own height at the
+       acute years' average year: a sandwich covariance estimator on the
+       regression coefficients (Bartlett-kernel-weighted, following
+       Newey-West), replacing the classical residual_std^2 * (X'X)^-1.
+    2. The variance of the mean of the acute years' own new deviations,
+       computed directly from the baseline's empirical lag-0 and lag-1
+       autocovariances instead of assumed independent. This project's
+       ACUTE_YEARS is always a 2-year window (2020-2021), for which
+       Var(mean of 2 correlated draws) = (gamma_0 + gamma_1) / 2 is exact,
+       not an approximation -- so this function only supports a 2-year
+       window and raises rather than silently generalizing an unverified
+       formula to a different window size.
+
+    Uses the same df = n - 2 reference t-distribution as
+    compute_acute_pvalue for comparability, though HAC's own asymptotic
+    justification technically calls for a normal reference distribution;
+    a pragmatic, documented choice rather than a rigorously derived one,
+    matching this project's other finite-sample approximations (e.g.
+    scripts/run_sensitivity_check.py's fit_quadratic_and_test).
+
+    Returns 1.0 if every acute year is missing or fewer than 4 baseline
+    years remain, rather than raising."""
+    if acute_years[1] - acute_years[0] != 1:
+        raise ValueError(
+            f"compute_hac_pvalue's variance-of-mean formula is only exact for a "
+            f"2-year acute window; got {acute_years}."
+        )
+
+    baseline_years = np.asarray(baseline_years, dtype=float)
+    baseline_values = np.asarray(baseline_values, dtype=float)
+    mask = ~np.isnan(baseline_values)
+    baseline_years, baseline_values = baseline_years[mask], baseline_values[mask]
+    n = len(baseline_years)
+    if n < 4:
+        return 1.0
+
+    X = np.column_stack([np.ones(n), baseline_years])
+    beta, *_ = np.linalg.lstsq(X, baseline_values, rcond=None)
+    residuals = baseline_values - X @ beta
+
+    if max_lag is None:
+        max_lag = max(1, int(np.floor(4 * (n / 100) ** (2 / 9))))
+    max_lag = min(max_lag, n - 2)
+
+    scores = X * residuals[:, None]
+    S = scores.T @ scores
+    for lag in range(1, max_lag + 1):
+        weight = 1 - lag / (max_lag + 1)
+        cross = scores[lag:].T @ scores[:-lag]
+        S += weight * (cross + cross.T)
+    xtx_inv = np.linalg.inv(X.T @ X)
+    cov_beta_hac = xtx_inv @ S @ xtx_inv
+
+    post_years = np.asarray(post_years, dtype=float)
+    post_values = np.asarray(post_values, dtype=float)
+    acute_mask = (
+        (post_years >= acute_years[0]) & (post_years <= acute_years[1]) & ~np.isnan(post_values)
+    )
+    acute_years_arr = post_years[acute_mask]
+    acute_values_arr = post_values[acute_mask]
+    if len(acute_years_arr) == 0:
+        return 1.0
+
+    expected = beta[0] + beta[1] * acute_years_arr
+    mean_deviation = float(np.mean(acute_values_arr - expected))
+    avg_year = float(np.mean(acute_years_arr))
+
+    row = np.array([1.0, avg_year])
+    var_line = float(row @ cov_beta_hac @ row)
+
+    gamma0 = float(np.mean(residuals**2))
+    gamma1 = float(np.mean(residuals[1:] * residuals[:-1])) if n > 1 else 0.0
+    if len(acute_years_arr) == 2:
+        var_new_mean = (gamma0 + gamma1) / 2
+    else:
+        # Only one acute year present (the other suppressed/missing) --
+        # no averaging across two correlated draws, so just that single
+        # new draw's own variance.
+        var_new_mean = gamma0
+
+    se = np.sqrt(var_line + var_new_mean)
+    if se == 0:
+        return 0.0 if mean_deviation != 0 else 1.0
+
+    t_stat = mean_deviation / se
+    p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df=n - 2))
+    return float(p_value)
+
+
 def benjamini_hochberg(p_values: dict[str, float], alpha: float = 0.05) -> dict[str, bool]:
     """Standard Benjamini-Hochberg step-up FDR procedure. Sort p-values
     ascending; find the largest rank k where p(k) <= (k/m)*alpha; every
