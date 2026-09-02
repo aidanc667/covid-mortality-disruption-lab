@@ -98,6 +98,16 @@ fitted = baseline_fitted[baseline_fitted["cause"] == cause].sort_values("year")
 
 observed = series.rename(columns={"age_adjusted_rate": "value"})[["year", "value"]]
 band_df = dev[["year", "pi_low", "pi_high"]].copy()
+# Per-year significance for the tooltip: only 2020-2024 are actually
+# tested against the prediction interval (compute_deviations); baseline
+# years were used to fit the model, not tested. Added after a reader
+# question showed that eyeballing a single year's gap on the chart can
+# be misleading -- the reported p-value pools 2020 and 2021 together, so
+# a year that looks "inside" here (e.g. cancer's flat 2020) can still
+# belong to a cause with a significant combined result once 2021, which
+# was outside, is counted too.
+sig_status = dict(zip(dev["year"], dev["significant"].map({True: "Outside prediction interval", False: "Within prediction interval"})))
+observed["status"] = observed["year"].map(sig_status).fillna("Baseline year (not tested)")
 # The dashed trend line is drawn across the full 1999-2024 span, not just
 # the 2020-2024 projection: fitted (1999-2019, the model's own fit to the
 # years used to build it, no prediction interval since these weren't
@@ -120,7 +130,13 @@ band = (
 observed_line = (
     alt.Chart(observed)
     .mark_line(point=alt.OverlayMarkDef(size=40), strokeWidth=2.5, color=color)
-    .encode(x="year:O", y="value:Q", tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Observed")])
+    .encode(
+        x="year:O", y="value:Q",
+        tooltip=[
+            "year:O", alt.Tooltip("value:Q", format=".1f", title="Observed"),
+            alt.Tooltip("status:N", title="vs. prediction interval"),
+        ],
+    )
 )
 expected_line = (
     alt.Chart(expected_full)
@@ -138,7 +154,10 @@ st.caption(
     f"{total_years} years, both where it was fit ({baseline_start}–2019, so you can judge for "
     f"yourself how well it tracks the real pre-pandemic trajectory) and where it's projected "
     f"forward (2020–2024, shaded band: its 95% prediction interval, the only years actually "
-    f"tested). Independent cross-check (PELT, binary segmentation, segmented regression): "
+    f"tested). Hover a point on the solid line to see whether that specific year fell inside or "
+    f"outside the interval; the reported p-value pools 2020 and 2021 together, so a single year "
+    f"can look unremarkable on its own while the combined result is still significant. "
+    f"Independent cross-check (PELT, binary segmentation, segmented regression): "
     f"{r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint near 2020."
 )
 if not r["cross_check_confirms_2020"]:
