@@ -18,7 +18,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable,
 )
-from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.shapes import Drawing, String
 from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.legends import Legend
@@ -91,6 +91,10 @@ def load_data() -> dict:
         "national_series": pd.read_parquet(OUTPUTS_MODELS / "national_mortality_series.parquet"),
         "deviations": pd.read_parquet(OUTPUTS_MODELS / "disruption_deviations.parquet"),
         "baseline_fitted": pd.read_parquet(OUTPUTS_MODELS / "baseline_fitted_trend.parquet"),
+        "county_disruption": {
+            cause: pd.read_parquet(OUTPUTS_MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet")
+            for cause in ["Diabetes mellitus", "Drug overdose"]
+        },
     }
 
 
@@ -179,6 +183,93 @@ def make_trajectory_chart(
     return drawing
 
 
+# Short display names for the small-multiples grid, where a full cause
+# name would collide with its neighbor at this width.
+_SHORT_CAUSE_NAMES = {
+    "Diseases of heart": "Diseases of heart",
+    "Diabetes mellitus": "Diabetes mellitus",
+    "Alzheimer's disease": "Alzheimer's disease",
+    "Cerebrovascular disease": "Cerebrovascular disease",
+    "Drug overdose": "Drug overdose",
+    "Malignant neoplasms": "Malignant neoplasms (cancer)",
+}
+
+
+def make_trajectory_grid(
+    causes: list[str], summary: pd.DataFrame, national_series: pd.DataFrame,
+    deviations: pd.DataFrame, baseline_fitted: pd.DataFrame,
+) -> Drawing:
+    """A small-multiples overview of all 6 test causes' trajectories side
+    by side, the single figure that answers "what does the full picture
+    look like" without paging through six separate full-size charts.
+    Deliberately stripped down from make_trajectory_chart's single
+    detailed example: no prediction-interval lines (that concept is
+    already taught by Figure 1), just observed vs. expected, since the
+    point of a small-multiples grid is comparability at a glance, not
+    depth in any one panel. Each panel's own title reports its p-value
+    directly, so the results table's numbers have a visual anchor."""
+    cols, rows = 2, 3
+    cell_w, cell_h = 210, 118
+    margin_x, margin_y = 15, 16
+    title_h = 14
+    legend_h = 26
+    drawing = Drawing(cols * cell_w, legend_h + rows * (cell_h + title_h))
+
+    observed_color = colors.HexColor("#2b3a55")
+    expected_color = colors.HexColor("#c0392b")
+
+    for i, cause in enumerate(causes):
+        col, row = i % cols, i // cols
+        x0 = col * cell_w + margin_x
+        y0 = legend_h + (rows - 1 - row) * (cell_h + title_h) + margin_y
+
+        obs = national_series[national_series["cause"] == cause].sort_values("year")
+        dev = deviations[deviations["cause"] == cause].sort_values("year")
+        fitted = baseline_fitted[baseline_fitted["cause"] == cause].sort_values("year")
+        r = summary[summary["cause"] == cause].iloc[0]
+
+        observed_pts = list(zip(obs["year"].astype(float), obs["age_adjusted_rate"]))
+        expected_pts = list(zip(fitted["year"].astype(float), fitted["fitted"])) + list(
+            zip(dev["year"].astype(float), dev["expected"])
+        )
+
+        plot = LinePlot()
+        plot.x, plot.y = x0, y0
+        plot.width, plot.height = cell_w - margin_x - 8, cell_h - 12
+        plot.data = [observed_pts, expected_pts]
+        plot.xValueAxis.valueMin = float(obs["year"].min())
+        plot.xValueAxis.valueMax = float(obs["year"].max())
+        plot.xValueAxis.labelTextFormat = "%d"
+        plot.xValueAxis.labels.fontSize = 5.5
+        plot.xValueAxis.visibleTicks = 0
+        all_values = pd.concat([obs["age_adjusted_rate"], fitted["fitted"], dev["expected"]])
+        plot.yValueAxis.valueMin = float(all_values.min()) * 0.9
+        plot.yValueAxis.valueMax = float(all_values.max()) * 1.05
+        plot.yValueAxis.labels.fontSize = 5.5
+        plot.lines[0].strokeColor = observed_color
+        plot.lines[0].strokeWidth = 1.4
+        plot.lines[0].symbol = None
+        plot.lines[1].strokeColor = expected_color
+        plot.lines[1].strokeWidth = 1.0
+        plot.lines[1].strokeDashArray = (3, 2)
+        plot.lines[1].symbol = None
+        drawing.add(plot)
+
+        title = f"{_SHORT_CAUSE_NAMES.get(cause, cause)}  (p={r['p_value']:.2g})"
+        drawing.add(String(x0, y0 + cell_h - 4, title, fontSize=7.5, fillColor=colors.HexColor("#1a1a1a")))
+
+    legend = Legend()
+    legend.x = cols * cell_w / 2 - 90
+    legend.y = 16
+    legend.fontSize = 7.5
+    legend.dxTextSpace = 6
+    legend.columnMaximum = 1
+    legend.colorNamePairs = [(observed_color, "Observed"), (expected_color, "Expected trend")]
+    drawing.add(legend)
+
+    return drawing
+
+
 def make_deviation_chart(summary: pd.DataFrame) -> Drawing:
     ordered = summary.sort_values("acute_pct_deviation", ascending=False)
     drawing = Drawing(460, 220)
@@ -216,6 +307,33 @@ def make_heterogeneity_chart(het_cause_df: pd.DataFrame) -> Drawing:
     chart.valueAxis.valueMax = vmax + pad
     chart.valueAxis.labels.fontSize = 7
     chart.bars[0].fillColor = colors.HexColor("#7a2d3d")
+    drawing.add(chart)
+    return drawing
+
+
+def make_county_distribution_chart(county_df: pd.DataFrame, n_bins: int = 14) -> Drawing:
+    """How disruption was actually distributed across the included
+    counties, not just its average -- the two context-variable charts
+    above show what predicts disruption, but not whether most counties
+    clustered near zero with a long tail, or split into two real groups.
+    Same binning approach as the app's own county-level histogram
+    (app/app_pages/geographic_heterogeneity.py)."""
+    values = county_df["disruption"].dropna()
+    binned = pd.cut(values, bins=n_bins)
+    counts = binned.value_counts(sort=False)
+    edges = binned.cat.categories
+
+    drawing = Drawing(460, 170)
+    chart = VerticalBarChart()
+    chart.x, chart.y = 45, 30
+    chart.width, chart.height = 390, 115
+    chart.data = [list(counts.values)]
+    chart.categoryAxis.categoryNames = [
+        f"{iv.left:.0f}" if i % 2 == 0 else "" for i, iv in enumerate(edges)
+    ]
+    chart.categoryAxis.labels.fontSize = 6
+    chart.valueAxis.labels.fontSize = 7
+    chart.bars[0].fillColor = colors.HexColor("#4a6fa5")
     drawing.add(chart)
     return drawing
 
@@ -267,6 +385,18 @@ def build(data: dict) -> list:
         "associational, never causal, following the project's causal-language policy.",
         styles["Body"]
     ))
+    story.append(Paragraph(
+        "Excess-mortality analysis is the same basic technique public health agencies use to "
+        "estimate a pandemic's true toll beyond its officially attributed death count, and to "
+        "catch the downstream damage that never shows up in a case count at all: deferred cancer "
+        "screening, disrupted addiction treatment, delayed cardiac care. Running it here across "
+        "six causes at once, rather than one, turns a single case study into something closer to "
+        "a small research program: a stated hypothesis and confidence level per cause, one shared "
+        "statistical pipeline applied identically to all six, and every result reported honestly "
+        "whether or not it matched the prediction. Deciding what would count as evidence before "
+        "seeing the outcome is what separates that kind of finding from a plausible story fitted "
+        "to results already known.", styles["Body"]
+    ))
     story.append(PageBreak())
 
     # --- 1. Research question ---
@@ -316,6 +446,17 @@ def build(data: dict) -> list:
         "correction, a standard statistical adjustment for exactly this problem, is applied across "
         "the 6 test causes as one family. The heterogeneity stage gets its own separate correction, "
         "applied per cause across its context variables.", styles["Body"]))
+    story.append(Paragraph("<b>Full-period secondary check.</b> Alongside the pre-registered acute "
+        "(2020-2021) test, each cause also gets a p-value pooling all five post-2020 years, using "
+        "the identical t-test over a wider window. This never replaces the acute test or gates the "
+        "classification above -- averaging more years can hide a real reversal as easily as it can "
+        "reveal a delayed effect -- but it catches disruptions the acute window is too narrow to "
+        "see (section 3).", styles["Body"]))
+    story.append(Paragraph("<b>Autocorrelation-robust check (Newey-West/HAC).</b> The acute test's "
+        "prediction-interval math assumes each baseline year is independent noise. Several causes' "
+        "residuals are measurably autocorrelated, so a second version of the same test, with "
+        "Newey-West standard errors instead of the classical formula, is also reported (section 4).",
+        styles["Body"]))
     story.append(Paragraph("<b>Data.</b> CDC WONDER Underlying Cause of Death, two database vintages "
         "bridged at the 2018-2019 overlap: \"1999-2020\" (database D76) for the 1999-2019 baseline, "
         "\"2018-2024, Single Race\" (database D158) for the 2020-2024 post-shock period. County-level "
@@ -371,6 +512,22 @@ def build(data: dict) -> list:
     story.append(Spacer(1, 6))
     story.append(make_deviation_chart(s))
     story.append(Paragraph("Figure 2. Mean 2020-2021 deviation from expected trend, by cause.", styles["Caption"]))
+
+    story.append(Paragraph(
+        "Figure 1 walked through one cause in detail; here is the same comparison for all six, "
+        "side by side. Each panel plots the real observed rate against what its own pre-pandemic "
+        "trend would have predicted, with that cause's primary p-value in the title. The point "
+        "isn't to read each panel closely (the table above already has the numbers) -- it's to see at a "
+        "glance which gaps look large, which look small, and how little that visual impression "
+        "lines up with which ones are actually significant, exactly the puzzle the next two "
+        "sections work through.", styles["Body"]
+    ))
+    story.append(make_trajectory_grid(
+        list(s.sort_values("p_value")["cause"]), s, national_series, deviations, baseline_fitted,
+    ))
+    story.append(Paragraph(
+        "Figure 3. All six test causes, observed vs. expected trend, 1999-2024.", styles["Caption"]
+    ))
 
     story.append(Paragraph("The two results that weren't supposed to happen this way", styles["H2"]))
     cancer = s[s["cause"] == "Malignant neoplasms"].iloc[0]
@@ -493,6 +650,16 @@ def build(data: dict) -> list:
         "is a genuine correction, not just a disclosed caveat, and it is a reassuring result rather "
         "than a damaging one.", styles["Body"]
     ))
+    hac_table_data = [["Cause", "Autocorrelation", "Classical p-value", "HAC p-value"]]
+    for _, r in s.sort_values("hac_p_value").iterrows():
+        hac_table_data.append([
+            r["cause"], f"{r['residual_autocorrelation']:.2f}",
+            f"{r['p_value']:.3g}", f"{r['hac_p_value']:.3g}",
+        ])
+    hac_table = Table(hac_table_data, colWidths=[1.7 * inch, 1.2 * inch, 1.3 * inch, 1.1 * inch])
+    hac_table.setStyle(TABLE_HEADER_STYLE)
+    story.append(hac_table)
+    story.append(Spacer(1, 10))
 
     n_bridge_unreliable = int((~bridging["reliable"]).sum())
     bridge_cause_word, bridge_verb = ("cause", "exceeds") if n_bridge_unreliable == 1 else ("causes", "exceed")
@@ -504,12 +671,18 @@ def build(data: dict) -> list:
 
     # --- 5. Heterogeneity ---
     story.append(Paragraph("5. Which counties were hit hardest", styles["H1"]))
+    county_disruption = data["county_disruption"]
+    n_diabetes_counties = len(county_disruption["Diabetes mellitus"])
+    n_overdose_counties = len(county_disruption["Drug overdose"])
     story.append(Paragraph(
-        "For the two causes with real county-level data (diabetes and drug overdose, about 3,000 "
-        "counties each, pre-period 2015-2019 versus post-period 2020-2024), disruption magnitude "
-        "is regressed against real County Health Rankings &amp; Roadmaps context variables. This "
-        "stage uses crude rate, not age-adjusted rate, for both periods, because CDC WONDER does "
-        "not offer age-adjustment at county granularity for its 2018-2024 database. That means part "
+        f"For the two causes with real county-level data, disruption magnitude is regressed "
+        f"against real County Health Rankings &amp; Roadmaps context variables. Of roughly 3,143 "
+        f"U.S. counties, only {n_diabetes_counties} qualify for diabetes and {n_overdose_counties} "
+        f"for drug overdose, pre-period 2015-2019 versus post-period 2020-2024 -- CDC WONDER "
+        f"suppresses any county-year cell with too few deaths to protect privacy, and a county "
+        f"needs at least 2 non-suppressed years in each period to be included at all. This stage "
+        "also uses crude rate, not age-adjusted rate, for both periods, because WONDER does not "
+        "offer age-adjustment at county granularity for its 2018-2024 database. That means part "
         "of any county's measured disruption could reflect its own population-aging trajectory "
         "rather than a COVID-era shift.", styles["Body"]
     ))
@@ -527,6 +700,14 @@ def build(data: dict) -> list:
         story.append(het_table)
         story.append(Spacer(1, 6))
         story.append(make_heterogeneity_chart(cause_het))
+        story.append(Spacer(1, 2))
+        story.append(make_county_distribution_chart(county_disruption[cause]))
+        story.append(Paragraph(
+            f"Figure: {cause} -- context-variable associations (top), and how disruption was "
+            f"actually distributed across the {len(county_disruption[cause])} included counties "
+            "(bottom; x-axis is the disruption value, y-axis is county count).",
+            styles["Caption"]
+        ))
         story.append(Spacer(1, 6))
     story.append(Paragraph(
         "Higher uninsured rate, smoking rate, and obesity rate all predict larger disruption for "
