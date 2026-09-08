@@ -1,11 +1,14 @@
+import pandas as pd
 import streamlit as st
 
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary,
     load_heterogeneity_selection_bias, load_heterogeneity_rurality_robustness,
-    load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner, TEST_CAUSES,
-    CONTEXT_VAR_LABELS, scale_context_slope_for_display, display_cause,
+    load_sensitivity_check, load_county_disruption, data_available, sensitivity_check_available,
+    synthetic_banner, TEST_CAUSES, HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS,
+    scale_context_slope_for_display, display_cause,
 )
+from src.ingestion.county_health_rankings import load_year as load_chr_year
 from src.utils.config import OUTPUTS_REPORTS
 
 st.title("Findings")
@@ -237,6 +240,70 @@ st.write(
     "so part of any measured disruption could reflect each county's own population-aging trajectory "
     "rather than a COVID-era shift. See Data Quality for the full caveat."
 )
+
+# One real example county per cause per extreme, so the regression above
+# isn't just an abstract slope -- picked live from the same parquet the
+# map and regression use, not hardcoded, so it can't drift out of sync.
+county_examples = {}
+example_cols = st.columns(2)
+for i, cause in enumerate(HETEROGENEITY_CAUSES):
+    cd = load_county_disruption(cause)
+    most = cd.loc[cd["disruption"].idxmax()]
+    least = cd.loc[cd["disruption"].abs().idxmin()]
+    county_examples[cause] = (most, least)
+    with example_cols[i]:
+        with st.container(border=True):
+            st.write(f"**{display_cause(cause)}**")
+            st.write(
+                f"Most disrupted: **{most['county_name']}** "
+                f"({most['crude_rate_pre']:.1f} → {most['crude_rate_post']:.1f} per 100,000, "
+                f"{most['disruption']:+.1f})"
+            )
+            st.write(
+                f"Least disrupted: **{least['county_name']}** "
+                f"({least['crude_rate_pre']:.1f} → {least['crude_rate_post']:.1f} per 100,000, "
+                f"{least['disruption']:+.1f})"
+            )
+
+with st.expander("Why might these specific counties differ? Read this before assuming a cause"):
+    st.write(
+        "This project has no county-level data on mask mandates, local ordinances, or age/race "
+        "demographics anywhere in its pipeline -- the regression above uses only the five CHR&R "
+        "variables shown in its table (uninsured rate, smoking, obesity, income, rurality). "
+        "Assigning a specific policy or demographic story to any one county below would be "
+        "invented, not measured, which is exactly the kind of unsupported causal claim Methods → "
+        "Causal language policy exists to rule out."
+    )
+    st.write(
+        "A single county's pre/post average is also genuinely noisy: five years of a modest "
+        "population's raw death counts can swing a lot from a handful of extra deaths, which is a "
+        "more honest explanation for an extreme value than any invented story would be. What *can* "
+        "be checked honestly is whether each example lines up with the same five variables the "
+        "regression above already measures:"
+    )
+    chr_df = load_chr_year(2024)
+    for cause, (most, least) in county_examples.items():
+        cd = load_county_disruption(cause)
+        sample_means = chr_df[chr_df["county_fips"].isin(cd["county_fips"])][list(CONTEXT_VAR_LABELS)].mean()
+        for label, row in [("most disrupted", most), ("least disrupted", least)]:
+            crow = chr_df[chr_df["county_fips"] == row["county_fips"]]
+            if not len(crow):
+                continue
+            crow = crow.iloc[0]
+            comparisons = [
+                f"{disp.lower()} {'above' if crow[var] > sample_means[var] else 'below'} the sample average"
+                for var, disp in CONTEXT_VAR_LABELS.items()
+                if pd.notna(crow.get(var)) and pd.notna(sample_means.get(var))
+            ]
+            st.caption(f"**{row['county_name']}** ({display_cause(cause)}, {label}): " + "; ".join(comparisons) + ".")
+    st.write(
+        "Some of these line up with the regression's overall pattern (e.g. lower income tracking "
+        "with more disruption); others don't (e.g. the most-disrupted overdose county is also more "
+        "rural than average, the opposite of the aggregate trend for that variable). That mismatch "
+        "is expected, not a contradiction: an association measured across hundreds of counties "
+        "doesn't reliably predict any single county, which is the same ecological-fallacy caveat "
+        "already documented in Methods → Known limitations."
+    )
 
 bias = load_heterogeneity_selection_bias()
 robustness = load_heterogeneity_rurality_robustness()
