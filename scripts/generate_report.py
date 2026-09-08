@@ -39,6 +39,25 @@ CONTEXT_VAR_LABELS = {
     "pct_rural": "% rural",
 }
 
+# Duplicated from app/components/data_loading.py's CAUSE_DISPLAY_NAMES for
+# the same standalone-script reason as CONTEXT_VAR_LABELS above. The
+# underlying dataframes still key on the official CDC WONDER cause name
+# (needed to join against the pipeline's own output) -- this is only the
+# reader-facing form. Two of the six (Alzheimer's disease, drug overdose)
+# are already plain English, so they're unchanged here.
+CAUSE_DISPLAY_NAMES = {
+    "Diseases of heart": "Heart disease",
+    "Diabetes mellitus": "Diabetes",
+    "Alzheimer's disease": "Alzheimer's disease",
+    "Cerebrovascular disease": "Stroke",
+    "Drug overdose": "Drug overdose",
+    "Malignant neoplasms": "Cancer",
+}
+
+
+def display_cause(cause: str) -> str:
+    return CAUSE_DISPLAY_NAMES.get(cause, cause)
+
 # median_income_chr's slope is fit against raw dollars, so it's a tiny
 # number (~-0.00005) next to the other four variables' 0-1-proportion
 # slopes (~1-40) -- found rounding to "0.000" in this report's own table
@@ -183,16 +202,6 @@ def make_trajectory_chart(
     return drawing
 
 
-# Short display names for the small-multiples grid, where a full cause
-# name would collide with its neighbor at this width.
-_SHORT_CAUSE_NAMES = {
-    "Diseases of heart": "Diseases of heart",
-    "Diabetes mellitus": "Diabetes mellitus",
-    "Alzheimer's disease": "Alzheimer's disease",
-    "Cerebrovascular disease": "Cerebrovascular disease",
-    "Drug overdose": "Drug overdose",
-    "Malignant neoplasms": "Malignant neoplasms (cancer)",
-}
 
 
 def make_trajectory_grid(
@@ -255,7 +264,7 @@ def make_trajectory_grid(
         plot.lines[1].symbol = None
         drawing.add(plot)
 
-        title = f"{_SHORT_CAUSE_NAMES.get(cause, cause)}  (p={r['p_value']:.2g})"
+        title = f"{display_cause(cause)}  (p={r['p_value']:.2g})"
         drawing.add(String(x0, y0 + cell_h - 4, title, fontSize=7.5, fillColor=colors.HexColor("#1a1a1a")))
 
     legend = Legend()
@@ -277,7 +286,7 @@ def make_deviation_chart(summary: pd.DataFrame) -> Drawing:
     chart.x, chart.y = 50, 30
     chart.width, chart.height = 380, 170
     chart.data = [list(ordered["acute_pct_deviation"])]
-    chart.categoryAxis.categoryNames = [c.replace(" mellitus", "").replace("Malignant neoplasms", "Cancer").replace("Diseases of ", "").replace("Cerebrovascular disease", "Cerebrovasc.") for c in ordered["cause"]]
+    chart.categoryAxis.categoryNames = [display_cause(c) for c in ordered["cause"]]
     chart.categoryAxis.labels.fontSize = 7
     chart.categoryAxis.labels.angle = 20
     chart.categoryAxis.labels.dy = -12
@@ -410,20 +419,19 @@ def build(data: dict) -> list:
         styles["Callout"]
     ))
     story.append(Paragraph(
-        "Six substantive causes were tested: diseases of heart, diabetes mellitus, Alzheimer's "
-        "disease, cerebrovascular disease, drug overdose, and malignant neoplasms (cancer). A "
-        "negative control (congenital malformations, a cause with no direct COVID mechanism) "
-        "and a COVID-19 reference series (not a hypothesis test) round out the 8-series design. "
-        "Every cause's confidence level was stated before any 2020-2024 data was pulled or "
-        "analyzed, so results can be checked against stated priors rather than narrated after "
-        "the fact.", styles["Body"]
+        "Six causes were tested: heart disease, diabetes, Alzheimer's disease, stroke, drug "
+        "overdose, and cancer. A negative control (congenital malformations, a cause with no "
+        "direct COVID mechanism) and a COVID-19 reference series (not a hypothesis test) round "
+        "out the 8-series design. Every cause's confidence level was stated before any "
+        "2020-2024 data was pulled, so results can be checked against stated priors rather than "
+        "narrated after the fact.", styles["Body"]
     ))
 
     # --- 2. Methods ---
     story.append(Paragraph("2. Methods", styles["H1"]))
     story.append(Paragraph("<b>Primary method: known-date interrupted time series (\"excess mortality\").</b> "
         "An expected trend is fit on pre-pandemic age-adjusted mortality rates (1999-2019 for 4 "
-        "of the 6 test causes; 2010-2019 for Diseases of heart and Cerebrovascular disease, "
+        "of the 6 test causes; 2010-2019 for heart disease and stroke, "
         "corrected after the full-range fit was found to misdescribe their real trajectory -- "
         "section 4), projected forward through 2020-2024 with a 95% prediction interval, and a "
         "year is flagged as significantly disrupted if the observed value falls outside that "
@@ -491,7 +499,7 @@ def build(data: dict) -> list:
     for _, r in s.sort_values("p_value").iterrows():
         robust = trend_shape_robust.get(r["cause"], True)
         table_data.append([
-            r["cause"], r["persistence_class"], f"{r['p_value']:.3g}",
+            display_cause(r["cause"]), r["persistence_class"], f"{r['p_value']:.3g}",
             "Yes" if r["fdr_significant"] else "No",
             f"{r['acute_pct_deviation']:+.1f}%", f"{r['latest_pct_deviation']:+.1f}%",
             "Yes" if robust else "No",
@@ -506,7 +514,7 @@ def build(data: dict) -> list:
         "\"Deviation\" is the effect size: how far the observed rate is from the expected "
         "pre-pandemic trend, as a percent. Significance and magnitude are different claims. "
         "\"Robust?\" marks whether the result survives an alternate, curved baseline fit "
-        "instead of the primary straight line; cerebrovascular disease does not, though less "
+        "instead of the primary straight line; stroke does not, though less "
         "severely than before its baseline was corrected (see section 4 for why).",
         styles["Caption"]
     ))
@@ -587,22 +595,21 @@ def build(data: dict) -> list:
     # --- 4. Robustness ---
     story.append(Paragraph("4. Robustness", styles["H1"]))
     story.append(Paragraph(
-        "<b>A baseline correction, found through this exact process.</b> Diseases of heart and "
-        "Cerebrovascular disease originally used the same 1999-2019 baseline as the other four "
-        "test causes. The trend-shape check below found their significance didn't survive a "
-        "curved baseline; investigating why, using only 1999-2019 data with no reference to "
-        "2020+, found an F-test comparing linear vs. quadratic fits showed overwhelming curvature "
-        "for exactly these two causes (F=222.7 and F=162.6, both p&lt;0.00001, vs. F&lt;9.5 for "
-        "every other test cause) -- both declined steeply through the 2000s, then flattened, and "
-        "a straight line across the full period was already 17.7 and 5.8 points below the real "
-        "2019 value before the pandemic. A quadratic fit tracks history almost perfectly but was "
-        "rejected as the fix: extrapolated to 2020-2024 it predicts <i>rising</i> rates for both "
-        "causes, the standard failure mode of polynomial extrapolation. A shorter, more recent "
-        "linear window (2010-2019) has neither defect, and is now this project's baseline for "
-        "these two causes only. Both remain significant -- heart disease more confidently than "
-        "before -- but the reported deviation drops from an overstated 26-37% to a defensible "
-        "8-9%, and both causes now drift slightly toward their expected trend by 2024 rather than "
-        "away from it. Full investigation: research_protocol.md's 2026-09-01 addendum.",
+        "<b>A baseline correction, found through this exact process.</b> Heart disease and "
+        "stroke originally used the same 1999-2019 baseline as the other four test causes, but "
+        "the trend-shape check below found their significance didn't survive a curved baseline. "
+        "Investigating why, using only 1999-2019 data with no reference to 2020+, found an "
+        "F-test comparing linear vs. quadratic fits showed overwhelming curvature for exactly "
+        "these two causes (F=222.7 and F=162.6, both p&lt;0.00001, vs. F&lt;9.5 for every other "
+        "test cause): both declined steeply through the 2000s, then flattened, so a straight "
+        "line across the full period was already 17.7 and 5.8 points below the real 2019 value "
+        "before the pandemic. A quadratic fit tracks history almost perfectly but was rejected "
+        "as the fix: extrapolated to 2020-2024 it predicts <i>rising</i> rates for both causes, "
+        "the standard failure mode of polynomial extrapolation. A shorter, more recent linear "
+        "window (2010-2019) has neither defect and is now this project's baseline for these two "
+        "causes only. Both remain significant, heart disease more confidently than before, but "
+        "the reported deviation drops from an overstated 26-37% to a defensible 8-9%. Full "
+        "investigation: research_protocol.md's 2026-09-01 addendum.",
         styles["Body"]
     ))
     story.append(Paragraph(
@@ -622,13 +629,13 @@ def build(data: dict) -> list:
         verdict = (
             "All 6 test causes agree."
             if n_disagree == 0
-            else f"{n_disagree} {cause_word} {verb}: {', '.join(rows.loc[~rows['agrees'], 'cause'])}."
+            else f"{n_disagree} {cause_word} {verb}: {', '.join(display_cause(c) for c in rows.loc[~rows['agrees'], 'cause'])}."
         )
         story.append(Paragraph(f"<b>{label}.</b> {verdict}", styles["Body"]))
     story.append(Paragraph(
         "The trend-shape check, now run against each cause's corrected baseline, is the one that "
         "matters most. Heart disease is now fully robust: it stays significant whether the "
-        "baseline is a straight line or a curve. Cerebrovascular disease is substantially "
+        "baseline is a straight line or a curve. Stroke is substantially "
         "improved but not fully resolved -- its quadratic p-value moves from 0.37 under the old, "
         "uncorrected full-range comparison to a much closer 0.096 under the corrected window, "
         "better, but still on the wrong side of 0.05. It remains this project's single most "
@@ -639,14 +646,14 @@ def build(data: dict) -> list:
         "Separately, lag-1 autocorrelation, a measure of whether one year's unexpected result "
         "tends to be followed by another, was calculated for each cause's own pre-pandemic "
         "residuals. It is large for diabetes, overdose, and Alzheimer's (0.65-0.82); moderate for "
-        "cerebrovascular disease (0.50); and low for heart disease and cancer (0.12-0.19) -- heart "
-        "disease's and cerebrovascular disease's dropped sharply after their baseline correction "
+        "stroke (0.50); and low for heart disease and cancer (0.12-0.19) -- heart "
+        "disease's and stroke's dropped sharply after their baseline correction "
         "(from 0.92 and 0.93 on the old full-range baseline), since a shorter window's residuals "
         "are far less serially smooth than a 21-year decline. The classical prediction-interval math "
         "assumes independent year-to-year residuals, which the high-autocorrelation causes' "
         "baselines don't satisfy, so a Newey-West (HAC) autocorrelation-robust version of the same "
         "acute-window test was built and is reported alongside the classical p-value: it raises "
-        "diabetes, drug overdose, and cerebrovascular disease's p-values by roughly 1-2 orders of "
+        "diabetes, drug overdose, and stroke's p-values by roughly 1-2 orders of "
         "magnitude, but all 5 causes previously found significant remain significant under it. This "
         "is a genuine correction, not just a disclosed caveat, and it is a reassuring result rather "
         "than a damaging one.", styles["Body"]
@@ -654,7 +661,7 @@ def build(data: dict) -> list:
     hac_table_data = [["Cause", "Autocorrelation", "Classical p-value", "HAC p-value"]]
     for _, r in s.sort_values("hac_p_value").iterrows():
         hac_table_data.append([
-            r["cause"], f"{r['residual_autocorrelation']:.2f}",
+            display_cause(r["cause"]), f"{r['residual_autocorrelation']:.2f}",
             f"{r['p_value']:.3g}", f"{r['hac_p_value']:.3g}",
         ])
     hac_table = Table(hac_table_data, colWidths=[1.7 * inch, 1.2 * inch, 1.3 * inch, 1.1 * inch])
@@ -687,10 +694,31 @@ def build(data: dict) -> list:
         "of any county's measured disruption could reflect its own population-aging trajectory "
         "rather than a COVID-era shift.", styles["Body"]
     ))
+    example_bits = []
+    for cause in ["Diabetes mellitus", "Drug overdose"]:
+        cd = county_disruption[cause]
+        most = cd.loc[cd["disruption"].idxmax()]
+        least = cd.loc[cd["disruption"].abs().idxmin()]
+        example_bits.append(
+            f"For {display_cause(cause).lower()}, <b>{most['county_name']}</b> saw the largest "
+            f"increase ({most['crude_rate_pre']:.1f} to {most['crude_rate_post']:.1f} per "
+            f"100,000, {most['disruption']:+.1f}), while <b>{least['county_name']}</b> saw "
+            f"almost none ({least['disruption']:+.1f})."
+        )
+    story.append(Paragraph(
+        "One real county per extreme, so the regression below isn't just an abstract slope: "
+        + " ".join(example_bits) + " This project has no data on mask mandates, local "
+        "ordinances, or age/race demographics anywhere in its pipeline, so no specific policy "
+        "or demographic story is assigned to any county here; a single county's pre/post "
+        "average is also genuinely noisy (five years of a modest population's raw death counts "
+        "can swing a lot on a handful of extra deaths). See the app's Findings page for how "
+        "each example does and doesn't line up with the context variables below.",
+        styles["Body"]
+    ))
     for cause in ["Diabetes mellitus", "Drug overdose"]:
         cause_het = het[het["cause"] == cause].sort_values("p_value")
         n_fdr_het = int(cause_het["fdr_significant"].sum())
-        story.append(Paragraph(f"{cause}: {n_fdr_het} of {len(cause_het)} context variables survive FDR correction", styles["H2"]))
+        story.append(Paragraph(f"{display_cause(cause)}: {n_fdr_het} of {len(cause_het)} context variables survive FDR correction", styles["H2"]))
         het_table_data = [["Context variable", "Slope", "p-value", "FDR-sig."]]
         for _, r in cause_het.iterrows():
             var_label = CONTEXT_VAR_LABELS.get(r["variable"], r["variable"])
@@ -704,9 +732,9 @@ def build(data: dict) -> list:
         story.append(Spacer(1, 2))
         story.append(make_county_distribution_chart(county_disruption[cause]))
         story.append(Paragraph(
-            f"Figure: {cause} -- context-variable associations (top), and how disruption was "
-            f"actually distributed across the {len(county_disruption[cause])} included counties "
-            "(bottom; x-axis is the disruption value, y-axis is county count).",
+            f"Figure: {display_cause(cause)} -- context-variable associations (top), and how "
+            f"disruption was actually distributed across the {len(county_disruption[cause])} "
+            "included counties (bottom; x-axis is the disruption value, y-axis is county count).",
             styles["Caption"]
         ))
         story.append(Spacer(1, 6))
@@ -719,7 +747,7 @@ def build(data: dict) -> list:
     ))
     story.append(Paragraph("Rurality finding: a real caveat, found on self-audit", styles["H2"]))
     bias_text = "; ".join(
-        f"{r['cause']}: excluded counties average {r['mean_excluded']*100:.0f}% rural vs. "
+        f"{display_cause(r['cause'])}: excluded counties average {r['mean_excluded']*100:.0f}% rural vs. "
         f"{r['mean_included']*100:.0f}% rural for counties included"
         for _, r in selection_bias.iterrows()
     )
@@ -736,7 +764,7 @@ def build(data: dict) -> list:
             verdict = f"holds up and even strengthens among the more-rural half (p={upper['p_value']:.3g}) vs. the less-rural half (p={lower['p_value']:.3g})."
         else:
             verdict = f"is driven almost entirely by the less-rural half (p={lower['p_value']:.3g}) and is not significant among the more-rural half (p={upper['p_value']:.3g}). This result should be read with real skepticism."
-        story.append(Paragraph(f"<b>{cause}:</b> the relationship {verdict}", styles["Body"]))
+        story.append(Paragraph(f"<b>{display_cause(cause)}:</b> the relationship {verdict}", styles["Body"]))
     story.append(PageBreak())
 
     # --- 6. Limitations ---
@@ -759,17 +787,17 @@ def build(data: dict) -> list:
         "the null originally expected.",
         "The classical p-value assumes independent baseline residuals, which is empirically false "
         "for several causes (autocorrelation 0.65-0.82 for diabetes, overdose, and Alzheimer's; "
-        "0.50 for cerebrovascular disease; 0.12-0.19, roughly independent, for heart disease and "
+        "0.50 for stroke; 0.12-0.19, roughly independent, for heart disease and "
         "cancer). A Newey-West (HAC) autocorrelation-robust version of the test is now also "
         "reported (section 4): p-values rise for the high-autocorrelation causes, but all 5 "
         "previously-significant causes remain significant.",
         "“Significant” and “large” are different claims: drug overdose and diabetes show the "
-        "largest disruptions (15-41%), while cancer, heart disease, and cerebrovascular disease "
+        "largest disruptions (15-41%), while cancer, heart disease, and stroke "
         "are all real and FDR-significant but modest by comparison (3-9%).",
-        "Diseases of heart and Cerebrovascular disease use a corrected 2010-2019 baseline, not "
+        "Heart disease and stroke use a corrected 2010-2019 baseline, not "
         "1999-2019 like the other four test causes, after finding the longer window was already "
         "diverging from their real trajectory before 2020 (section 4). Heart disease is now fully "
-        "robust to the choice of linear vs. curved baseline trend shape; cerebrovascular disease "
+        "robust to the choice of linear vs. curved baseline trend shape; stroke "
         "is substantially improved but remains this project's single most uncertain result.",
         "County-level heterogeneity uses crude rate, not age-adjusted rate, because WONDER does "
         "not offer age-adjustment at county granularity for the 2018-2024 database. Measured "

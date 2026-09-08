@@ -4,7 +4,7 @@
 
 **Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death (heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that damage still unresolved, and where in the country did it land hardest?**
 
-COVID-19 isn't the subject of this analysis; it's the shock. Rather than counting deaths attributed to the virus itself, this project treats the pandemic as a system-wide disruption and asks what it did to mortality from six other major causes — heart disease, stroke, diabetes, Alzheimer's disease, drug overdose, and cancer — using 26 years of real CDC mortality data, not synthetic or simulated numbers.
+COVID-19 isn't the subject of this analysis; it's the shock. Rather than counting deaths attributed to the virus itself, this project treats the pandemic as a system-wide disruption and asks what it did to mortality from six other major causes, using 26 years of real CDC mortality data, not synthetic or simulated numbers.
 
 ## What it found
 
@@ -13,6 +13,8 @@ Five of the six causes tested show a statistically significant deviation from th
 The two most interesting results are the two that weren't supposed to happen. Cancer was pre-registered as an expected null — the theory was that delayed screening wouldn't show up as excess deaths for years past this project's 2024 data window — and it showed a real, if modest, disruption anyway (+1.7%, still significant after correcting for testing six causes at once). Alzheimer's disease was pre-registered as a high-confidence, large effect, on the theory that pandemic isolation would show up clearly in dementia mortality, and it showed none in the acute 2020-21 window. Pooling all five post-2020 years instead of just the acute window turns up something else entirely: a real, later decline that only became significant in 2023-2024, consistent with mortality displacement rather than the originally hypothesized mechanism.
 
 Both of these were decided in writing, with a stated confidence level, before any 2020-2024 data was pulled — otherwise a result that happens to confirm what you expected proves very little.
+
+Disruption also wasn't spread evenly across the country. For diabetes and drug overdose, the two causes with county-level data, higher uninsured rate, smoking, and obesity all predict a larger disruption, and higher income predicts a smaller one. Grant County, Indiana saw the largest diabetes-mortality increase of any county in the dataset (60.2 → 123.0 per 100,000); Mercer County, West Virginia saw the largest for drug overdose (57.0 → 119.9). Full county-level detail, including a real selection-bias caveat the project's own self-audit found: see Geographic heterogeneity in the app.
 
 ## Why this exists
 
@@ -42,7 +44,7 @@ All of this is visible directly in the app's Data Quality page, not summarized a
 
 A known-date interrupted time series ("excess mortality") design: fit each cause's own pre-pandemic trend, project it forward with a 95% prediction interval, and flag a year as disrupted when the observed rate steps outside that interval. The breakpoint (March 2020) is fixed by the pandemic's known onset, never searched for after the fact. County-level heterogeneity regresses per-county disruption magnitude against real socioeconomic and healthcare-access variables from County Health Rankings & Roadmaps.
 
-Two causes (diseases of heart and cerebrovascular disease) needed a mid-project correction: their original 1999-2019 baseline was found, through evidence that never touched any 2020+ data, to already be diverging from their real pre-pandemic trajectory. The fix, why it was needed, and why a couple of tempting alternatives were rejected, is documented in full rather than quietly applied — see the addenda in [`docs/research_protocol.md`](docs/research_protocol.md).
+Two causes (heart disease and stroke) needed a mid-project correction: their original 1999-2019 baseline was found, through evidence that never touched any 2020+ data, to already be diverging from their real pre-pandemic trajectory. The fix, why it was needed, and why a couple of tempting alternatives were rejected, is documented in full rather than quietly applied — see the addenda in [`docs/research_protocol.md`](docs/research_protocol.md).
 
 ## Data sources
 
