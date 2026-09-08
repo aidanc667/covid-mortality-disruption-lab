@@ -49,13 +49,20 @@ with st.container(border=True):
         .mark_bar(color="#4F46E5")
         .encode(
             x=alt.X("year:O", title=None, axis=alt.Axis(labelAngle=0)),
-            y=alt.Y("age_adjusted_rate:Q", title="Age-adjusted rate (per 100,000)"),
+            # Shortened from "Age-adjusted rate (per 100,000)": at this
+            # chart's height, the full title rotated 90 degrees needed more
+            # vertical room than the chart had, clipping its top against
+            # the canvas edge (confirmed by inspecting the rendered SVG --
+            # not a left-margin issue like Geographic heterogeneity's bar
+            # chart, a different clipping cause with a similar symptom).
+            # Units are still in the tooltip and the caption below.
+            y=alt.Y("age_adjusted_rate:Q", title="Age-adjusted rate"),
             tooltip=[
                 alt.Tooltip("year:O", title="Year"),
-                alt.Tooltip("age_adjusted_rate:Q", title="Rate", format=".1f"),
+                alt.Tooltip("age_adjusted_rate:Q", title="Rate per 100,000", format=".1f"),
             ],
         )
-        .properties(height=160)
+        .properties(height=180, padding={"left": 5, "top": 5, "right": 5, "bottom": 5})
     )
     st.altair_chart(covid_chart, width="stretch")
     peak = covid_series.loc[covid_series["age_adjusted_rate"].idxmax()]
