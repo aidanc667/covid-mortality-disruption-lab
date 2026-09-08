@@ -2,7 +2,7 @@
 
 **Live app:** [covid-mortality-disruption-lab.streamlit.app](https://covid-mortality-disruption-lab.streamlit.app) &nbsp;·&nbsp; **Full report:** [`outputs/reports/covid_mortality_disruption_report.pdf`](outputs/reports/covid_mortality_disruption_report.pdf) &nbsp;·&nbsp; **Findings:** [`docs/findings.md`](docs/findings.md)
 
-**Which causes of death were most disrupted by the COVID-19 pandemic, how long did the disruption last, and which parts of the country got hit hardest?**
+**Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death (heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that damage still unresolved, and where in the country did it land hardest?**
 
 COVID-19 isn't the subject of this analysis; it's the shock. Rather than counting deaths attributed to the virus itself, this project treats the pandemic as a system-wide disruption and asks what it did to mortality from six other major causes — heart disease, stroke, diabetes, Alzheimer's disease, drug overdose, and cancer — using 26 years of real CDC mortality data, not synthetic or simulated numbers.
 

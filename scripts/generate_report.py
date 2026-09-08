@@ -357,8 +357,9 @@ def build(data: dict) -> list:
     story.append(Spacer(1, 1.2 * inch))
     story.append(Paragraph("COVID Mortality Disruption Lab", styles["ReportTitle"]))
     story.append(Paragraph(
-        "Which causes of death were most disrupted by the COVID-19 pandemic, how persistent were "
-        "those disruptions, and how did they vary across U.S. counties?", styles["ReportSubtitle"]
+        "Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death "
+        "(heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that "
+        "damage still unresolved, and where in the country did it land hardest?", styles["ReportSubtitle"]
     ))
     story.append(Paragraph(f"Aidan Chi &nbsp;&bull;&nbsp; {date.today().strftime('%B %Y')}", styles["Byline"]))
     story.append(HRFlowable(width="100%", color=colors.HexColor("#cccccc")))

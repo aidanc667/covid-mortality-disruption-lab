@@ -8,8 +8,9 @@ from app.components.data_loading import (
 
 st.title("COVID Mortality Disruption Lab")
 st.header(
-    "Which causes of death were most disrupted by the COVID-19 pandemic, how long did the "
-    "disruption last, and which parts of the country got hit hardest?"
+    "Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death "
+    "(heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that "
+    "damage still unresolved, and where in the country did it land hardest?"
 )
 synthetic_banner()
 
