@@ -463,8 +463,8 @@ def build(data: dict) -> list:
     story.append(Paragraph("<b>Primary method: known-date interrupted time series (\"excess mortality\").</b> "
         "An expected trend is fit on pre-pandemic age-adjusted mortality rates (1999-2019 for 4 "
         "of the 6 test causes; 2010-2019 for heart disease and stroke, "
-        "corrected after the full-range fit was found to misdescribe their real trajectory -- "
-        "section 4), projected forward through 2020-2024 with a 95% prediction interval, and a "
+        "corrected after the full-range fit was found to misdescribe their real trajectory "
+        "(section 4), projected forward through 2020-2024 with a 95% prediction interval, and a "
         "year is flagged as significantly disrupted if the observed value falls outside that "
         "interval. The breakpoint (2020) is fixed by the shock's known date, not searched for.",
         styles["Body"]))
@@ -489,8 +489,8 @@ def build(data: dict) -> list:
     story.append(Paragraph("<b>Full-period secondary check.</b> Alongside the pre-registered acute "
         "(2020-2021) test, each cause also gets a p-value pooling all five post-2020 years, using "
         "the identical t-test over a wider window. This never replaces the acute test or gates the "
-        "classification above -- averaging more years can hide a real reversal as easily as it can "
-        "reveal a delayed effect -- but it catches disruptions the acute window is too narrow to "
+        "classification above (averaging more years can hide a real reversal as easily as it can "
+        "reveal a delayed effect), but it catches disruptions the acute window is too narrow to "
         "see (section 3).", styles["Body"]))
     story.append(Paragraph("<b>Autocorrelation-robust check (Newey-West/HAC).</b> The acute test's "
         "prediction-interval math assumes each baseline year is independent noise. Several causes' "
@@ -557,7 +557,7 @@ def build(data: dict) -> list:
         "Figure 1 walked through one cause in detail; here is the same comparison for all six, "
         "side by side. Each panel plots the real observed rate against what its own pre-pandemic "
         "trend would have predicted, with that cause's primary p-value in the title. The point "
-        "isn't to read each panel closely (the table above already has the numbers) -- it's to see at a "
+        "isn't to read each panel closely (the table above already has the numbers); it's to see at a "
         "glance which gaps look large, which look small, and how little that visual impression "
         "lines up with which ones are actually significant, exactly the puzzle the next two "
         "sections work through.", styles["Body"]
@@ -667,7 +667,7 @@ def build(data: dict) -> list:
         "The trend-shape check, now run against each cause's corrected baseline, is the one that "
         "matters most. Heart disease is now fully robust: it stays significant whether the "
         "baseline is a straight line or a curve. Stroke is substantially "
-        "improved but not fully resolved -- its quadratic p-value moves from 0.37 under the old, "
+        "improved but not fully resolved: its quadratic p-value moves from 0.37 under the old, "
         "uncorrected full-range comparison to a much closer 0.096 under the corrected window, "
         "better, but still on the wrong side of 0.05. It remains this project's single most "
         "uncertain \"Persisted\" classification. Diabetes, drug overdose, and cancer were never "
@@ -677,7 +677,7 @@ def build(data: dict) -> list:
         "Separately, lag-1 autocorrelation, a measure of whether one year's unexpected result "
         "tends to be followed by another, was calculated for each cause's own pre-pandemic "
         "residuals. It is large for diabetes, overdose, and Alzheimer's (0.65-0.82); moderate for "
-        "stroke (0.50); and low for heart disease and cancer (0.12-0.19) -- heart "
+        "stroke (0.50); and low for heart disease and cancer (0.12-0.19). Heart "
         "disease's and stroke's dropped sharply after their baseline correction "
         "(from 0.92 and 0.93 on the old full-range baseline), since a shorter window's residuals "
         "are far less serially smooth than a 21-year decline. The classical prediction-interval math "
@@ -717,7 +717,7 @@ def build(data: dict) -> list:
         f"For the two causes with real county-level data, disruption magnitude is regressed "
         f"against real County Health Rankings &amp; Roadmaps context variables. Of roughly 3,143 "
         f"U.S. counties, only {n_diabetes_counties} qualify for diabetes and {n_overdose_counties} "
-        f"for drug overdose, pre-period 2015-2019 versus post-period 2020-2024 -- CDC WONDER "
+        f"for drug overdose, pre-period 2015-2019 versus post-period 2020-2024. CDC WONDER "
         f"suppresses any county-year cell with too few deaths to protect privacy, and a county "
         f"needs at least 2 non-suppressed years in each period to be included at all. This stage "
         "also uses crude rate, not age-adjusted rate, for both periods, because WONDER does not "
@@ -763,7 +763,7 @@ def build(data: dict) -> list:
         story.append(Spacer(1, 2))
         story.append(make_county_distribution_chart(county_disruption[cause]))
         story.append(Paragraph(
-            f"Figure: {display_cause(cause)} -- context-variable associations (top), and how "
+            f"Figure: {display_cause(cause)}, context-variable associations (top), and how "
             f"disruption was actually distributed across the {len(county_disruption[cause])} "
             "included counties (bottom; x-axis is the disruption value, y-axis is county count).",
             styles["Caption"]
