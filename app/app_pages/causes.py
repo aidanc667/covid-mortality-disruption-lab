@@ -240,12 +240,25 @@ expected_line = (
     .encode(x="year:O", y="value:Q", tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Trend fit")])
 )
 # Marks the years that actually drive significance -- points where the
-# observed rate fell outside the 95% prediction interval -- with a larger,
-# outlined marker, so "is this significant" reads directly off the chart
-# instead of requiring the reader to judge how far apart two lines look.
+# observed rate fell outside the 95% prediction interval -- so "is this
+# significant" reads directly off the chart instead of requiring the
+# reader to judge how far apart two lines look. Two layers, not one: a
+# soft, larger halo behind a solid marker in front, the static-chart
+# equivalent of a highlight/glow, since Vega-Lite in a Streamlit-rendered
+# chart doesn't support a real pulsing animation. Matters most for a
+# cause like cancer, where the real effect is genuinely small -- the
+# marker needs to carry the "this is the significant part" signal on its
+# own, since the gap itself is honestly too small to make that point by
+# size alone (and shouldn't be stretched to fake it).
+sig_years = observed[observed["status"] == "Outside prediction interval"]
+sig_halo = (
+    alt.Chart(sig_years)
+    .mark_point(filled=True, size=500, color=color, opacity=0.25)
+    .encode(x="year:O", y="value:Q")
+)
 sig_points = (
-    alt.Chart(observed[observed["status"] == "Outside prediction interval"])
-    .mark_point(filled=True, size=110, color=color, stroke="white", strokeWidth=1.5)
+    alt.Chart(sig_years)
+    .mark_point(filled=True, size=160, color=color, stroke="white", strokeWidth=2.2)
     .encode(
         x="year:O", y="value:Q",
         tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Observed (outside prediction interval)")],
@@ -253,7 +266,7 @@ sig_points = (
 )
 onset_rule = alt.Chart(pd.DataFrame({"year": [2020]})).mark_rule(color="#9CA3AF", strokeDash=[2, 2]).encode(x="year:O")
 
-chart = (band + gap_ribbon + observed_line + expected_line + sig_points + onset_rule).properties(height=320)
+chart = (band + gap_ribbon + observed_line + expected_line + sig_halo + sig_points + onset_rule).properties(height=320)
 baseline_start = int(fitted["year"].min()) if len(fitted) else 1999
 total_years = 2024 - baseline_start + 1
 st.altair_chart(chart, width="stretch")
