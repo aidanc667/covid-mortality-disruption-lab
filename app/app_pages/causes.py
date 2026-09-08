@@ -175,7 +175,21 @@ expected_full = pd.concat([
 band = (
     alt.Chart(band_df)
     .mark_area(opacity=0.15, color=color)
-    .encode(x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=-45)), y=alt.Y("pi_low:Q", title="Age-adjusted rate (per 100,000)"), y2="pi_high:Q")
+    .encode(
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=-45)),
+        # zero=False: a mortality rate never approaches 0, so 0 isn't a
+        # meaningful reference point on this axis the way it would be for,
+        # say, a count that could plausibly hit zero. Forcing the scale to
+        # include it (Vega-Lite's default) shrinks every cause's real
+        # observed-vs-expected gap down to a few pixels regardless of how
+        # significant it is, which is exactly backwards: the meaningful
+        # reference here is the shaded prediction interval, not zero, and
+        # that's what should get the visual room. This does NOT cherry-pick
+        # a domain to exaggerate any one cause -- it's the same rule
+        # (auto-fit to the actual data range) applied identically to all 6.
+        y=alt.Y("pi_low:Q", title="Age-adjusted rate (per 100,000)", scale=alt.Scale(zero=False)),
+        y2="pi_high:Q",
+    )
 )
 # Gap ribbon, added after a reader couldn't tell at a glance how big the
 # observed-vs-expected gap actually was for causes where the two lines run
@@ -225,9 +239,21 @@ expected_line = (
     .mark_line(strokeDash=[5, 4], strokeWidth=1.5, color="#6B7280")
     .encode(x="year:O", y="value:Q", tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Trend fit")])
 )
+# Marks the years that actually drive significance -- points where the
+# observed rate fell outside the 95% prediction interval -- with a larger,
+# outlined marker, so "is this significant" reads directly off the chart
+# instead of requiring the reader to judge how far apart two lines look.
+sig_points = (
+    alt.Chart(observed[observed["status"] == "Outside prediction interval"])
+    .mark_point(filled=True, size=110, color=color, stroke="white", strokeWidth=1.5)
+    .encode(
+        x="year:O", y="value:Q",
+        tooltip=["year:O", alt.Tooltip("value:Q", format=".1f", title="Observed (outside prediction interval)")],
+    )
+)
 onset_rule = alt.Chart(pd.DataFrame({"year": [2020]})).mark_rule(color="#9CA3AF", strokeDash=[2, 2]).encode(x="year:O")
 
-chart = (band + gap_ribbon + observed_line + expected_line + onset_rule).properties(height=320)
+chart = (band + gap_ribbon + observed_line + expected_line + sig_points + onset_rule).properties(height=320)
 baseline_start = int(fitted["year"].min()) if len(fitted) else 1999
 total_years = 2024 - baseline_start + 1
 st.altair_chart(chart, width="stretch")
@@ -236,13 +262,17 @@ st.caption(
     f"{total_years} years, both where it was fit ({baseline_start}–2019, so you can judge for "
     f"yourself how well it tracks the real pre-pandemic trajectory) and where it's projected "
     f"forward (2020–2024, shaded band: its 95% prediction interval, the only years actually "
-    f"tested). The filled gap is colored red where observed ran above trend and blue where it "
-    f"ran below: a thin band can still be significant if this cause's own pre-pandemic noise was "
-    f"small, and a thick band can still be non-significant if it wasn't. Hover a point on the "
-    f"solid line for that year's status; the primary p-value pools 2020 and 2021 together, so a "
-    f"single unremarkable-looking year can still belong to a significant combined result. "
-    f"Independent cross-check (PELT, binary segmentation, segmented regression): "
-    f"{r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint near 2020."
+    f"tested). **The y-axis does not start at zero** (a mortality rate never gets close to it, "
+    f"so zero isn't a meaningful reference point here; the meaningful reference is the shaded "
+    f"band). The filled gap is colored red where observed ran above trend and blue where it ran "
+    f"below, and outlined circles mark the specific years that landed outside the prediction "
+    f"interval: a thin band can still be significant if this cause's own pre-pandemic noise was "
+    f"small, and a thick band can still be non-significant if it wasn't, so those circles, not the "
+    f"raw size of the gap, are the actual test. Hover a point on the solid line for that year's "
+    f"status; the primary p-value pools 2020 and 2021 together, so a single unremarkable-looking "
+    f"year can still belong to a significant combined result. Independent cross-check (PELT, "
+    f"binary segmentation, segmented regression): {r['cross_check_methods_agreeing']} of 3 methods "
+    f"confirm a breakpoint near 2020."
 )
 if _delayed_disruption(r):
     st.info(
