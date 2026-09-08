@@ -18,7 +18,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable,
 )
-from reportlab.graphics.shapes import Drawing, String
+from reportlab.graphics.shapes import Circle, Drawing, String
 from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.legends import Legend
@@ -117,6 +117,35 @@ def load_data() -> dict:
     }
 
 
+def _plot_xy(plot, x, y):
+    """Maps a data coordinate to Drawing-space pixels for a LinePlot with
+    linear axes and explicit valueMin/valueMax -- reportlab doesn't expose
+    this mapping as a public method, so it's re-derived here from the same
+    x/y/width/height and axis range already set on the plot."""
+    x_frac = (x - plot.xValueAxis.valueMin) / (plot.xValueAxis.valueMax - plot.xValueAxis.valueMin)
+    y_frac = (y - plot.yValueAxis.valueMin) / (plot.yValueAxis.valueMax - plot.yValueAxis.valueMin)
+    return plot.x + x_frac * plot.width, plot.y + y_frac * plot.height
+
+
+def _add_significance_markers(drawing, plot, obs, dev, color, halo_r=7.0, point_r=3.2):
+    """Draws a halo + solid point at each year that landed outside its 95%
+    prediction interval -- the static-PDF equivalent of the app's Altair
+    significance markers (app/app_pages/causes.py). A PDF reader has no
+    hover tooltip to fall back on, so without this the same "small but
+    real gap" cases (cancer) that needed a highlight in the app need it
+    here too, not just a raw line comparison."""
+    sig_years = set(dev.loc[dev["significant"], "year"])
+    if not sig_years:
+        return
+    obs_by_year = dict(zip(obs["year"], obs["age_adjusted_rate"]))
+    for year in sig_years:
+        if year not in obs_by_year:
+            continue
+        cx, cy = _plot_xy(plot, float(year), obs_by_year[year])
+        drawing.add(Circle(cx, cy, halo_r, fillColor=color, fillOpacity=0.25, strokeColor=None))
+        drawing.add(Circle(cx, cy, point_r, fillColor=color, strokeColor=colors.white, strokeWidth=1))
+
+
 def make_trajectory_chart(
     cause: str, national_series: pd.DataFrame, deviations: pd.DataFrame, baseline_fitted: pd.DataFrame,
 ) -> Drawing:
@@ -185,6 +214,7 @@ def make_trajectory_chart(
             plot.lines[i].strokeDashArray = dash
 
     drawing.add(plot)
+    _add_significance_markers(drawing, plot, obs, dev, observed_color)
 
     legend = Legend()
     legend.x = 60
@@ -263,6 +293,7 @@ def make_trajectory_grid(
         plot.lines[1].strokeDashArray = (3, 2)
         plot.lines[1].symbol = None
         drawing.add(plot)
+        _add_significance_markers(drawing, plot, obs, dev, observed_color, halo_r=4.0, point_r=1.8)
 
         title = f"{display_cause(cause)}  (p={r['p_value']:.2g})"
         drawing.add(String(x0, y0 + cell_h - 4, title, fontSize=7.5, fillColor=colors.HexColor("#1a1a1a")))

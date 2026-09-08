@@ -1,9 +1,10 @@
+import altair as alt
 import streamlit as st
 
 from app.components.data_loading import (
-    load_disruption_summary, load_negative_control, data_available, synthetic_banner,
-    heterogeneity_synthetic_banner, TEST_CAUSES, CAUSE_BADGE_STYLE, CAUSE_HOME_LABELS,
-    display_cause,
+    load_disruption_summary, load_negative_control, load_covid_reference_series, data_available,
+    synthetic_banner, heterogeneity_synthetic_banner, TEST_CAUSES, CAUSE_BADGE_STYLE,
+    CAUSE_HOME_LABELS, display_cause,
 )
 
 st.title("COVID Mortality Disruption Lab")
@@ -41,6 +42,28 @@ with st.container(border=True):
     st.caption(
         "Shown as a reference series, not tested for its own disruption. COVID-19 mortality "
         "is the event every other cause below is being tested against, not a hypothesis in itself."
+    )
+    covid_series = load_covid_reference_series()
+    covid_chart = (
+        alt.Chart(covid_series)
+        .mark_bar(color="#4F46E5")
+        .encode(
+            x=alt.X("year:O", title=None, axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("age_adjusted_rate:Q", title="Age-adjusted rate (per 100,000)"),
+            tooltip=[
+                alt.Tooltip("year:O", title="Year"),
+                alt.Tooltip("age_adjusted_rate:Q", title="Rate", format=".1f"),
+            ],
+        )
+        .properties(height=160)
+    )
+    st.altair_chart(covid_chart, width="stretch")
+    peak = covid_series.loc[covid_series["age_adjusted_rate"].idxmax()]
+    st.caption(
+        f"COVID-19's own age-adjusted mortality rate peaked at {peak['age_adjusted_rate']:.1f} per "
+        f"100,000 in {int(peak['year'])}, then declined sharply through 2024. It has no "
+        "pre-pandemic baseline to test against (the cause didn't exist before 2020) -- it's shown "
+        "here only as the event this whole analysis is built around, not one of the 6 causes tested."
     )
 
 st.subheader("What we're testing")
@@ -92,7 +115,7 @@ else:
     with st.container(horizontal=True):
         with st.container(border=True):
             st.metric(
-                "Significant disruption", f"{n_disrupted} of {len(summary)}", border=False,
+                "Disrupted", f"{n_disrupted} of {len(summary)}", border=False,
                 help="Of the 6 causes tested, this many showed a death rate that moved outside "
                      "what a straight-line projection of the pre-pandemic trend would predict: "
                      "a real statistical deviation, not normal year-to-year noise.",
@@ -111,7 +134,7 @@ else:
             reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"].map(display_cause)
             reversed_value = reversed_causes.iloc[0] if len(reversed_causes) else "None"
             st.metric(
-                "Reversed trajectory", reversed_value if len(reversed_value) <= 12 else f"{len(reversed_causes)}",
+                "Reversed", reversed_value if len(reversed_value) <= 12 else f"{len(reversed_causes)}",
                 border=False,
                 help=(
                     f"{reversed_value}: a cause 'reverses' if it spiked one direction, then swung "

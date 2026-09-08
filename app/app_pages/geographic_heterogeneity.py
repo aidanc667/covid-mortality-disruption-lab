@@ -1,3 +1,4 @@
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -67,6 +68,39 @@ cause_het_display["slope"] = cause_het_display.apply(
     lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
 )
 cause_het_display["variable"] = cause_het_display["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het_display["variable"])
+
+# A chart, not just the table below: which variables move disruption the
+# most, and in which direction, should be visible at a glance rather than
+# requiring the reader to scan 5 rows of numbers to find the pattern. Uses
+# a shorter income label than the table below (the full "Median household
+# income (per $10k)" is one factor in the clipping fixed below). Explicit
+# left padding is required, not optional: Vega-Lite auto-computed only
+# ~100px of left margin here (confirmed by inspecting the rendered SVG's
+# transform), nowhere near enough for a ~15-character label, so labels
+# rendered starting in negative x-space and were clipped by the SVG
+# canvas edge -- not a labelLimit/truncation issue, an under-computed
+# margin.
+het_bar_display = cause_het_display.copy()
+het_bar_display["variable"] = het_bar_display["variable"].replace(
+    "Median household income (per $10k)", "Income (per $10k)"
+)
+het_bar = (
+    alt.Chart(het_bar_display)
+    .mark_bar()
+    .encode(
+        x=alt.X("slope:Q", title="Slope (direction and magnitude)"),
+        y=alt.Y("variable:N", sort="-x", title=None),
+        color=alt.condition("datum.slope > 0", alt.value("#EA580C"), alt.value("#2563EB")),
+        tooltip=[
+            alt.Tooltip("variable:N", title="Context variable"),
+            alt.Tooltip("slope:Q", title="Slope", format=".3f"),
+            alt.Tooltip("p_value:Q", title="p-value", format=".3g"),
+        ],
+    )
+    .properties(height=200, padding={"left": 150, "top": 5, "right": 5, "bottom": 5})
+)
+st.altair_chart(het_bar, width="stretch")
+st.caption("Orange bars predict **larger** disruption; blue bars predict **smaller** disruption. Exact numbers, sample size, and FDR status below.")
 st.dataframe(
     cause_het_display[["variable", "slope", "p_value", "n", "fdr_significant"]],
     column_config={

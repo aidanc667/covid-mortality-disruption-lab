@@ -105,9 +105,9 @@ with st.container(horizontal=True):
         st.metric("2024 deviation", f"{r['latest_pct_deviation']:+.1f}%")
     with st.container(border=True):
         st.metric(
-            "Primary p-value (2020–21)", f"{r['p_value']:.2g}",
+            "Primary p-value", f"{r['p_value']:.2g}",
             delta="FDR-significant" if r["fdr_significant"] else "not FDR-significant", delta_color="off",
-            help="The pre-registered primary test: are 2020 and 2021 combined significantly off trend?",
+            help="The pre-registered primary test (2020–21 combined): is it significantly off trend?",
         )
 
 # Both secondary checks live inside one collapsed-by-default expander
@@ -123,7 +123,7 @@ with st.expander("Robustness checks: does the result hold up under alternate ass
         "this cause. Does the result survive an autocorrelation-robust standard error instead?"
     )
     st.metric(
-        "Autocorrelation-robust p-value (HAC)", f"{r['hac_p_value']:.2g}",
+        "HAC p-value", f"{r['hac_p_value']:.2g}",
         help="Newey-West (HAC) standard errors instead of the classical formula, which assumes "
              "independent year-to-year residuals -- measured autocorrelation is 0.50-0.82 for half "
              "the test causes, so that assumption is often false here. Keeps the same trend line and "
@@ -135,7 +135,7 @@ with st.expander("Robustness checks: does the result hold up under alternate ass
         "post-2020 years are pooled instead of just the acute 2020–21 window?"
     )
     st.metric(
-        "Full-period p-value (2020–2024)", f"{r['full_period_p_value']:.2g}",
+        "Full-period p-value", f"{r['full_period_p_value']:.2g}",
         delta=f"{r['full_period_pct_deviation']:+.1f}% average deviation", delta_color="off",
         help="Pools all five post-2020 years instead of just the acute 2020–21 window. Not used to "
              "replace the primary test or the headline result above; see Methods for why.",
