@@ -4,7 +4,7 @@ from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary,
     load_heterogeneity_selection_bias, load_heterogeneity_rurality_robustness,
     load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner, TEST_CAUSES,
-    CONTEXT_VAR_LABELS, scale_context_slope_for_display,
+    CONTEXT_VAR_LABELS, scale_context_slope_for_display, display_cause,
 )
 from src.utils.config import OUTPUTS_REPORTS
 
@@ -55,6 +55,7 @@ if sensitivity_check_available():
     display["agrees"] = display["agrees"].fillna(True)
 else:
     display["agrees"] = True
+display["cause"] = display["cause"].map(display_cause)
 st.dataframe(
     display[["cause", "persistence_class", "p_value", "fdr_significant", "acute_pct_deviation", "latest_pct_deviation", "agrees"]],
     column_config={
@@ -78,7 +79,7 @@ st.caption(
     "trend, as a percent. Significance (p-value) and magnitude (deviation) are different claims: a "
     "cause can be statistically significant while still small in absolute terms, or vice versa. "
     "\"Robust to trend shape\" flags whether the result survives an alternate, curved baseline fit, "
-    "which only cerebrovascular disease fails. Diseases of heart had the same problem originally "
+    "which only stroke fails. Heart disease had the same problem originally "
     "but is now fully robust after its baseline was corrected to a shorter, more recent window "
     "(see Causes of death for the chart, and research_protocol.md's 2026-09-01 addendum for why)."
 )
@@ -97,7 +98,7 @@ alz = summary[summary["cause"] == "Alzheimer's disease"].iloc[0]
 with st.container(border=True):
     st.write("**Cancer was expected to show nothing, and it didn't.**")
     st.write(
-        f"The pre-registered prior for malignant neoplasms was explicitly a null result, with \"low\" "
+        f"The pre-registered prior for cancer was explicitly a null result, with \"low\" "
         "confidence by design. The reasoning was that delayed cancer screening and treatment during "
         "the pandemic would take years longer than the 2024 data window to show up as excess "
         f"mortality. Instead, cancer shows a real, FDR-significant **{cancer['persistence_class'].lower()}** "
@@ -165,7 +166,7 @@ if sensitivity_check_available():
         if n_disagree == 0:
             st.success(f"**{label}:** all 6 test causes agree. Not an artifact of this choice.", icon=":material/check_circle:")
         else:
-            disagreeing = check_rows.loc[~check_rows["agrees"], "cause"].tolist()
+            disagreeing = check_rows.loc[~check_rows["agrees"], "cause"].map(display_cause).tolist()
             cause_word, verb = ("cause", "disagrees") if n_disagree == 1 else ("causes", "disagree")
             st.warning(
                 f"**{label}:** {n_disagree} {cause_word} {verb} ({', '.join(disagreeing)}). "
@@ -174,14 +175,14 @@ if sensitivity_check_available():
             )
     st.caption(
         "The trend-shape check originally found this same problem for both heart disease and "
-        "cerebrovascular disease. Heart disease's baseline has since been corrected to a shorter, "
-        "more recent window and is now fully robust; cerebrovascular disease's significance still "
+        "stroke. Heart disease's baseline has since been corrected to a shorter, "
+        "more recent window and is now fully robust; stroke's significance still "
         "depends partly on the straight-line assumption, though less than before the correction "
         "(see research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and cancer hold "
         "up across every axis tested without needing any correction."
     )
 
-    hac_disagree = summary[(summary["p_value"] < 0.05) != (summary["hac_p_value"] < 0.05)]["cause"].tolist()
+    hac_disagree = summary[(summary["p_value"] < 0.05) != (summary["hac_p_value"] < 0.05)]["cause"].map(display_cause).tolist()
     if not hac_disagree:
         st.success(
             "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant causes "
@@ -213,7 +214,7 @@ for cause in ["Diabetes mellitus", "Drug overdose"]:
     )
     cause_het["variable"] = cause_het["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het["variable"])
     n_fdr_het = int(cause_het["fdr_significant"].sum())
-    st.write(f"**{cause}**: {n_fdr_het} of {len(cause_het)} context variables survive FDR correction:")
+    st.write(f"**{display_cause(cause)}**: {n_fdr_het} of {len(cause_het)} context variables survive FDR correction:")
     st.dataframe(
         cause_het[["variable", "slope", "p_value", "fdr_significant"]],
         column_config={
@@ -247,7 +248,7 @@ with st.expander("The rurality finding needs a real caveat: click to see why", i
     )
     for _, row in bias.iterrows():
         st.write(
-            f"**{row['cause']}**: excluded counties average **{row['mean_excluded']*100:.0f}% rural**, "
+            f"**{display_cause(row['cause'])}**: excluded counties average **{row['mean_excluded']*100:.0f}% rural**, "
             f"included counties average **{row['mean_included']*100:.0f}% rural**."
         )
     st.write(
@@ -259,13 +260,13 @@ with st.expander("The rurality finding needs a real caveat: click to see why", i
         upper, lower = r.loc["upper_half"], r.loc["lower_half"]
         if upper["p_value"] < 0.05:
             st.success(
-                f"**{cause}**: relationship holds up among the more-rural half of the included "
+                f"**{display_cause(cause)}**: relationship holds up among the more-rural half of the included "
                 f"sample (p={upper['p_value']:.3g}), even strengthening there vs. the less-rural "
                 f"half (p={lower['p_value']:.3g}).", icon=":material/check_circle:",
             )
         else:
             st.error(
-                f"**{cause}**: relationship is driven almost entirely by the less-rural half "
+                f"**{display_cause(cause)}**: relationship is driven almost entirely by the less-rural half "
                 f"(p={lower['p_value']:.3g}) and is not significant among the more-rural half "
                 f"(p={upper['p_value']:.3g}). Read this cause's rurality result with real "
                 f"skepticism.", icon=":material/error:",

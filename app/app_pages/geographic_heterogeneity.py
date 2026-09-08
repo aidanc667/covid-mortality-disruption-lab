@@ -4,7 +4,7 @@ import streamlit as st
 from app.components.data_loading import (
     load_heterogeneity_summary, load_county_disruption, load_heterogeneity_selection_bias,
     load_heterogeneity_rurality_robustness, data_available, heterogeneity_synthetic_banner,
-    HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS, scale_context_slope_for_display,
+    HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS, scale_context_slope_for_display, display_cause,
 )
 from app.components.county_map import render_county_choropleth
 from src.ingestion.county_health_rankings import load_year as load_chr_year
@@ -22,7 +22,9 @@ if not data_available():
 
 het = load_heterogeneity_summary()
 
-cause = st.segmented_control("Cause", options=HETEROGENEITY_CAUSES, default=HETEROGENEITY_CAUSES[0])
+cause = st.segmented_control(
+    "Cause", options=HETEROGENEITY_CAUSES, default=HETEROGENEITY_CAUSES[0], format_func=display_cause,
+)
 if cause is None:
     st.stop()
 cause_het = het[het["cause"] == cause].sort_values("p_value")
@@ -43,7 +45,7 @@ st.caption(
     "WONDER does not offer age-adjustment at county granularity for the 2018–2024 database "
     "(research_protocol.md's 2026-09-01 addendum)."
 )
-st.altair_chart(render_county_choropleth(county_disruption, cause), width="stretch")
+st.altair_chart(render_county_choropleth(county_disruption, display_cause(cause)), width="stretch")
 
 worsened = int((county_disruption["disruption"] > 0).sum())
 improved = int((county_disruption["disruption"] < 0).sum())
@@ -60,7 +62,7 @@ with st.container(horizontal=True):
     with st.container(border=True):
         st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
 
-st.subheader(f"Context-variable associations: {cause}")
+st.subheader(f"Context-variable associations: {display_cause(cause)}")
 cause_het_display = cause_het.copy()
 cause_het_display["slope"] = cause_het_display.apply(
     lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
@@ -109,7 +111,7 @@ if len(rural_row):
         cause_robustness.loc["upper_half", "slope"] < 0
     ) == (rural_row.iloc[0]["slope"] < 0):
         st.caption(
-            f"For {cause}, the relationship holds up reasonably well as a robustness check: split "
+            f"For {display_cause(cause)}, the relationship holds up reasonably well as a robustness check: split "
             f"the *included* counties at the median rurality, and the rurality-disruption "
             f"relationship is still significant among the more-rural half (p={upper['p_value']:.3g}, "
             f"n={int(upper['n'])}); if anything, it's stronger there than among the less-rural half "
@@ -117,7 +119,7 @@ if len(rural_row):
         )
     else:
         st.caption(
-            f"For {cause}, this robustness check is a real concern: split the *included* counties "
+            f"For {display_cause(cause)}, this robustness check is a real concern: split the *included* counties "
             f"at the median rurality, and the relationship is driven almost entirely by the "
             f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}). Among the "
             f"more-rural half of the included sample, it's not significant "

@@ -3,7 +3,7 @@ import streamlit as st
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, load_heterogeneity_summary, load_bridging_summary,
     load_sensitivity_check, data_available, sensitivity_check_available, synthetic_banner,
-    heterogeneity_synthetic_banner, TEST_CAUSES,
+    heterogeneity_synthetic_banner, TEST_CAUSES, display_cause,
 )
 
 st.title("Data quality")
@@ -87,7 +87,7 @@ het = load_heterogeneity_summary()
 for cause in het["cause"].unique():
     cause_het = het[het["cause"] == cause]
     with st.container(horizontal=True):
-        st.write(f"**{cause}**")
+        st.write(f"**{display_cause(cause)}**")
         st.caption(f"{int(cause_het['fdr_significant'].sum())} of {len(cause_het)} context variables FDR-significant")
 
 st.subheader("Vintage-bridging discontinuity")
@@ -108,8 +108,10 @@ else:
         "results should be treated with extra caution.",
         icon=":material/error:",
     )
+bridging_display = bridging.copy()
+bridging_display["cause"] = bridging_display["cause"].map(display_cause)
 st.dataframe(
-    bridging.sort_values("median_relative_offset", ascending=False),
+    bridging_display.sort_values("median_relative_offset", ascending=False),
     column_config={
         "cause": st.column_config.TextColumn("Cause", width="large"),
         "reliable": st.column_config.CheckboxColumn("Reliable (≤10%)"),
@@ -145,7 +147,7 @@ else:
         possessive = "its" if len(quad_disagree) == 1 else "their"
         st.error(
             f"**{len(quad_disagree)} of 6 test causes {'is' if len(quad_disagree) == 1 else 'are'} "
-            f"not robust to baseline trend shape:** {', '.join(quad_disagree)} {verb} significance "
+            f"not robust to baseline trend shape:** {', '.join(display_cause(c) for c in quad_disagree)} {verb} significance "
             "when the pre-pandemic baseline is fit as a curve (quadratic) instead of a straight "
             f"line (linear, the primary method). Part of what the primary method reads as a 2020 "
             f"disruption for {pronoun} could instead be the natural curvature of {possessive} "
@@ -168,8 +170,10 @@ else:
         disagree_word = "disagreement" if n_disagree == 1 else "disagreements"
         with st.expander(f"{check_label}: {n_disagree} {disagree_word}", expanded=(n_disagree > 0)):
             st.caption(description)
+            check_rows_display = check_rows.copy()
+            check_rows_display["cause"] = check_rows_display["cause"].map(display_cause)
             st.dataframe(
-                check_rows[["cause", "primary_classification", "primary_p_value", "alt_classification", "alt_p_value", "agrees"]],
+                check_rows_display[["cause", "primary_classification", "primary_p_value", "alt_classification", "alt_p_value", "agrees"]],
                 column_config={
                     "cause": st.column_config.TextColumn("Cause", width="large"),
                     "primary_classification": st.column_config.TextColumn("Classification (primary)", width="medium"),

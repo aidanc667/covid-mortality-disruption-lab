@@ -2,7 +2,8 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_disruption_summary, load_negative_control, data_available, synthetic_banner,
-    heterogeneity_synthetic_banner, TEST_CAUSES, CAUSE_BADGE_STYLE,
+    heterogeneity_synthetic_banner, TEST_CAUSES, CAUSE_BADGE_STYLE, CAUSE_HOME_LABELS,
+    display_cause,
 )
 
 st.title("COVID Mortality Disruption Lab")
@@ -52,7 +53,7 @@ for i, cause in enumerate(TEST_CAUSES):
     badge_color, icon = CAUSE_BADGE_STYLE[cause]
     with cause_grid[i % 3]:
         with st.container(border=True, width="stretch"):
-            st.badge(cause, icon=icon, color=badge_color)
+            st.badge(CAUSE_HOME_LABELS[cause], icon=icon, color=badge_color)
 
 st.subheader("What we did")
 steps = st.container(horizontal=True)
@@ -110,7 +111,7 @@ else:
             )
             st.caption(":material/functions: Benjamini-Hochberg across the 6-cause family")
         with st.container(border=True):
-            reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"]
+            reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"].map(display_cause)
             reversed_value = reversed_causes.iloc[0] if len(reversed_causes) else "None"
             st.metric(
                 "Reversed trajectory", reversed_value if len(reversed_value) <= 12 else f"{len(reversed_causes)}",

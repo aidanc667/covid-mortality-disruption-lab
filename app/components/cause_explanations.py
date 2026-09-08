@@ -151,7 +151,7 @@ CAUSE_EXPLANATIONS = {
             "was already diverging from the real (steep-decline-then-plateau) trajectory before 2020 "
             "(research_protocol.md's 2026-09-01 addendum has the full investigation). That correction "
             "cut the reported effect size from an overstated +37% to a more defensible +8.8%. Unlike "
-            "heart disease, though, this one isn't fully resolved: cerebrovascular disease is still "
+            "heart disease, though, this one isn't fully resolved: stroke is still "
             "this project's single most uncertain \"Persisted\" result. Its significance is real under "
             "the corrected baseline but doesn't fully survive an alternate curved-trend check either "
             "(p=0.096, close to but not under 0.05). See the Robustness section. One thing the "

@@ -6,6 +6,7 @@ from app.components.data_loading import (
     load_national_series, load_disruption_summary, load_disruption_deviations,
     load_baseline_fitted_trend, load_sensitivity_check, data_available,
     sensitivity_check_available, synthetic_banner, TEST_CAUSES, CAUSE_COLORS, CAUSE_BADGE_STYLE,
+    display_cause,
 )
 from app.components.cause_explanations import CAUSE_EXPLANATIONS
 
@@ -67,7 +68,7 @@ for i, cause in enumerate(TEST_CAUSES):
     badge_color, icon = CAUSE_BADGE_STYLE[cause]
     with cols[i % 3]:
         with st.container(border=True):
-            st.badge(cause, icon=icon, color=badge_color)
+            st.badge(display_cause(cause), icon=icon, color=badge_color)
             st.write(f"**{r['persistence_class']}**")
             st.caption(f"{r['acute_pct_deviation']:+.1f}% in 2020–21  •  p = {r['p_value']:.2g}")
             if not _trend_shape_robust(cause):
@@ -76,7 +77,10 @@ for i, cause in enumerate(TEST_CAUSES):
                 st.badge("Delayed disruption (see 2020–24 p-value)", icon=":material/schedule:", color="blue")
 
 st.subheader("Deep dive")
-cause = st.segmented_control("Select a cause", options=TEST_CAUSES, default=TEST_CAUSES[0], label_visibility="collapsed")
+cause = st.segmented_control(
+    "Select a cause", options=TEST_CAUSES, default=TEST_CAUSES[0], label_visibility="collapsed",
+    format_func=display_cause,
+)
 if cause is None:
     st.stop()
 
@@ -85,7 +89,7 @@ color = CAUSE_COLORS[cause]
 badge_color, icon = CAUSE_BADGE_STYLE[cause]
 explanation = CAUSE_EXPLANATIONS[cause]
 
-st.badge(cause, icon=icon, color=badge_color)
+st.badge(display_cause(cause), icon=icon, color=badge_color)
 
 with st.container(horizontal=True):
     with st.container(border=True):
@@ -242,7 +246,7 @@ st.caption(
 )
 if _delayed_disruption(r):
     st.info(
-        f"**{cause}** shows no significant disruption in the pre-registered 2020–21 window "
+        f"**{display_cause(cause)}** shows no significant disruption in the pre-registered 2020–21 window "
         f"(p = {r['p_value']:.2g}), but pooling all five post-2020 years finds a real, later "
         f"decline instead (p = {r['full_period_p_value']:.2g}, averaging "
         f"{r['full_period_pct_deviation']:+.1f}% vs. trend); watch the gap widen and turn blue "

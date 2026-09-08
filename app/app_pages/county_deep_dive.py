@@ -3,6 +3,7 @@ import streamlit as st
 
 from app.components.data_loading import (
     load_county_disruption, data_available, heterogeneity_synthetic_banner, HETEROGENEITY_CAUSES,
+    display_cause,
 )
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 
@@ -50,7 +51,7 @@ with st.container(horizontal=True):
     for cause in HETEROGENEITY_CAUSES:
         row = county_rows[county_rows["cause"] == cause]
         with st.container(border=True):
-            st.write(f"**{cause}**")
+            st.write(f"**{display_cause(cause)}**")
             if len(row):
                 r = row.iloc[0]
                 st.metric("Pre-period rate (crude)", f"{r['crude_rate_pre']:.1f}")

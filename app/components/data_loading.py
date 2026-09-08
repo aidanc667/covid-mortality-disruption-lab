@@ -17,6 +17,41 @@ TEST_CAUSES = [
 NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnormalities"
 HETEROGENEITY_CAUSES = ["Diabetes mellitus", "Drug overdose"]
 
+# The app's data model, parquet column values, and dict keys throughout
+# this module all stay the official CDC WONDER cause names (needed to
+# join/filter against the pipeline's own output) -- only what's rendered
+# to a reader changes. CAUSE_DISPLAY_NAMES holds that reader-facing form;
+# display_cause() is the one place every page should route a cause name
+# through before it reaches st.write/st.badge/st.metric/etc. Two of the
+# six (Alzheimer's disease, drug overdose) are already in plain English,
+# so they're unchanged here.
+CAUSE_DISPLAY_NAMES = {
+    "Diseases of heart": "Heart disease",
+    "Diabetes mellitus": "Diabetes",
+    "Alzheimer's disease": "Alzheimer's disease",
+    "Cerebrovascular disease": "Stroke",
+    "Drug overdose": "Drug overdose",
+    "Malignant neoplasms": "Cancer",
+}
+
+# Home-page-only labels: the simplified name with the official CDC WONDER
+# name parenthesized after it, so a reader who clicks through to Methods
+# or Data Quality (which still cite the official term) can connect the
+# two. Only used for the "What we're testing" box grid on home.py -- every
+# other surface in the app uses the plain CAUSE_DISPLAY_NAMES form.
+CAUSE_HOME_LABELS = {
+    "Diseases of heart": "Heart disease (Diseases of heart)",
+    "Diabetes mellitus": "Diabetes (Diabetes mellitus)",
+    "Alzheimer's disease": "Alzheimer's disease",
+    "Cerebrovascular disease": "Stroke (Cerebrovascular disease)",
+    "Drug overdose": "Drug overdose",
+    "Malignant neoplasms": "Cancer (Malignant neoplasms)",
+}
+
+
+def display_cause(cause: str) -> str:
+    return CAUSE_DISPLAY_NAMES.get(cause, cause)
+
 # Matches .streamlit/config.toml's chartCategoricalColors, in the same
 # TEST_CAUSES + NEGATIVE_CONTROL order, so a cause renders the same color
 # everywhere it appears in a chart (Altair mark color -- legitimate data
