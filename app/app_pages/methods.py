@@ -50,6 +50,15 @@ with st.expander("Data sources and vintage bridging", icon=":material/database:"
 
 with st.expander("Statistical methods", icon=":material/query_stats:"):
     st.write(
+        "**Outcome: age-adjusted mortality rate.** Every national-level test below uses this, "
+        "not the raw \"crude\" rate. Age-adjustment reweights each year's real, observed "
+        "age-specific death rates onto a fixed reference population's age distribution (the 2000 "
+        "U.S. standard population), so a change in the rate over time reflects a real change in "
+        "risk, not just the U.S. population aging in the background. County-level heterogeneity "
+        "is the one exception: it uses crude rate, since CDC WONDER doesn't offer age-adjustment "
+        "at county granularity (see Known limitations)."
+    )
+    st.write(
         "**Known-date interrupted time series (\"excess mortality\").** Fit an expected trend "
         "on the pre-pandemic baseline (1999–2019 for 4 of the 6 test causes, 2010–2019 for the "
         "2 causes with a corrected window), project it forward with a 95% prediction interval, "

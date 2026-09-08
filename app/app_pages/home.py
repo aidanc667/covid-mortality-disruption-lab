@@ -72,6 +72,15 @@ with st.container(border=True):
         "pre-pandemic baseline to test against (the cause didn't exist before 2020) -- it's shown "
         "here only as the event this whole analysis is built around, not one of the 6 causes tested."
     )
+    with st.expander("What does \"age-adjusted\" mean?"):
+        st.caption(
+            "It reweights each year's rate as if the U.S. had the exact same age mix every time, "
+            "so a real change in risk isn't confused with the population simply getting older "
+            "(older populations have higher death rates for almost any cause). Every national-level "
+            "rate in this app is age-adjusted, not the raw \"crude\" rate, so different years can be "
+            "compared fairly; the county-level maps use crude rate instead, since CDC WONDER "
+            "doesn't offer age-adjustment at that granularity (see Data Quality)."
+        )
 
 st.subheader("What we're testing")
 st.caption("Six major causes of death, each tested independently against its own pre-pandemic baseline trend.")
