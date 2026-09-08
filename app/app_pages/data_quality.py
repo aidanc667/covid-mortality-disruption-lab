@@ -147,14 +147,13 @@ else:
         possessive = "its" if len(quad_disagree) == 1 else "their"
         st.error(
             f"**{len(quad_disagree)} of 6 test causes {'is' if len(quad_disagree) == 1 else 'are'} "
-            f"not robust to baseline trend shape:** {', '.join(display_cause(c) for c in quad_disagree)} {verb} significance "
-            "when the pre-pandemic baseline is fit as a curve (quadratic) instead of a straight "
-            f"line (linear, the primary method). Part of what the primary method reads as a 2020 "
-            f"disruption for {pronoun} could instead be the natural curvature of {possessive} "
-            "pre-existing trend, poorly extrapolated by a straight line. This is a real, material "
-            "limitation, reported here rather than smoothed over. See `research_protocol.md`'s "
-            "2026-09-01 baseline-correction addendum for the full investigation and why a shorter, "
-            "more recent baseline window doesn't fully resolve it here the way it did elsewhere.",
+            f"not robust to baseline trend shape:** {', '.join(display_cause(c) for c in quad_disagree)} "
+            f"{verb} significance when the pre-pandemic baseline is fit as a curve instead of a "
+            f"straight line. Part of what the primary method reads as a 2020 disruption could "
+            f"instead be the natural curvature of {possessive} pre-existing trend, poorly "
+            "extrapolated by a straight line. A real, material limitation, not smoothed over. See "
+            "`research_protocol.md`'s 2026-09-01 baseline-correction addendum for the full "
+            "investigation.",
             icon=":material/warning:",
         )
     for check_name, check_label, description in [
@@ -189,8 +188,6 @@ else:
     st.caption(
         "The negative control's baseline-window row (age-adjusted rate) disagreeing across windows "
         "reproduces the already-documented rounding artifact (see \"Why raw counts, not "
-        "age-adjusted rate?\" above, and Findings → \"This wasn't the first choice\" for the full "
-        "story of why the gate switched to raw counts), not a new instability. Its actual gate "
-        "metric (raw death counts, separate row "
-        "above) is stable across both windows."
+        "age-adjusted rate?\" above), not a new instability. Its actual gate metric (raw death "
+        "counts, separate row above) is stable across both windows."
     )

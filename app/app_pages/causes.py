@@ -258,31 +258,33 @@ baseline_start = int(fitted["year"].min()) if len(fitted) else 1999
 total_years = 2024 - baseline_start + 1
 st.altair_chart(chart, width="stretch")
 st.caption(
-    f"Solid line: observed. Dashed gray line: the same straight-line trend fit across all "
-    f"{total_years} years, both where it was fit ({baseline_start}–2019, so you can judge for "
-    f"yourself how well it tracks the real pre-pandemic trajectory) and where it's projected "
-    f"forward (2020–2024, shaded band: its 95% prediction interval, the only years actually "
-    f"tested). **The y-axis does not start at zero** (a mortality rate never gets close to it, "
-    f"so zero isn't a meaningful reference point here; the meaningful reference is the shaded "
-    f"band). The filled gap is colored red where observed ran above trend and blue where it ran "
-    f"below, and outlined circles mark the specific years that landed outside the prediction "
-    f"interval: a thin band can still be significant if this cause's own pre-pandemic noise was "
-    f"small, and a thick band can still be non-significant if it wasn't, so those circles, not the "
-    f"raw size of the gap, are the actual test. Hover a point on the solid line for that year's "
-    f"status; the primary p-value pools 2020 and 2021 together, so a single unremarkable-looking "
-    f"year can still belong to a significant combined result. Independent cross-check (PELT, "
-    f"binary segmentation, segmented regression): {r['cross_check_methods_agreeing']} of 3 methods "
-    f"confirm a breakpoint near 2020."
+    f"Solid line: observed. Dashed gray line: the same trend fit across all {total_years} years, "
+    f"projected forward from {baseline_start}–2019 with a 95% prediction interval (shaded band, "
+    f"the only years actually tested). Outlined circles mark years that landed outside that "
+    f"interval; those circles, not the raw size of the gap, are the actual test. Independent "
+    f"cross-check (PELT, binary segmentation, segmented regression): "
+    f"{r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint near 2020."
 )
+with st.expander("How to read this chart"):
+    st.caption(
+        "The y-axis does not start at zero: a mortality rate never gets close to it, so zero "
+        "isn't a meaningful reference point here (the meaningful reference is the shaded band). "
+        "The filled gap is colored red where observed ran above trend and blue where it ran "
+        "below. A thin band can still be significant if this cause's own pre-pandemic noise was "
+        "small, and a thick band can still be non-significant if it wasn't, which is why the "
+        "circles matter more than the gap's raw size. Hover a point on the solid line for that "
+        "year's status; the primary p-value pools 2020 and 2021 together, so a single "
+        "unremarkable-looking year can still belong to a significant combined result."
+    )
 if _delayed_disruption(r):
     st.info(
         f"**{display_cause(cause)}** shows no significant disruption in the pre-registered 2020–21 window "
         f"(p = {r['p_value']:.2g}), but pooling all five post-2020 years finds a real, later "
-        f"decline instead (p = {r['full_period_p_value']:.2g}, averaging "
+        f"decline (p = {r['full_period_p_value']:.2g}, averaging "
         f"{r['full_period_pct_deviation']:+.1f}% vs. trend); watch the gap widen and turn blue "
-        f"after 2021. The headline result above is still correct as reported: this project doesn't "
-        f"switch its primary test window after seeing which one is significant. This is an "
-        f"additional finding, not a contradiction.",
+        f"after 2021. The headline result above still stands: this project doesn't switch its "
+        f"primary test window after seeing what's significant. This is an additional finding, not "
+        f"a contradiction.",
         icon=":material/schedule:",
     )
 if not r["cross_check_confirms_2020"]:
@@ -294,13 +296,12 @@ if not r["cross_check_confirms_2020"]:
 
 if not _trend_shape_robust(cause):
     st.warning(
-        "**Robustness flag:** this is now this project's single most uncertain \"Persisted\" "
-        "result. Its baseline was already corrected once, from the full 1999–2019 range to the "
-        "shorter, more recent window shown dashed above, after the original full-range fit was "
-        "found to badly misdescribe the real pre-pandemic trend (see research_protocol.md's "
-        "2026-09-01 addendum). That correction made the result more defensible, but even the "
-        "corrected window's significance still doesn't fully survive an alternate curved-trend "
-        "check. See Data Quality for the full sensitivity breakdown.", icon=":material/warning:",
+        "**Robustness flag:** this is this project's single most uncertain \"Persisted\" result. "
+        "Its baseline was already corrected once, from the full 1999–2019 range to the shorter "
+        "window shown dashed above, after the original fit was found to badly misdescribe the "
+        "real pre-pandemic trend (research_protocol.md's 2026-09-01 addendum). That correction "
+        "made the result more defensible, but its significance still doesn't fully survive an "
+        "alternate curved-trend check. See Data Quality for the full breakdown.", icon=":material/warning:",
     )
 
 st.subheader("What could explain this?")

@@ -78,21 +78,20 @@ st.dataframe(
     width="stretch",
 )
 st.caption(
-    "\"Deviation\" is the effect size: how far the observed rate is from the expected pre-pandemic "
-    "trend, as a percent. Significance (p-value) and magnitude (deviation) are different claims: a "
-    "cause can be statistically significant while still small in absolute terms, or vice versa. "
-    "\"Robust to trend shape\" flags whether the result survives an alternate, curved baseline fit, "
-    "which only stroke fails. Heart disease had the same problem originally "
-    "but is now fully robust after its baseline was corrected to a shorter, more recent window "
-    "(see Causes of death for the chart, and research_protocol.md's 2026-09-01 addendum for why)."
+    "\"Deviation\" is the effect size: how far the observed rate is from the expected trend, as a "
+    "percent. Significance and magnitude are different claims (a result can be statistically "
+    "significant while still small, or vice versa). \"Robust to trend shape\" flags whether the "
+    "result survives a curved baseline fit instead of a straight line; only stroke fails it. Heart "
+    "disease had the same issue but is now fully robust after a baseline correction (see Causes of "
+    "death, and research_protocol.md's 2026-09-01 addendum)."
 )
 
 st.subheader("The two results that weren't supposed to happen this way")
 st.write(
-    "This project pre-registered a confidence level for each cause *before* looking at any 2020–2024 "
-    "data (see Methods → Pre-registered hypotheses). Two results contradict those stated priors, and "
-    "that's exactly what makes them worth highlighting: a result that confirms what you expected is "
-    "much easier to have gotten by accident than one that surprises you."
+    "This project pre-registered a confidence level for each cause *before* looking at any "
+    "2020–2024 data (Methods → Pre-registered hypotheses). Two results contradict those priors, "
+    "which is exactly why they're worth highlighting: a result confirming what you expected is easy "
+    "to get by accident; one that surprises you isn't."
 )
 
 cancer = summary[summary["cause"] == "Malignant neoplasms"].iloc[0]
@@ -101,27 +100,24 @@ alz = summary[summary["cause"] == "Alzheimer's disease"].iloc[0]
 with st.container(border=True):
     st.write("**Cancer was expected to show nothing, and it didn't.**")
     st.write(
-        f"The pre-registered prior for cancer was explicitly a null result, with \"low\" "
-        "confidence by design. The reasoning was that delayed cancer screening and treatment during "
-        "the pandemic would take years longer than the 2024 data window to show up as excess "
-        f"mortality. Instead, cancer shows a real, FDR-significant **{cancer['persistence_class'].lower()}** "
-        f"disruption (p = {cancer['p_value']:.3g}), though its magnitude is modest "
-        f"({cancer['acute_pct_deviation']:+.1f}% in 2020–21, {cancer['latest_pct_deviation']:+.1f}% by "
-        f"2024) next to the larger disruptions below. "
-        "Either the deferred-care effect on cancer mortality moved faster than expected, or something "
-        "else is contributing. This analysis can't distinguish between those, but the result itself is "
-        "real and worth investigating further."
+        "The pre-registered prior was an explicit null, \"low\" confidence by design: delayed "
+        "cancer screening was expected to take years longer than this 2024 data window to show up "
+        f"as excess mortality. Instead, cancer shows a real, FDR-significant "
+        f"**{cancer['persistence_class'].lower()}** disruption (p = {cancer['p_value']:.3g}), modest "
+        f"in size ({cancer['acute_pct_deviation']:+.1f}% in 2020–21, "
+        f"{cancer['latest_pct_deviation']:+.1f}% by 2024) next to the larger disruptions below. "
+        "Either the deferred-care effect moved faster than expected, or something else is "
+        "contributing; this analysis can't tell which, but the result itself is real."
     )
 
 with st.container(border=True):
     st.write("**Alzheimer's was expected to show a large effect, and it didn't.**")
     st.write(
-        "The pre-registered prior was \"high confidence\" of a large disruption, on the theory that "
+        "The pre-registered prior was \"high confidence\" of a large effect, on the theory that "
         "pandemic-era isolation and care-facility disruption would show up clearly in dementia "
-        f"mortality. It didn't, with p = {alz['p_value']:.2g}, nowhere close to significant. This doesn't "
-        "mean isolation had no effect on people with Alzheimer's. It means that effect, if real, isn't "
-        "visible in national mortality *rates* over this window using this method. Pooling all five "
-        "post-2020 years instead of just the acute window does turn up a real, later decline "
+        f"mortality. It didn't (p = {alz['p_value']:.2g}). That doesn't mean isolation had no "
+        "effect, only that it isn't visible in national mortality *rates* over this window using "
+        "this method. Pooling all five post-2020 years instead finds a real, later decline "
         f"(p = {alz['full_period_p_value']:.2g}); see Causes of death for the numbers."
     )
 
@@ -140,75 +136,95 @@ with st.container(horizontal=True):
         )
 st.write(
     "Before trusting any of the above, the pipeline runs the identical method on a cause with no "
-    "direct COVID mechanism: congenital malformations and chromosomal abnormalities, concentrated "
-    "in infancy and driven by prenatal/genetic factors. It passed: no significant disruption. This "
-    "doesn't prove every positive result above is real, but a failure here would have been strong "
-    "evidence the method was just detecting noise or a database artifact, and it didn't fail."
+    "direct COVID mechanism: congenital malformations, concentrated in infancy and driven by "
+    "prenatal/genetic factors. It passed, no significant disruption. That doesn't prove every "
+    "positive result above is real, but a failure here would have been strong evidence the method "
+    "was just detecting noise, and it didn't fail."
 )
 with st.expander("This wasn't the first choice: a real methodological correction"):
     st.write(
-        "Accidental drowning was the original negative control, and it failed. It showed a real, "
-        "statistically robust increase in deaths starting in 2020, confirmed on raw counts (not a "
-        "rounding artifact). That's consistent with published CDC reporting on pandemic-era increases "
-        "in drowning deaths (pool/beach closures, lifeguard shortages, more unsupervised time in home "
-        "pools). Drowning was swapped out because it was never actually COVID-independent, not because "
-        "the method failed. Full account in `research_protocol.md`'s 2026-09-01 addenda."
+        "Accidental drowning was the original negative control, and it failed: a real, "
+        "statistically robust increase in deaths from 2020 on, confirmed on raw counts (not a "
+        "rounding artifact) and consistent with published CDC reporting on pandemic-era drowning "
+        "increases (pool/beach closures, lifeguard shortages, more unsupervised home-pool time). It "
+        "was swapped out because it was never actually COVID-independent, not because the method "
+        "failed. Full account: research_protocol.md's 2026-09-01 addenda."
     )
 
 st.subheader("Robustness: does this depend on modeling choices?")
 if sensitivity_check_available():
     sens = load_sensitivity_check()
     test_sens = sens[sens["cause"].isin(TEST_CAUSES)]
-    for check_name, label in [
+    checks = [
         ("baseline_window (1999 vs 2010)", "Baseline window (1999–2019 vs. shorter 2010–2019)"),
         ("significance_threshold (0.05 vs 0.01)", "Significance threshold (α=0.05 vs. stricter α=0.01)"),
         ("baseline_trend_shape (linear vs quadratic)", "Baseline trend shape (linear vs. curved/quadratic)"),
-    ]:
-        check_rows = test_sens[test_sens["check"] == check_name]
-        n_disagree = int((~check_rows["agrees"]).sum())
-        if n_disagree == 0:
-            st.success(f"**{label}:** all 6 test causes agree. Not an artifact of this choice.", icon=":material/check_circle:")
-        else:
-            disagreeing = check_rows.loc[~check_rows["agrees"], "cause"].map(display_cause).tolist()
-            cause_word, verb = ("cause", "disagrees") if n_disagree == 1 else ("causes", "disagree")
-            st.warning(
-                f"**{label}:** {n_disagree} {cause_word} {verb} ({', '.join(disagreeing)}). "
-                "See Data Quality for the full breakdown.",
-                icon=":material/warning:",
-            )
-    st.caption(
-        "The trend-shape check originally found this same problem for both heart disease and "
-        "stroke. Heart disease's baseline has since been corrected to a shorter, "
-        "more recent window and is now fully robust; stroke's significance still "
-        "depends partly on the straight-line assumption, though less than before the correction "
-        "(see research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and cancer hold "
-        "up across every axis tested without needing any correction."
-    )
-
+    ]
+    all_disagreeing = set()
+    for check_name, _ in checks:
+        rows = test_sens[test_sens["check"] == check_name]
+        all_disagreeing.update(rows.loc[~rows["agrees"], "cause"].map(display_cause))
     hac_disagree = summary[(summary["p_value"] < 0.05) != (summary["hac_p_value"] < 0.05)]["cause"].map(display_cause).tolist()
-    if not hac_disagree:
+
+    if not all_disagreeing and not hac_disagree:
         st.success(
-            "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant causes "
-            "stay significant. The classical p-value assumes independent baseline years, which is "
-            "measurably false for several causes (autocorrelation up to 0.82); correcting for it "
-            "raises those p-values by roughly 1-2 orders of magnitude, but none cross back over 0.05.",
-            icon=":material/check_circle:",
+            "Every result holds up under all 3 alternate modeling choices and autocorrelation-robust "
+            "standard errors.", icon=":material/check_circle:",
         )
     else:
         st.warning(
-            f"**Autocorrelation-robust standard errors (Newey-West/HAC):** {len(hac_disagree)} "
-            f"cause(s) disagree with the classical result ({', '.join(hac_disagree)}). See Causes "
-            "of death for each cause's HAC p-value.",
+            f"Results mostly hold up, with one exception: **{', '.join(sorted(all_disagreeing | set(hac_disagree)))}** "
+            "depends partly on some of these modeling choices. Details below.",
             icon=":material/warning:",
         )
+
+    with st.expander("See the full robustness breakdown"):
+        for check_name, label in checks:
+            check_rows = test_sens[test_sens["check"] == check_name]
+            n_disagree = int((~check_rows["agrees"]).sum())
+            if n_disagree == 0:
+                st.success(f"**{label}:** all 6 test causes agree.", icon=":material/check_circle:")
+            else:
+                disagreeing = check_rows.loc[~check_rows["agrees"], "cause"].map(display_cause).tolist()
+                cause_word, verb = ("cause", "disagrees") if n_disagree == 1 else ("causes", "disagree")
+                st.warning(
+                    f"**{label}:** {n_disagree} {cause_word} {verb} ({', '.join(disagreeing)}). "
+                    "See Data Quality for the full breakdown.",
+                    icon=":material/warning:",
+                )
+        st.caption(
+            "The trend-shape check originally flagged both heart disease and stroke. Heart "
+            "disease's baseline was since corrected to a shorter, more recent window and is now "
+            "fully robust; stroke's significance still depends partly on the straight-line "
+            "assumption (research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and "
+            "cancer hold up across every axis without correction."
+        )
+        if not hac_disagree:
+            st.success(
+                "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant "
+                "causes stay significant. The classical test assumes independent baseline years, "
+                "which is measurably false for several causes; HAC correction raises those p-values "
+                "1-2 orders of magnitude, but none cross back over 0.05.",
+                icon=":material/check_circle:",
+            )
+        else:
+            st.warning(
+                f"**Autocorrelation-robust standard errors (Newey-West/HAC):** {len(hac_disagree)} "
+                f"cause(s) disagree with the classical result ({', '.join(hac_disagree)}). See "
+                "Causes of death for each cause's HAC p-value.",
+                icon=":material/warning:",
+            )
 else:
     st.info("Run `python -m scripts.run_sensitivity_check` to populate this section.", icon=":material/info:")
 
 st.subheader("Which counties were hit hardest (diabetes and drug overdose)")
+n_diabetes_counties = len(load_county_disruption("Diabetes mellitus"))
+n_overdose_counties = len(load_county_disruption("Drug overdose"))
 st.write(
-    "For the two causes with real county-level data (diabetes and drug overdose, ~3,000 counties "
-    "each, pre-period 2015–2019 vs. post-period 2020–2024), disruption magnitude is strongly "
-    "associated with socioeconomic and healthcare-access context:"
+    f"For the two causes with real county-level data (diabetes: {n_diabetes_counties} counties; "
+    f"drug overdose: {n_overdose_counties} counties; pre-period 2015–2019 vs. post-period "
+    "2020–2024), disruption magnitude is strongly associated with socioeconomic and "
+    "healthcare-access context:"
 )
 for cause in ["Diabetes mellitus", "Drug overdose"]:
     cause_het = het[het["cause"] == cause].sort_values("p_value").copy()
@@ -230,15 +246,14 @@ for cause in ["Diabetes mellitus", "Drug overdose"]:
         width="stretch",
     )
 st.write(
-    "Higher uninsured rate, smoking rate, and obesity rate all predict **larger** disruption for both "
-    "causes. Higher median household income predicts **smaller** disruption for both. Higher rurality "
-    "predicts **smaller** disruption for both, the one genuinely counterintuitive result, running "
-    "against a common assumption that rural areas were hit hardest by pandemic-era healthcare "
-    "disruption, though for drug overdose this specific relationship falls just short of FDR "
-    "significance (diabetes clears it comfortably). These are associations, not causal claims: this county-level stage also uses crude "
-    "rate rather than age-adjusted rate (WONDER doesn't offer age-adjustment at county granularity), "
-    "so part of any measured disruption could reflect each county's own population-aging trajectory "
-    "rather than a COVID-era shift. See Data Quality for the full caveat."
+    "Higher uninsured rate, smoking rate, and obesity rate all predict **larger** disruption for "
+    "both causes; higher income predicts **smaller** disruption for both. Higher rurality also "
+    "predicts **smaller** disruption for both, the one genuinely counterintuitive result (it runs "
+    "against the common assumption that rural areas were hit hardest), though for drug overdose "
+    "this falls just short of FDR significance. These are associations, not causal claims: this "
+    "stage uses crude rate, not age-adjusted (unavailable at county granularity), so part of any "
+    "measured disruption could reflect population aging rather than a COVID-era shift. See Data "
+    "Quality for the full caveat."
 )
 
 # One real example county per cause per extreme, so the regression above
@@ -267,19 +282,16 @@ for i, cause in enumerate(HETEROGENEITY_CAUSES):
 
 with st.expander("Why might these specific counties differ? Read this before assuming a cause"):
     st.write(
-        "This project has no county-level data on mask mandates, local ordinances, or age/race "
-        "demographics anywhere in its pipeline -- the regression above uses only the five CHR&R "
-        "variables shown in its table (uninsured rate, smoking, obesity, income, rurality). "
-        "Assigning a specific policy or demographic story to any one county below would be "
-        "invented, not measured, which is exactly the kind of unsupported causal claim Methods → "
-        "Causal language policy exists to rule out."
+        "This project has no data on mask mandates, local ordinances, or age/race demographics "
+        "anywhere in its pipeline; the regression above uses only the five CHR&R variables in its "
+        "table. Assigning a specific policy or demographic story to any county below would be "
+        "invented, not measured, exactly what Methods → Causal language policy exists to rule out."
     )
     st.write(
         "A single county's pre/post average is also genuinely noisy: five years of a modest "
-        "population's raw death counts can swing a lot from a handful of extra deaths, which is a "
-        "more honest explanation for an extreme value than any invented story would be. What *can* "
-        "be checked honestly is whether each example lines up with the same five variables the "
-        "regression above already measures:"
+        "population's raw death counts can swing a lot on a handful of extra deaths, a more honest "
+        "explanation for an extreme value than any invented story. What can be checked honestly is "
+        "whether each example lines up with those same five variables:"
     )
     chr_df = load_chr_year(2024)
     for cause, (most, least) in county_examples.items():
@@ -297,12 +309,11 @@ with st.expander("Why might these specific counties differ? Read this before ass
             ]
             st.caption(f"**{row['county_name']}** ({display_cause(cause)}, {label}): " + "; ".join(comparisons) + ".")
     st.write(
-        "Some of these line up with the regression's overall pattern (e.g. lower income tracking "
-        "with more disruption); others don't (e.g. the most-disrupted overdose county is also more "
-        "rural than average, the opposite of the aggregate trend for that variable). That mismatch "
-        "is expected, not a contradiction: an association measured across hundreds of counties "
-        "doesn't reliably predict any single county, which is the same ecological-fallacy caveat "
-        "already documented in Methods → Known limitations."
+        "Some line up with the regression's overall pattern (e.g. lower income tracking with more "
+        "disruption); others don't (the most-disrupted overdose county is also more rural than "
+        "average, the opposite of the aggregate trend). That mismatch is expected, not a "
+        "contradiction: an association across hundreds of counties doesn't reliably predict any "
+        "single one, the same ecological-fallacy caveat already in Methods → Known limitations."
     )
 
 bias = load_heterogeneity_selection_bias()

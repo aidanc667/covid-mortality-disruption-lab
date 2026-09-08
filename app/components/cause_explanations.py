@@ -105,22 +105,19 @@ CAUSE_EXPLANATIONS = {
             ("Compounding for existing heart disease", "People with pre-existing cardiovascular disease who contracted COVID-19 faced substantially higher in-hospital mortality risk than those without it."),
         ],
         "note": (
-            "One methodological correction and one real caveat, not just the supportive case above. "
-            "First: this project's own sensitivity check initially found heart disease's significant "
-            "disruption depended on assuming the pre-pandemic trend was a straight line, because a "
-            "straight line fit across 1999-2019 was already diverging from heart disease's real "
-            "(steep-decline-then-plateau) trajectory before 2020 even happened. Corrected by fitting "
-            "the baseline to the most recent decade (2010-2019, still a straight line, just a shorter "
-            "and more relevant window). This makes the result more confidently significant, not less "
-            "(p=3.9e-5), while cutting the reported effect size from an overstated +26% to a "
-            "defensible +7.8%. See the Robustness section and research_protocol.md's 2026-09-01 "
-            "addendum for the full investigation. Second, a real, unresolved caveat: the broader "
-            "literature itself flags attribution as a genuine confound here. A death in a cardiac "
-            "patient triggered by COVID-19 infection could reasonably be coded as either heart disease "
-            "or COVID-19 depending on documentation practices, and at least one review of this "
-            "literature specifically described the underlying studies as \"generally poorly "
-            "conducted,\" calling for better designs before drawing firm conclusions about how much "
-            "of the excess is genuinely cardiovascular versus miscoded COVID."
+            "One methodological correction and one real caveat. First: a sensitivity check found "
+            "heart disease's significant disruption originally depended on assuming a straight-line "
+            "pre-pandemic trend, which was already diverging from its real (steep-decline-then-"
+            "plateau) trajectory before 2020. Corrected by fitting the baseline to the most recent "
+            "decade (2010-2019) instead of the full 1999-2019 range. This made the result *more* "
+            "confidently significant (p=3.9e-5) while cutting the reported effect size from an "
+            "overstated +26% to a defensible +7.8% (see Robustness, and research_protocol.md's "
+            "2026-09-01 addendum).\n\nSecond, an unresolved caveat from the literature itself: "
+            "attribution is a genuine confound here. A cardiac death triggered by COVID-19 could "
+            "reasonably be coded as either heart disease or COVID-19 depending on documentation "
+            "practices, and at least one review described the underlying studies as \"generally "
+            "poorly conducted,\" calling for better designs before separating genuinely "
+            "cardiovascular deaths from miscoded COVID."
         ),
         "sources": [
             {
@@ -147,19 +144,16 @@ CAUSE_EXPLANATIONS = {
         ],
         "note": (
             "Like heart disease, this cause's baseline was corrected from the full 1999-2019 range "
-            "to a shorter, more recent 2010-2019 window, after finding the longer straight-line fit "
-            "was already diverging from the real (steep-decline-then-plateau) trajectory before 2020 "
-            "(research_protocol.md's 2026-09-01 addendum has the full investigation). That correction "
-            "cut the reported effect size from an overstated +37% to a more defensible +8.8%. Unlike "
-            "heart disease, though, this one isn't fully resolved: stroke is still "
-            "this project's single most uncertain \"Persisted\" result. Its significance is real under "
-            "the corrected baseline but doesn't fully survive an alternate curved-trend check either "
-            "(p=0.096, close to but not under 0.05). See the Robustness section. One thing the "
-            "correction did resolve: a CDC data brief found the U.S. stroke death rate for adults "
-            "45-64 rose through 2021 but then declined through 2022, a partial reversal, and this "
-            "project's own corrected numbers now tell a consistent story rather than a conflicting "
-            "one. The deviation from trend eases slightly by 2024 (+6.1%, down from +8.8% in "
-            "2020-21) instead of the growing gap an earlier, uncorrected baseline had shown."
+            "to a shorter 2010-2019 window, after the longer straight-line fit was found diverging "
+            "from the real pre-pandemic trajectory before 2020 (research_protocol.md's 2026-09-01 "
+            "addendum). That cut the reported effect size from an overstated +37% to a more "
+            "defensible +8.8%. Unlike heart disease, this one isn't fully resolved: stroke remains "
+            "this project's single most uncertain \"Persisted\" result, significant under the "
+            "corrected baseline but not quite surviving an alternate curved-trend check (p=0.096, "
+            "close to but not under 0.05; see Robustness).\n\nOne thing the correction did resolve: "
+            "a CDC data brief found the U.S. stroke death rate for adults 45-64 rose through 2021 "
+            "then declined through 2022, a partial reversal this project's corrected numbers now "
+            "match rather than conflict with (+6.1% by 2024, down from +8.8% in 2020-21)."
         ),
         "sources": [
             {
@@ -194,18 +188,17 @@ CAUSE_EXPLANATIONS = {
             ("Delayed or modified treatment", "Chemotherapy, surgery, and other time-sensitive treatments were postponed or altered for many patients during periods of hospital capacity strain."),
         ],
         "note": (
-            "This project's own pre-registered prior expected NO disruption to show up within the "
-            "2024 data window, reasoning that these deferred-care effects on mortality would take "
-            "longer to appear. A small, real, FDR-significant effect showed up anyway, modest "
-            "next to heart disease or overdose, but real. Early 2020 modeling projected large future "
-            "mortality increases from screening delays, but more recent modeling using actual "
-            "pandemic-era England data found lung and breast cancer deaths came in *lower* than "
-            "pre-pandemic trends would have predicted, not higher. That's a genuinely important "
-            "update, not just a footnote. The honest reading isn't \"this project's data window caught only "
-            "the beginning of a larger effect\"; it's that the size and timing of any true screening-"
-            "delay mortality impact is still unsettled in the wider literature, and this project's "
-            "small, real, persisting signal should be read against that uncertainty rather than as "
-            "confirmation of the largest early projections."
+            "This project's pre-registered prior expected NO disruption within the 2024 window, "
+            "reasoning that deferred-care effects would take longer to appear. A small, real, "
+            "FDR-significant effect showed up anyway, modest next to heart disease or overdose, but "
+            "real. Early 2020 modeling projected large future mortality increases from screening "
+            "delays, but more recent modeling using actual pandemic-era England data found lung and "
+            "breast cancer deaths came in *lower* than pre-pandemic trends predicted, not higher, a "
+            "genuinely important update. The honest reading isn't that this project's window caught "
+            "only the start of a larger effect; it's that the size and timing of any true "
+            "screening-delay impact is still unsettled in the wider literature, and this small, "
+            "real, persisting signal should be read against that uncertainty, not as confirmation "
+            "of the largest early projections."
         ),
         "sources": [
             {
@@ -230,7 +223,7 @@ CAUSE_EXPLANATIONS = {
             "any real pandemic effect."
         ),
         "mechanisms": [
-            ("A definitional gap in our own method", "This project counts a death only when Alzheimer's is coded as the sole *underlying* cause of death. Published national research that instead counts Alzheimer's and related dementias as an underlying OR contributing cause found a large excess: an estimated 94,688 excess deaths with ADRD involved in the pandemic's first year alone. Many dementia patients who died of COVID-19 likely had COVID-19, not Alzheimer's, recorded as the underlying cause, with dementia listed only as a contributing condition, invisible to our narrower query."),
+            ("A definitional gap in our own method", "This project counts a death only when Alzheimer's is coded as the sole *underlying* cause. Published research that instead counts Alzheimer's and related dementias as an underlying OR contributing cause found a large excess: an estimated 94,688 excess ADRD deaths in the pandemic's first year alone. Many dementia patients who died of COVID-19 likely had COVID-19, not Alzheimer's, recorded as the underlying cause, with dementia only a contributing condition, invisible to this narrower query."),
             ("Isolation and care-facility disruption (the original hypothesis)", "The pre-registered reasoning was that pandemic isolation and disrupted nursing-home/care-facility routines would show up as excess Alzheimer's mortality, and broader published research confirms this was real, particularly in the pandemic's first year and especially in long-term care settings."),
             ("A pattern that faded fast", "Published research also found the excess ADRD mortality reported using the broader (underlying-or-contributing) definition declined sharply from the first pandemic year to the second, consistent with a real but short-lived effect that a 2020-2024 analysis using only 2020-2021 as its 'acute' window might partially miss if it faded unusually quickly for this specific cause."),
             ("A later decline this project did find", "Pooling all five post-2020 years instead of just the acute window turns up a real signal the acute-only test misses: Alzheimer's mortality ran increasingly below trend by 2023-2024. One plausible explanation is mortality displacement (sometimes called 'harvesting'): patients who would otherwise have died in these later years may already have died earlier in the pandemic. This project's own data can't confirm that mechanism, only the later decline itself. See the Deep dive tab for the numbers."),

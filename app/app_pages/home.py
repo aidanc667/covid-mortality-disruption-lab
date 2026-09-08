@@ -16,21 +16,17 @@ synthetic_banner()
 
 st.subheader("Why this matters")
 st.write(
-    "The impact of a pandemic cannot be understood from deaths attributed to the virus alone. A "
-    "major disruption to healthcare, behavior, and daily life can also alter mortality from "
-    "diseases that have nothing to do with the infection itself."
+    "The impact of a pandemic can't be understood from deaths attributed to the virus alone: "
+    "disruption to healthcare, behavior, and daily life can also alter mortality from causes that "
+    "have nothing to do with the infection itself. This project asks whether that happened, and "
+    "left a measurable footprint in the mortality record."
 )
-st.write("This project asks whether those changes left a measurable footprint in the mortality record.")
 st.write(
     "Using 26 years of CDC mortality data, we establish each cause's pre-pandemic trajectory, "
-    "estimate the mortality we would have expected in 2020–2024, and test whether observed "
-    "mortality significantly departed from that baseline. We then examine whether those "
-    "disruptions were temporary or persisted through 2024, across causes and, for two of them, "
-    "across U.S. counties by socioeconomic status, healthcare access, and rurality."
-)
-st.write(
-    "The central question isn't simply how many people died during COVID-19. It's whether the "
-    "pandemic changed the mortality landscape that followed."
+    "estimate what 2020–2024 mortality would have looked like without a pandemic, and test whether "
+    "observed mortality significantly departed from that baseline, then whether any disruption was "
+    "temporary or persisted through 2024, both nationally and, for two causes, across U.S. counties "
+    "by socioeconomic status, healthcare access, and rurality."
 )
 
 st.subheader("The breaking point")
