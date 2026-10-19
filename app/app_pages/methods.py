@@ -42,7 +42,7 @@ with overview:
         f"Using {span} CDC mortality data, we establish each cause's pre-pandemic trajectory, "
         "estimate what 2020–2024 mortality would have looked like without a pandemic, and test whether "
         "observed mortality significantly departed from that baseline, then whether any disruption was "
-        "temporary or persisted through 2024, both nationally and, for two causes, across U.S. counties "
+        "temporary or persisted through 2024, both nationally and, for the five disrupted causes, across U.S. counties "
         "by socioeconomic status, healthcare access, and rurality."
     )
 
@@ -217,10 +217,19 @@ with stats_tab:
 
 with counties_tab:
     st.write(
-        "For causes with a significant disruption, per-county disruption magnitude "
-        "(aggregated post-period mean minus pre-period mean) is regressed against real "
-        "County Health Rankings context variables (uninsured rate, smoking, obesity, income, "
-        "rurality). Associational only; see the causal-language policy below."
+        "For each of the five causes with a significant 2020–21 disruption, each county's change in "
+        "death rate is its pooled 2020–2024 crude rate minus its pooled 2015–2019 crude rate (CDC "
+        "WONDER grouped by County, so each period is one five-year total). A county is included when "
+        "CDC reports a reliable rate in both periods, roughly 20+ deaths over five years. The change "
+        "is regressed against five County Health Rankings measures (uninsured rate, smoking, obesity, "
+        "income, rurality), with FDR correction within each cause. Associational only; see Language policy."
+    )
+    st.write(
+        "An earlier version required a reliable rate in at least two individual years of each period. "
+        "That rule kept only 926 counties for diabetes and 641 for drug overdose, mostly larger and less "
+        "rural ones, and its rurality result (smaller disruption in more rural counties) did not hold up "
+        "once rural counties were included. Its results are kept for comparison on Geographic patterns. "
+        "The switch is logged in research_protocol.md (2026-10-19 addendum)."
     )
 
 with language_tab:
@@ -235,15 +244,14 @@ with limits_tab:
         "- Observational, ecological design: no individual-level causal inference. The "
         "county-level heterogeneity stage carries **ecological fallacy** risk by name: a "
         "county-average relationship doesn't necessarily hold at the individual level\n"
-        "- **Selection bias in the county-level heterogeneity sample**: counties excluded by the "
-        "suppression filter are disproportionately rural (77.7% rural excluded vs. 31.5% "
-        "included for diabetes; 74.4% vs. 23.8% for overdose). The rurality finding is more "
-        "trustworthy for diabetes (holds up among more-rural included counties) than for drug "
-        "overdose (driven by less-rural counties, not significant among more-rural ones). See "
-        "Geographic patterns for the full check\n"
+        "- **Selection bias in the county sample**: counties with too few deaths for a reliable rate "
+        "are left out, and they're mostly rural (83-94% rural excluded vs. 45-63% included, depending "
+        "on the cause). The pooled five-year rates cut this bias sharply, but the most rural places are "
+        "still under-represented, and the rurality result varies by cause. See Geographic patterns for "
+        "each cause's check\n"
         "- Mortality-vintage discontinuity between the two CDC WONDER databases\n"
         "- ICD-10 coding practices may have shifted during 2020–2021 due to strain on death-certification systems\n"
-        "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that. Cancer shows a significant, still-persisting disruption, not the null originally expected\n"
+        "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that. Cancer shows a significant disruption that was still above trend in 2024, not the null originally expected\n"
         "- Small-county suppression at the county-level heterogeneity stage\n"
         "- CHR&R behavioral measures (smoking, obesity) are PLACES model-based small-area estimates, not raw counts\n"
         "- **Context-variable vintage is post-period, not pre-period**: all five heterogeneity-stage "
@@ -286,7 +294,7 @@ with limits_tab:
     # would be slow and fragile). Update by hand when tests/ changes;
     # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
     st.caption(
-        ":green-badge[169 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[183 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 

@@ -14,7 +14,7 @@ The two most interesting results are the two that weren't supposed to happen. Ca
 
 Both of these were decided in writing, with a stated confidence level, before any 2020-2024 data was pulled; otherwise a result that happens to confirm what you expected proves very little.
 
-Disruption also wasn't spread evenly across the country. For diabetes and drug overdose, the two causes with county-level data, higher uninsured rate, smoking, and obesity all predict a larger disruption, and higher income predicts a smaller one. Grant County, Indiana saw the largest diabetes-mortality increase of any county in the dataset (60.2 → 123.0 per 100,000); Mercer County, West Virginia saw the largest for drug overdose (57.0 → 119.9). Full county-level detail, including a real selection-bias caveat the project's own self-audit found: see Geographic patterns in the app.
+Disruption also wasn't spread evenly across the country. County-level data covers all five disrupted causes, from 1,564 counties for drug overdose to 3,066 for heart disease. For every cause, counties with higher smoking and uninsured rates saw larger disruption, and higher-income counties saw smaller disruption for four of the five. Rurality is mixed: more rural counties saw larger disruption for heart disease, drug overdose, and cancer, smaller for stroke, and no clear difference for diabetes. An earlier version of this analysis, which kept only larger counties, had found the opposite rurality pattern for diabetes and overdose; including rural counties overturned it. County rates aren't age-adjusted, so part of any rural difference may reflect older rural populations. Details and both versions: see Geographic patterns in the app.
 
 ## Why this exists
 
@@ -27,7 +27,7 @@ Excess-mortality analysis is the real technique public health agencies use to es
 - **Independent cross-check.** Three unrelated change-point detection methods (PELT, binary segmentation, segmented regression) are run on each series to see whether they land on a 2020 breakpoint without being told to.
 - **A three-axis sensitivity analysis.** The primary method is re-fit with a different baseline window, a stricter significance threshold, and a curved instead of linear trend, to see whether any result depends on a modeling choice rather than the data.
 - **An autocorrelation-robust check.** The classical significance test assumes each year's deviation from trend is independent noise, which is measurably false for several causes. A Newey-West (HAC) version of the same test is reported alongside the classical one: it widens the uncertainty for the affected causes but doesn't overturn any result.
-- **169 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
+- **183 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
 
 All of this is visible directly in the app's Data Quality page, not summarized away.
 
@@ -36,7 +36,7 @@ All of this is visible directly in the app's Data Quality page, not summarized a
 - **Home**: the question, one chart of every cause's gap from its pre-pandemic trend, and the project's scope, on a single screen.
 - **Findings**: the plain-language summary of every result, including the two that contradicted the project's own priors.
 - **Causes of death**: a deep dive per cause, covering the trajectory chart, the effect size, three different significance checks side by side, and what the published research literature plausibly suggests as a mechanism (clearly separated from what this project's own data can prove).
-- **Geographic patterns**: an interactive U.S. county choropleth for the two causes with usable county-level data, showing where disruption was largest and what socioeconomic or healthcare-access variables predict it.
+- **Geographic patterns**: an interactive U.S. county map for the five disrupted causes, showing where disruption was largest and what socioeconomic or healthcare-access variables predict it.
 - **County lookup**: look up any individual county's pre/post rates and real local context.
 - **Data quality**: the negative control, the sensitivity analysis, vintage-bridging reliability, and every methodological correction, shown directly.
 - **Methods**: the full statistical design in one place.

@@ -10,18 +10,25 @@ deployed Streamlit app doesn't need it) -- see requirements-report.txt.
 """
 
 import pandas as pd
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.charts.legends import Legend
+from reportlab.graphics.charts.lineplots import LinePlot
+from reportlab.graphics.shapes import Circle, Drawing, String
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable,
+    HRFlowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
-from reportlab.graphics.shapes import Circle, Drawing, String
-from reportlab.graphics.charts.barcharts import VerticalBarChart
-from reportlab.graphics.charts.lineplots import LinePlot
-from reportlab.graphics.charts.legends import Legend
 
+from app.components.county_text import county_pattern_sentences, rurality_split_reading
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
 
 # Duplicated from app/components/data_loading.py's CONTEXT_VAR_LABELS/
@@ -61,7 +68,7 @@ def display_cause(cause: str) -> str:
 # number (~-0.00005) next to the other four variables' 0-1-proportion
 # slopes (~1-40) -- found rounding to "0.000" in this report's own table
 # and rendering as an invisible flat bar next to the others on
-# make_heterogeneity_chart's shared axis, even though it's highly
+# a shared chart axis, even though it's highly
 # significant. Scales ONLY the value shown in this report, never the
 # underlying regression.
 CONTEXT_VAR_DISPLAY_SCALE = {
@@ -73,6 +80,13 @@ def _scaled_slope(variable: str, slope: float) -> float:
     return slope * CONTEXT_VAR_DISPLAY_SCALE.get(variable, 1)
 
 OUTPUT_PATH = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
+
+# Same list as app/components/data_loading.py's HETEROGENEITY_CAUSES (every
+# test cause with a significant 2020-21 disruption), duplicated for the same
+# standalone-script reason as the labels above.
+COUNTY_CAUSES = [
+    "Diseases of heart", "Diabetes mellitus", "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
+]
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle("ReportTitle", parent=styles["Title"], fontSize=22, spaceAfter=6))
@@ -104,6 +118,11 @@ def load_data() -> dict:
         "heterogeneity": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet"),
         "selection_bias": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_selection_bias.parquet"),
         "rurality_robustness": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_rurality_robustness.parquet"),
+        "heterogeneity_yearly": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_summary_yearly.parquet"),
+        "county_disruption_yearly": {
+            cause: pd.read_parquet(OUTPUTS_MODELS / f"county_disruption_yearly_{cause.lower().replace(' ', '_')}.parquet")
+            for cause in ["Diabetes mellitus", "Drug overdose"]
+        },
         "bridging": pd.read_parquet(OUTPUTS_MODELS / "bridging_summary.parquet"),
         "sensitivity": pd.read_parquet(OUTPUTS_MODELS / "sensitivity_check.parquet"),
         "national_series": pd.read_parquet(OUTPUTS_MODELS / "national_mortality_series.parquet"),
@@ -111,7 +130,7 @@ def load_data() -> dict:
         "baseline_fitted": pd.read_parquet(OUTPUTS_MODELS / "baseline_fitted_trend.parquet"),
         "county_disruption": {
             cause: pd.read_parquet(OUTPUTS_MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet")
-            for cause in ["Diabetes mellitus", "Drug overdose"]
+            for cause in COUNTY_CAUSES
         },
     }
 
@@ -328,60 +347,6 @@ def make_deviation_chart(summary: pd.DataFrame) -> Drawing:
     chart.valueAxis.valueMax = ordered["acute_pct_deviation"].max() + 5
     chart.valueAxis.labels.fontSize = 7
     chart.bars[0].fillColor = colors.HexColor("#2b3a55")
-    drawing.add(chart)
-    return drawing
-
-
-def make_heterogeneity_chart(het_cause_df: pd.DataFrame) -> Drawing:
-    ordered = het_cause_df.sort_values("p_value")
-    display_slopes = [_scaled_slope(v, s) for v, s in zip(ordered["variable"], ordered["slope"])]
-    drawing = Drawing(460, 180)
-    chart = VerticalBarChart()
-    chart.x, chart.y = 50, 30
-    chart.width, chart.height = 380, 130
-    chart.data = [display_slopes]
-    # Shorter income label than the tables use: the full one overlaps its
-    # neighbor on this chart's angled axis labels.
-    chart.categoryAxis.categoryNames = [
-        CONTEXT_VAR_LABELS.get(v, v).replace("Median household income (per $10k)", "Income (per $10k)")
-        for v in ordered["variable"]
-    ]
-    chart.categoryAxis.labels.fontSize = 7
-    chart.categoryAxis.labels.angle = 20
-    chart.categoryAxis.labels.dy = -12
-    vmin, vmax = min(display_slopes), max(display_slopes)
-    pad = max(abs(vmin), abs(vmax)) * 0.15 + 0.01
-    chart.valueAxis.valueMin = vmin - pad
-    chart.valueAxis.valueMax = vmax + pad
-    chart.valueAxis.labels.fontSize = 7
-    chart.bars[0].fillColor = colors.HexColor("#7a2d3d")
-    drawing.add(chart)
-    return drawing
-
-
-def make_county_distribution_chart(county_df: pd.DataFrame, n_bins: int = 14) -> Drawing:
-    """How disruption was actually distributed across the included
-    counties, not just its average -- the two context-variable charts
-    above show what predicts disruption, but not whether most counties
-    clustered near zero with a long tail, or split into two real groups.
-    Same binning approach as the app's own county-level histogram
-    (app/app_pages/geographic_heterogeneity.py)."""
-    values = county_df["disruption"].dropna()
-    binned = pd.cut(values, bins=n_bins)
-    counts = binned.value_counts(sort=False)
-    edges = binned.cat.categories
-
-    drawing = Drawing(460, 170)
-    chart = VerticalBarChart()
-    chart.x, chart.y = 45, 30
-    chart.width, chart.height = 390, 115
-    chart.data = [list(counts.values)]
-    chart.categoryAxis.categoryNames = [
-        f"{iv.left:.0f}" if i % 2 == 0 else "" for i, iv in enumerate(edges)
-    ]
-    chart.categoryAxis.labels.fontSize = 6
-    chart.valueAxis.labels.fontSize = 7
-    chart.bars[0].fillColor = colors.HexColor("#4a6fa5")
     drawing.add(chart)
     return drawing
 
@@ -740,100 +705,86 @@ def build(data: dict) -> list:
     # --- 5. Heterogeneity ---
     story.append(Paragraph("5. Which counties were hit hardest", styles["H1"]))
     county_disruption = data["county_disruption"]
-    n_diabetes_counties = len(county_disruption["Diabetes mellitus"])
-    n_overdose_counties = len(county_disruption["Drug overdose"])
+    county_labels = {c: display_cause(c) for c in COUNTY_CAUSES}
     story.append(Paragraph(
-        f"County data exists for two causes, diabetes and drug overdose. For each county, disruption "
-        f"is the change in average death rate from 2015-2019 to 2020-2024, which is then compared "
-        f"against County Health Rankings &amp; Roadmaps measures. Only {n_diabetes_counties} of about "
-        f"3,143 U.S. counties qualify for diabetes and {n_overdose_counties} for drug overdose. CDC "
-        f"WONDER hides any county-year with too few deaths to protect privacy, and a county needs at "
-        f"least two reported years in each period to be included. County rates are crude rather "
-        f"than age-adjusted, because WONDER doesn't offer age adjustment at the county level for its "
-        f"2018-2024 database, so some of a county's change could come from its population getting "
-        f"older.", styles["Body"]
+        "Each of the five causes with a 2020-21 disruption has county data. For each county, disruption "
+        "is the change in death rate from 2015-2019 to 2020-2024, using one five-year total per period, "
+        "and it's compared against five County Health Rankings &amp; Roadmaps measures. A county is "
+        "included when CDC reports a reliable rate in both periods, which takes roughly 20 deaths over "
+        "five years. County rates are crude rather than age-adjusted, because WONDER doesn't offer age "
+        "adjustment at the county level for its 2018-2024 database, so some of a county's change could "
+        "come from its population getting older.", styles["Body"]
     ))
-    example_bits = []
-    for cause in ["Diabetes mellitus", "Drug overdose"]:
+    coverage = [["Cause", "Counties included", "Median change (per 100,000)"]]
+    for cause in COUNTY_CAUSES:
         cd = county_disruption[cause]
-        most = cd.loc[cd["disruption"].idxmax()]
-        least = cd.loc[cd["disruption"].abs().idxmin()]
-        example_bits.append(
-            f"For {display_cause(cause).lower()}, <b>{most['county_name']}</b> had the largest "
-            f"increase ({most['crude_rate_pre']:.1f} to {most['crude_rate_post']:.1f} per 100,000), "
-            f"while <b>{least['county_name']}</b> barely changed ({least['disruption']:+.1f})."
-        )
-    story.append(Paragraph(
-        " ".join(example_bits) + " This analysis has no data on local policies or on age and race, "
-        "so it doesn't try to explain any single county. A single county's averages are also noisy, "
-        "since a few extra deaths in a small population can move them a lot.",
-        styles["Body"]
-    ))
-    figure_number = 4
-    for cause in ["Diabetes mellitus", "Drug overdose"]:
-        cause_het = het[het["cause"] == cause].sort_values("p_value")
-        n_fdr_het = int(cause_het["fdr_significant"].sum())
-        story.append(Paragraph(f"{display_cause(cause)}: {n_fdr_het} of {len(cause_het)} measures hold up after FDR correction", styles["H2"]))
-        het_table_data = [["County measure", "Slope", "p-value", "FDR-sig."]]
-        for _, r in cause_het.iterrows():
-            var_label = CONTEXT_VAR_LABELS.get(r["variable"], r["variable"])
-            display_slope = _scaled_slope(r["variable"], r["slope"])
-            het_table_data.append([var_label, f"{display_slope:.3f}", f"{r['p_value']:.3g}", "Yes" if r["fdr_significant"] else "No"])
-        het_table = Table(het_table_data, colWidths=[2.2 * inch, 1.1 * inch, 1.0 * inch, 0.9 * inch])
-        het_table.setStyle(TABLE_HEADER_STYLE)
-        story.append(het_table)
-        story.append(Spacer(1, 6))
-        story.append(make_heterogeneity_chart(cause_het))
-        story.append(Spacer(1, 2))
-        story.append(make_county_distribution_chart(county_disruption[cause]))
-        story.append(Paragraph(
-            f"Figure {figure_number}. {display_cause(cause)}: how each county measure relates to "
-            f"disruption (top), and how disruption was spread across the "
-            f"{len(county_disruption[cause])} included counties (bottom; disruption on the x-axis, "
-            "number of counties on the y-axis).",
-            styles["Caption"]
-        ))
-        figure_number += 1
-        story.append(Spacer(1, 6))
+        coverage.append([county_labels[cause], f"{len(cd):,}", f"{cd['disruption'].median():+.1f}"])
+    coverage_table = Table(coverage, colWidths=[1.8 * inch, 1.5 * inch, 2.0 * inch])
+    coverage_table.setStyle(TABLE_HEADER_STYLE)
+    story.append(coverage_table)
+    story.append(Spacer(1, 8))
 
-    # Summarize directions from the FDR-significant rows only, so a measure
-    # that misses correction for one cause isn't reported as holding for both.
-    rural = het[het["variable"] == "pct_rural"].set_index("cause")
-    rural_sig = [c for c in rural.index if rural.loc[c, "fdr_significant"] and rural.loc[c, "slope"] < 0]
-    rural_not_sig = [c for c in rural.index if not rural.loc[c, "fdr_significant"]]
-    rural_sentence = (
-        f"More rural counties saw smaller disruption for {_join_names(rural_sig).lower()}"
-        + (f"; for {_join_names(rural_not_sig).lower()} the same pattern doesn't survive FDR correction"
-           if rural_not_sig else "")
-        + ". That runs against the common assumption that rural areas were hit hardest, and the "
-        "caveat below matters for reading it."
-    )
+    story.append(Paragraph("What went with larger or smaller disruption (FDR-significant only):", styles["Body"]))
+    for sentence in county_pattern_sentences(het, county_labels):
+        story.append(Paragraph(f"&bull; {sentence}", styles["Body"]))
+
+    short = {"Diseases of heart": "Heart", "Diabetes mellitus": "Diabetes", "Cerebrovascular disease": "Stroke",
+             "Drug overdose": "Overdose", "Malignant neoplasms": "Cancer"}
+    grid = [["County measure"] + [short[c] for c in COUNTY_CAUSES]]
+    for variable, label in CONTEXT_VAR_LABELS.items():
+        row = [label.replace("Median household income (per $10k)", "Income (per $10k)")]
+        for cause in COUNTY_CAUSES:
+            r = het[(het["cause"] == cause) & (het["variable"] == variable)].iloc[0]
+            row.append(f"{_scaled_slope(variable, r['slope']):+.1f}{'*' if r['fdr_significant'] else ''}")
+        grid.append(row)
+    grid_table = Table(grid, colWidths=[1.8 * inch] + [0.85 * inch] * len(COUNTY_CAUSES))
+    grid_table.setStyle(TABLE_HEADER_STYLE)
+    story.append(grid_table)
     story.append(Paragraph(
-        "For both causes, counties with higher uninsured, smoking, and obesity rates saw larger "
-        "disruption, and higher-income counties saw smaller disruption. " + rural_sentence +
-        " These are associations, not causes.", styles["Body"]
+        "Regression slopes: change in death rate per 100,000 for each unit of the measure (a full 0-1 "
+        "share for the percentage measures; $10,000 for income). * = significant after FDR correction "
+        "within that cause.", styles["Caption"]
     ))
-    story.append(Paragraph("A caveat on the rurality result", styles["H2"]))
-    bias_text = "; ".join(
-        f"for {display_cause(r['cause']).lower()}, excluded counties average {r['mean_excluded']*100:.0f}% "
-        f"rural vs. {r['mean_included']*100:.0f}% for included ones"
-        for _, r in selection_bias.iterrows()
-    )
+
+    yearly = data["heterogeneity_yearly"]
+    yearly_counts = {c: len(df) for c, df in data["county_disruption_yearly"].items()}
+    story.append(Paragraph("The rurality result changed", styles["H2"]))
     story.append(Paragraph(
-        f"The counties left out for having too few reported years are much more rural than the ones "
-        f"included ({bias_text}). So this analysis mostly describes suburban and small-city counties. "
-        f"Splitting the included counties at their median rurality shows how much each result can be "
-        f"trusted:",
+        f"An earlier version of this analysis needed a reliable rate in at least two individual years of "
+        f"each period. That kept only {yearly_counts['Diabetes mellitus']:,} counties for diabetes and "
+        f"{yearly_counts['Drug overdose']:,} for drug overdose, mostly larger and less rural ones, and it "
+        f"pointed to smaller disruption in more rural counties (slope "
+        f"{yearly.set_index(['cause', 'variable']).loc[('Diabetes mellitus', 'pct_rural'), 'slope']:+.1f}, "
+        f"significant, for diabetes; "
+        f"{yearly.set_index(['cause', 'variable']).loc[('Drug overdose', 'pct_rural'), 'slope']:+.1f}, "
+        f"p = {yearly.set_index(['cause', 'variable']).loc[('Drug overdose', 'pct_rural'), 'p_value']:.2f}, "
+        f"for overdose). With five-year totals, which keep most rural counties, that pattern disappears for "
+        f"diabetes and reverses for overdose. It was largely a product of which counties were left out. "
+        f"The switch was made after the earlier results were known, so it's logged in "
+        f"research_protocol.md (2026-10-19 addendum) and both versions are shown in the app.",
         styles["Body"]
     ))
-    for cause in ["Diabetes mellitus", "Drug overdose"]:
+    bias = selection_bias.set_index("cause")
+    story.append(Paragraph(
+        "Two caveats still apply. Counties left out are still mostly rural ("
+        f"{bias['mean_excluded'].min()*100:.0f}-{bias['mean_excluded'].max()*100:.0f}% rural, vs. "
+        f"{bias['mean_included'].min()*100:.0f}-{bias['mean_included'].max()*100:.0f}% for included "
+        "counties), though far fewer are left out than before. And rural counties tend to be older and "
+        "aging faster, which crude rates don't adjust for. Splitting the included counties at their "
+        "median rurality:", styles["Body"]
+    ))
+    for cause in COUNTY_CAUSES:
         r = rurality_robustness[rurality_robustness["cause"] == cause].set_index("half")
         upper, lower = r.loc["upper_half"], r.loc["lower_half"]
-        if upper["p_value"] < 0.05:
-            verdict = f"the pattern holds in the more rural half (p={upper['p_value']:.3g}) and is stronger there than in the less rural half (p={lower['p_value']:.3g})."
-        else:
-            verdict = f"the pattern comes almost entirely from the less rural half (p={lower['p_value']:.3g}) and isn't significant in the more rural half (p={upper['p_value']:.3g}), so treat it with real caution."
-        story.append(Paragraph(f"<b>{display_cause(cause)}:</b> {verdict}", styles["Body"]))
+        reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])
+        story.append(Paragraph(
+            f"&bull; <b>{county_labels[cause]}:</b> more rural half {upper['slope']:+.1f} (p={upper['p_value']:.2g}), "
+            f"less rural half {lower['slope']:+.1f} (p={lower['p_value']:.2g}). {reading}", styles["Body"]
+        ))
+    story.append(Paragraph(
+        "This analysis has no data on local policies or on age and race, so it doesn't try to explain "
+        "any single county, and these are associations, not causes.", styles["Body"]
+    ))
     story.append(PageBreak())
 
     # --- 6. Limitations ---
@@ -842,9 +793,9 @@ def build(data: dict) -> list:
         ("This is an observational study of population averages, so it can't support causal claims "
         "about individuals. At the county level there's also a risk of ecological fallacy: a pattern "
         "across counties may not hold for the people living in them."),
-        ("Counties dropped for missing data are mostly rural, which limits what the county results say "
-        "about rural America. The rurality pattern holds up better for diabetes than for drug overdose "
-        "(section 5)."),
+        ("Counties with too few deaths for a reliable rate are left out, and they're mostly rural. Pooling "
+        "five years keeps far more of them than the earlier method did, but the most rural places are "
+        "still under-represented, and the rurality result differs by cause (section 5)."),
         ("The two CDC WONDER databases may not line up perfectly. The 2018-2019 overlap check reduces "
         "this risk but can't remove it."),
         ("Death certificate coding may have shifted in 2020-21 while reporting systems were strained, "
@@ -881,8 +832,9 @@ def build(data: dict) -> list:
     story.append(Paragraph("7. Data and reproducibility", styles["H1"]))
     story.append(Paragraph(
         "National results use 15 CDC WONDER exports (7 from the 1999-2020 database, 8 from the "
-        "2018-2024 database). County results use 4 more (diabetes and drug overdose, before and after "
-        "2020). No synthetic data is used anywhere. The full method, the predictions made before "
+        "2018-2024 database). County results use 10 pooled exports (five causes, before and after 2020), "
+        "plus 4 year-by-year exports kept for the diabetes and overdose comparison and 2 heart disease "
+        "2018-2019 exports showing the two databases match exactly county by county. No synthetic data is used anywhere. The full method, the predictions made before "
         "seeing the data, and every change made along the way are in research_protocol.md. Export "
         "steps are in manual_data_acquisition.md. The interactive app and source code are at "
         "github.com/aidanc667/covid-mortality-disruption-lab.", styles["Body"]

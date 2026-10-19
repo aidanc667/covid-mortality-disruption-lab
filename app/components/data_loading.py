@@ -18,7 +18,13 @@ TEST_CAUSES = [
     "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
 ]
 NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnormalities"
-HETEROGENEITY_CAUSES = ["Diabetes mellitus", "Drug overdose"]
+# Every test cause with a significant 2020-21 disruption gets a county
+# analysis (research_protocol.md's 2026-10-19 addendum); Alzheimer's has none.
+HETEROGENEITY_CAUSES = [
+    "Diseases of heart", "Diabetes mellitus", "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
+]
+# The original year-by-year county method, kept as a comparison.
+YEARLY_COMPARISON_CAUSES = ["Diabetes mellitus", "Drug overdose"]
 
 # The app's data model, parquet column values, and dict keys throughout
 # this module all stay the official CDC WONDER cause names (needed to
@@ -164,6 +170,22 @@ def load_sensitivity_check() -> pd.DataFrame:
 def load_county_disruption(cause: str) -> pd.DataFrame:
     fname = f"county_disruption_{cause.lower().replace(' ', '_')}.parquet"
     return pd.read_parquet(OUTPUTS_MODELS / fname)
+
+
+@st.cache_data(ttl="1h")
+def load_county_disruption_yearly(cause: str) -> pd.DataFrame:
+    fname = f"county_disruption_yearly_{cause.lower().replace(' ', '_')}.parquet"
+    return pd.read_parquet(OUTPUTS_MODELS / fname)
+
+
+@st.cache_data(ttl="1h")
+def load_heterogeneity_summary_yearly() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_summary_yearly.parquet")
+
+
+@st.cache_data(ttl="1h")
+def load_county_bridging_check() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "county_bridging_check.parquet")
 
 
 def data_available() -> bool:

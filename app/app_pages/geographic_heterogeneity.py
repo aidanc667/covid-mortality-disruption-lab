@@ -3,16 +3,20 @@ import pandas as pd
 import streamlit as st
 
 from app.components.county_map import render_county_choropleth
+from app.components.county_text import rurality_split_reading
 from app.components.data_loading import (
     CONTEXT_VAR_LABELS,
     HETEROGENEITY_CAUSES,
+    YEARLY_COMPARISON_CAUSES,
     data_available,
     display_cause,
     heterogeneity_synthetic_banner,
     load_county_disruption,
+    load_county_disruption_yearly,
     load_heterogeneity_rurality_robustness,
     load_heterogeneity_selection_bias,
     load_heterogeneity_summary,
+    load_heterogeneity_summary_yearly,
     scale_context_slope_for_display,
 )
 from app.components.ui import takeaway_html
@@ -65,7 +69,7 @@ if smaller:
     clauses.append(f"smaller where {_join(smaller)} {'was' if len(smaller) == 1 else 'were'} higher")
 # The rurality result carries a real selection-bias caveat (excluded counties
 # are far more rural); flag it here rather than only inside a tab.
-rurality_note = " The rurality result has a selection-bias caveat (see What predicts it)." if "rurality" in smaller + larger else ""
+rurality_note = " The rurality result has caveats (see What predicts it)." if "rurality" in smaller + larger else ""
 st.html(takeaway_html(
     (f"{display_cause(cause)} disruption was " + ", and ".join(clauses) + ". " if clauses
      else f"No context variable survives FDR correction for {display_cause(cause)}. ")
@@ -77,9 +81,9 @@ map_tab, predicts_tab, all_tab = st.tabs(["Map", "What predicts it", "All counti
 
 with map_tab:
     st.caption(
-        f"Only {n_counties} of {total_us_counties} U.S. counties ({1 - excluded_pct:.0%}) have enough "
-        f"non-suppressed years of data to appear here; the other {excluded_pct:.0%}, shown in gray, "
-        "are excluded, not zero. Blue = rate fell from 2015–19 to 2020–24; orange = rate rose "
+        f"{n_counties:,} of {total_us_counties:,} U.S. counties ({1 - excluded_pct:.0%}) had enough deaths "
+        f"over 2015–19 and 2020–24 for CDC to report a reliable rate in both periods; the other "
+        f"{excluded_pct:.0%}, shown in gray, are excluded, not zero. Blue = rate fell from 2015–19 to 2020–24; orange = rate rose "
         "(a colorblind-safe scale, since red/green or red/blue are hard to distinguish for the ~8% of "
         "men with red-green color vision deficiency). Hover a county for exact pre/post rates. Rates "
         "are **crude**, not age-adjusted: CDC WONDER doesn't offer age-adjustment at county "
@@ -94,8 +98,8 @@ with map_tab:
             st.metric(
                 "Counties included", f"{n_counties} of {total_us_counties}",
                 delta=f"{1 - excluded_pct:.0%} of all U.S. counties", delta_color="off",
-                help="The rest are excluded for insufficient non-suppressed years of data, "
-                     "disproportionately rural counties -- see the rurality caveat below.",
+                help="The rest had too few deaths for CDC to report a reliable rate (fewer than about "
+                     "20 over five years). They're mostly small, rural counties: see What predicts it.",
             )
         with st.container(border=True):
             st.metric("Rate rose (worse)", f"{worsened} ({worsened / n_counties:.0%})")
@@ -172,32 +176,55 @@ with predicts_tab:
         upper = cause_robustness.loc["upper_half"]
         lower = cause_robustness.loc["lower_half"]
 
+        def _direction(row) -> str:
+            sign = "larger" if row["slope"] > 0 else "smaller"
+            return f"{sign} disruption in more rural counties (p={row['p_value']:.2g})"
+
         st.warning(
-            f"**Rurality finding: read this before trusting it.** The counties *excluded* from this "
-            f"analysis (too few non-suppressed years) are on average "
-            f"**{bias_row['mean_excluded']*100:.0f}% rural**, vs. **{bias_row['mean_included']*100:.0f}% rural** "
-            f"for the counties actually included. Suppression disproportionately drops small, rural "
-            f"counties, so this regression describes suburban/small-city counties far more than it "
-            f"describes rural America.", icon=":material/warning:",
+            f"**Read the rurality result with two caveats.** First, the {total_us_counties - n_counties:,} "
+            f"counties left out average **{bias_row['mean_excluded']*100:.0f}% rural**, vs. "
+            f"**{bias_row['mean_included']*100:.0f}% rural** for the counties included, so the most rural "
+            "places are under-represented. Second, these rates are crude, not age-adjusted, and rural "
+            "counties tend to be older and aging faster, so part of any link between rurality and rising "
+            "death rates could be population aging rather than the pandemic.",
+            icon=":material/warning:",
         )
-        if cause_robustness.loc["upper_half", "p_value"] < 0.05 and (
-            cause_robustness.loc["upper_half", "slope"] < 0
-        ) == (rural_row.iloc[0]["slope"] < 0):
+        reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])
+        st.caption(
+            f"Within the included counties, split at their median rurality: the more rural half shows "
+            f"{_direction(upper)}, n={int(upper['n']):,}; the less rural half shows {_direction(lower)}, "
+            f"n={int(lower['n']):,}. {reading}"
+        )
+
+    if cause in YEARLY_COMPARISON_CAUSES:
+        yearly = load_heterogeneity_summary_yearly()
+        yearly = yearly[yearly["cause"] == cause].set_index("variable")
+        n_yearly = len(load_county_disruption_yearly(cause))
+        with st.expander(f"Compare: the earlier year-by-year method ({n_yearly:,} counties)"):
             st.caption(
-                f"For {display_cause(cause)}, the relationship holds up reasonably well as a robustness check: split "
-                f"the *included* counties at the median rurality, and the rurality-disruption "
-                f"relationship is still significant among the more-rural half (p={upper['p_value']:.3g}, "
-                f"n={int(upper['n'])}); if anything, it's stronger there than among the less-rural half "
-                f"(p={lower['p_value']:.3g}). Still doesn't cover the excluded, most-rural counties above."
+                "Before October 2026 this page used a stricter rule: a county needed a reliable rate in at "
+                "least two individual years of each period, which dropped most rural counties. The pooled "
+                f"five-year rates above keep {n_counties:,}. Same regression, same five measures."
             )
-        else:
-            st.caption(
-                f"For {display_cause(cause)}, this robustness check is a real concern: split the *included* counties "
-                f"at the median rurality, and the relationship is driven almost entirely by the "
-                f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}). Among the "
-                f"more-rural half of the included sample, it's not significant "
-                f"(p={upper['p_value']:.3g}, n={int(upper['n'])}). Read the pooled slope above with real "
-                f"caution for this cause."
+            compare = cause_het[["variable", "slope", "p_value", "fdr_significant"]].copy()
+            compare["yearly_slope"] = compare["variable"].map(yearly["slope"])
+            compare["yearly_p"] = compare["variable"].map(yearly["p_value"])
+            compare["yearly_fdr"] = compare["variable"].map(yearly["fdr_significant"])
+            for col in ("slope", "yearly_slope"):
+                compare[col] = compare.apply(lambda r, c=col: scale_context_slope_for_display(r["variable"], r[c]), axis=1)
+            compare["variable"] = compare["variable"].map(CONTEXT_VAR_LABELS).fillna(compare["variable"])
+            st.dataframe(
+                compare,
+                column_config={
+                    "variable": st.column_config.TextColumn("County measure", width="medium"),
+                    "slope": st.column_config.NumberColumn("Slope (pooled)", format="%.3f"),
+                    "p_value": st.column_config.NumberColumn("p (pooled)", format="%.3g"),
+                    "fdr_significant": st.column_config.CheckboxColumn("FDR (pooled)"),
+                    "yearly_slope": st.column_config.NumberColumn("Slope (year-by-year)", format="%.3f"),
+                    "yearly_p": st.column_config.NumberColumn("p (year-by-year)", format="%.3g"),
+                    "yearly_fdr": st.column_config.CheckboxColumn("FDR (year-by-year)"),
+                },
+                hide_index=True, width="stretch",
             )
 
 with all_tab:

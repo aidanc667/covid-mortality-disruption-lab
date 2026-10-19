@@ -64,12 +64,13 @@ def test_home_shows_title_and_county_count_from_the_data():
     html = " ".join(e.proto.body for e in at.get("html"))
     # Expected value read straight from the parquet, independently of home_scope_metrics.
     models = ROOT / "outputs" / "models"
-    n_diabetes = pd.read_parquet(models / "county_disruption_diabetes_mellitus.parquet")["county_fips"].nunique()
+    # Widest coverage is heart disease, narrowest drug overdose (pooled county files).
+    n_heart = pd.read_parquet(models / "county_disruption_diseases_of_heart.parquet")["county_fips"].nunique()
     n_overdose = pd.read_parquet(models / "county_disruption_drug_overdose.parquet")["county_fips"].nunique()
     years = pd.read_parquet(models / "national_mortality_series.parquet")["year"]
     n_years = int(years.max()) - int(years.min()) + 1
-    assert f'>{n_diabetes:,}<span class="cmd-kpi-unit">counties analyzed<' in html
-    assert f"Diabetes; {n_overdose:,} for drug overdose" in html
+    assert f'>{n_heart:,}<span class="cmd-kpi-unit">counties<' in html
+    assert f"Analyzed across 5 causes ({n_overdose:,} for drug overdose)" in html
     assert f'>{n_years}<span class="cmd-kpi-unit">years of CDC data<' in html
     assert "How the pandemic impacted non-COVID mortality" in html
     assert ("<b>Research Question:</b> Did COVID-19 disrupt the trend for six other leading causes of death, "
@@ -86,7 +87,7 @@ def test_home_is_short():
 
 def _page_text(at) -> str:
     parts = [e.proto.body for e in at.get("html")]
-    for kind in ("markdown", "caption", "subheader", "title"):
+    for kind in ("markdown", "caption", "subheader", "title", "info", "warning", "success", "error"):
         parts += [str(e.value) for e in getattr(at, kind)]
     return " ".join(parts)
 
@@ -136,8 +137,9 @@ def test_findings_keeps_every_caveat_section():
     for caveat in (
         "This wasn't the first choice: a real methodological correction",
         "See the full robustness breakdown",
+        "Full regression results, by cause",
         "Why might these specific counties differ? Read this before assuming a cause",
-        "The rurality finding needs a real caveat: click to see why",
+        "The rurality result: caveats",
     ):
         assert caveat in labels
 
@@ -154,22 +156,29 @@ def test_causes_page_tabs_and_takeaway():
 def test_geographic_patterns_tabs_and_takeaway():
     at = _app_on("geographic_heterogeneity")
     assert [t.label for t in at.tabs] == ["Map", "What predicts it", "All counties"]
-    html = " ".join(e.proto.body for e in at.get("html"))
-    # heterogeneity_summary, diabetes: all five FDR-significant; uninsured/smoking/obesity
-    # slopes positive, income and rurality negative.
-    assert ("Diabetes disruption was larger where obesity, smoking and the uninsured rate were higher, "
-            "and smaller where household income and rurality were higher.") in html
-    assert "The rurality result has a selection-bias caveat" in html
+    (takeaway,) = [e.proto.body for e in at.get("html") if 'class="cmd-takeaway"' in e.proto.body]
+    # heterogeneity_summary, heart disease (the default cause): all five FDR-significant;
+    # smoking, obesity, uninsured, rurality positive, income negative; listed by p-value.
+    assert ("Heart disease disruption was larger where smoking, obesity, the uninsured rate and rurality "
+            "were higher, and smaller where household income was higher.") in takeaway
+    assert "The rurality result has caveats" in takeaway
 
 
 def test_geographic_takeaway_leaves_out_associations_that_fail_fdr():
     at = _app_on("geographic_heterogeneity")
-    at.button_group[0].set_value("Drug overdose").run()
+    at.button_group[0].set_value("Diabetes mellitus").run()
     (takeaway,) = [e.proto.body for e in at.get("html") if 'class="cmd-takeaway"' in e.proto.body]
-    # heterogeneity_summary, overdose: rurality p=0.069, not FDR-significant; the other four are.
-    assert ("Drug overdose disruption was larger where smoking, the uninsured rate and obesity were higher, "
+    # heterogeneity_summary, diabetes (pooled): rurality p=0.22, not FDR-significant; the other four are.
+    assert ("Diabetes disruption was larger where smoking, obesity and the uninsured rate were higher, "
             "and smaller where household income was higher.") in takeaway
     assert "rurality" not in takeaway
+
+
+def test_geographic_shows_year_by_year_comparison_for_diabetes_only():
+    at = _app_on("geographic_heterogeneity")
+    assert not any("year-by-year" in label for label in _expander_labels(at))  # heart disease: no earlier run
+    at.button_group[0].set_value("Diabetes mellitus").run()
+    assert "Compare: the earlier year-by-year method (926 counties)" in _expander_labels(at)
 
 
 def test_county_lookup_shows_pre_post_chart():
@@ -181,3 +190,12 @@ def test_county_lookup_shows_pre_post_chart():
 def test_data_quality_tabs():
     at = _app_on("data_quality")
     assert [t.label for t in at.tabs] == ["Negative control", "Multiple testing", "Vintage bridging", "Sensitivity"]
+
+
+def test_findings_states_that_the_rurality_result_changed():
+    text = _page_text(_app_on("findings"))
+    # Year-by-year: rural slope negative for diabetes (FDR) and overdose (p=0.069).
+    # Pooled: diabetes not significant, overdose significantly positive.
+    assert "This changed the rurality result." in text
+    assert "that no longer holds for diabetes and drug overdose" in text
+    assert "For all five causes, higher smoking rates went with larger disruption." in text

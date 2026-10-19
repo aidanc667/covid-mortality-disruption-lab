@@ -2,20 +2,24 @@ import pandas as pd
 import streamlit as st
 
 from app.components.charts import then_vs_now_chart
+from app.components.county_text import county_pattern_sentences, rurality_split_reading
 from app.components.data_loading import (
     CAUSE_COLORS,
     CONTEXT_VAR_LABELS,
     HETEROGENEITY_CAUSES,
     NEGATIVE_CONTROL,
     TEST_CAUSES,
+    YEARLY_COMPARISON_CAUSES,
     data_available,
     display_cause,
     load_county_disruption,
+    load_county_disruption_yearly,
     load_disruption_deviations,
     load_disruption_summary,
     load_heterogeneity_rurality_robustness,
     load_heterogeneity_selection_bias,
     load_heterogeneity_summary,
+    load_heterogeneity_summary_yearly,
     load_negative_control,
     load_sensitivity_check,
     scale_context_slope_for_display,
@@ -324,49 +328,73 @@ with robustness_tab:
         st.info("Run `python -m scripts.run_sensitivity_check` to populate this section.", icon=":material/info:")
 
 with counties_tab:
-    n_diabetes_counties = len(load_county_disruption("Diabetes mellitus"))
-    n_overdose_counties = len(load_county_disruption("Drug overdose"))
+    county_labels = {c: display_cause(c) for c in HETEROGENEITY_CAUSES}
+    county_counts = {c: len(load_county_disruption(c)) for c in HETEROGENEITY_CAUSES}
     st.write(
-        f"For the two causes with real county-level data (diabetes: {n_diabetes_counties} counties; "
-        f"drug overdose: {n_overdose_counties} counties; pre-period 2015–2019 vs. post-period "
-        "2020–2024), disruption magnitude is strongly associated with socioeconomic and "
-        "healthcare-access context:"
+        "For each of the five causes with a 2020–21 disruption, each county's change in death rate "
+        "from 2015–19 to 2020–24 was compared against five county measures. Counties included: "
+        + "; ".join(f"{county_labels[c].lower()} {n:,}" for c, n in county_counts.items())
+        + ". Only FDR-significant associations count below."
     )
-    for cause in ["Diabetes mellitus", "Drug overdose"]:
-        cause_het = het[het["cause"] == cause].sort_values("p_value").copy()
-        cause_het["slope"] = cause_het.apply(
-            lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
-        )
-        cause_het["variable"] = cause_het["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het["variable"])
-        n_fdr_het = int(cause_het["fdr_significant"].sum())
-        st.write(f"**{display_cause(cause)}**: {n_fdr_het} of {len(cause_het)} context variables survive FDR correction:")
-        st.dataframe(
-            cause_het[["variable", "slope", "p_value", "fdr_significant"]],
-            column_config={
-                "variable": st.column_config.TextColumn("Context variable", width="large"),
-                "slope": st.column_config.NumberColumn("Direction/magnitude", format="%.2f", width="small"),
-                "p_value": st.column_config.NumberColumn("p-value", format="%.3g", width="small"),
-                "fdr_significant": st.column_config.CheckboxColumn("FDR-significant", width="small"),
-            },
-            hide_index=True,
-            width="stretch",
-        )
-    st.write(
-        "Higher uninsured rate, smoking rate, and obesity rate all predict **larger** disruption for "
-        "both causes; higher income predicts **smaller** disruption for both. Higher rurality also "
-        "predicts **smaller** disruption for both, the one genuinely counterintuitive result (it runs "
-        "against the common assumption that rural areas were hit hardest), though for drug overdose "
-        "this falls just short of FDR significance. These are associations, not causal claims: this "
-        "stage uses crude rate, not age-adjusted (unavailable at county granularity), so part of any "
-        "measured disruption could reflect population aging rather than a COVID-era shift. See Data "
-        "Quality for the full caveat."
+    for sentence in county_pattern_sentences(het, county_labels):
+        st.markdown(f"- {sentence}")
+    st.caption(
+        "These are associations, not causes. County rates are crude, not age-adjusted (CDC doesn't offer "
+        "age adjustment at county level for 2018–2024), so part of any change could reflect a county's "
+        "population getting older. That matters most for rurality, since rural counties tend to be older."
     )
 
-    # One real example county per cause per extreme, so the regression above
-    # isn't just an abstract slope -- picked live from the same parquet the
-    # map and regression use, not hardcoded, so it can't drift out of sync.
+    yearly_het = load_heterogeneity_summary_yearly()
+    flipped = []
+    for cause in YEARLY_COMPARISON_CAUSES:
+        now = het[(het["cause"] == cause) & (het["variable"] == "pct_rural")].iloc[0]
+        before = yearly_het[(yearly_het["cause"] == cause) & (yearly_het["variable"] == "pct_rural")].iloc[0]
+        # The earlier method pointed to smaller disruption in more rural counties
+        # (significantly for diabetes, just short of it for overdose).
+        if before["slope"] < 0 and not (now["fdr_significant"] and now["slope"] < 0):
+            flipped.append(cause)
+    if flipped:
+        st.info(
+            f"**This changed the rurality result.** The earlier year-by-year method kept only "
+            f"{len(load_county_disruption_yearly('Diabetes mellitus')):,} counties for diabetes and "
+            f"{len(load_county_disruption_yearly('Drug overdose')):,} for drug overdose, mostly larger and "
+            "less rural ones, and pointed to smaller disruption in more rural counties. With the rural "
+            "counties included, that no longer holds for "
+            + _names(flipped).lower()
+            + ". It was largely a product of which counties were left out. Geographic patterns → What "
+            "predicts it shows both versions side by side.",
+            icon=":material/sync_alt:",
+        )
+
+    with st.expander("Full regression results, by cause"):
+        for cause in HETEROGENEITY_CAUSES:
+            cause_het = het[het["cause"] == cause].sort_values("p_value").copy()
+            cause_het["slope"] = cause_het.apply(
+                lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
+            )
+            cause_het["variable"] = cause_het["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het["variable"])
+            st.write(
+                f"**{display_cause(cause)}** ({county_counts[cause]:,} counties): "
+                f"{int(cause_het['fdr_significant'].sum())} of {len(cause_het)} measures survive FDR correction"
+            )
+            st.dataframe(
+                cause_het[["variable", "slope", "p_value", "fdr_significant"]],
+                column_config={
+                    "variable": st.column_config.TextColumn("County measure", width="large"),
+                    "slope": st.column_config.NumberColumn("Direction/magnitude", format="%.2f", width="small"),
+                    "p_value": st.column_config.NumberColumn("p-value", format="%.3g", width="small"),
+                    "fdr_significant": st.column_config.CheckboxColumn("FDR-significant", width="small"),
+                },
+                hide_index=True,
+                width="stretch",
+            )
+
+    # One real example county per cause per extreme, so the regression isn't
+    # just an abstract slope -- picked live from the same parquet the map and
+    # regression use, not hardcoded, so it can't drift out of sync.
+    st.markdown("**The most and least changed counties**")
     county_examples = {}
-    example_cols = st.columns(2)
+    example_cols = st.columns(len(HETEROGENEITY_CAUSES))
     for i, cause in enumerate(HETEROGENEITY_CAUSES):
         cd = load_county_disruption(cause)
         most = cd.loc[cd["disruption"].idxmax()]
@@ -374,35 +402,29 @@ with counties_tab:
         county_examples[cause] = (most, least)
         with example_cols[i], st.container(border=True):
             st.write(f"**{display_cause(cause)}**")
-            st.write(
-                f"Most disrupted: **{most['county_name']}** "
-                f"({most['crude_rate_pre']:.1f} → {most['crude_rate_post']:.1f} per 100,000, "
-                f"{most['disruption']:+.1f})"
+            st.caption(
+                f"Largest rise: **{most['county_name']}** "
+                f"({most['crude_rate_pre']:.1f} → {most['crude_rate_post']:.1f} per 100,000)"
             )
-            st.write(
-                f"Least disrupted: **{least['county_name']}** "
-                f"({least['crude_rate_pre']:.1f} → {least['crude_rate_post']:.1f} per 100,000, "
-                f"{least['disruption']:+.1f})"
-            )
+            st.caption(f"Least change: **{least['county_name']}** ({least['disruption']:+.1f})")
 
     with st.expander("Why might these specific counties differ? Read this before assuming a cause"):
         st.write(
             "This project has no data on mask mandates, local ordinances, or age/race demographics "
-            "anywhere in its pipeline; the regression above uses only the five CHR&R variables in its "
-            "table. Assigning a specific policy or demographic story to any county below would be "
-            "invented, not measured, exactly what Methods → Language policy exists to rule out."
+            "anywhere in its pipeline; the regression uses only the five County Health Rankings measures. "
+            "Assigning a specific policy or demographic story to any county would be invented, not "
+            "measured, exactly what Methods → Language policy exists to rule out."
         )
         st.write(
-            "A single county's pre/post average is also genuinely noisy: five years of a modest "
-            "population's raw death counts can swing a lot on a handful of extra deaths, a more honest "
-            "explanation for an extreme value than any invented story. What can be checked honestly is "
-            "whether each example lines up with those same five variables:"
+            "A single county's average is also noisy: in a small county a handful of extra deaths can move "
+            "it a lot, which is often a better explanation for an extreme value than any story. What can be "
+            "checked is whether each example lines up with the same five measures:"
         )
         chr_df = load_chr_year(2024)
         for cause, (most, least) in county_examples.items():
             cd = load_county_disruption(cause)
             sample_means = chr_df[chr_df["county_fips"].isin(cd["county_fips"])][list(CONTEXT_VAR_LABELS)].mean()
-            for label, row in [("most disrupted", most), ("least disrupted", least)]:
+            for label, row in [("largest rise", most), ("least change", least)]:
                 crow = chr_df[chr_df["county_fips"] == row["county_fips"]]
                 if not len(crow):
                     continue
@@ -414,46 +436,31 @@ with counties_tab:
                 ]
                 st.caption(f"**{row['county_name']}** ({display_cause(cause)}, {label}): " + "; ".join(comparisons) + ".")
         st.write(
-            "Some line up with the regression's overall pattern (e.g. lower income tracking with more "
-            "disruption); others don't (the most-disrupted overdose county is also more rural than "
-            "average, the opposite of the aggregate trend). That mismatch is expected, not a "
-            "contradiction: an association across hundreds of counties doesn't reliably predict any "
-            "single one, the same ecological-fallacy caveat already in Methods → Known limitations."
+            "Some examples line up with the overall pattern and others don't. That's expected: an "
+            "association across thousands of counties doesn't reliably predict any single one, the same "
+            "ecological-fallacy caveat in Methods → Limitations & ethics."
         )
 
-    bias = load_heterogeneity_selection_bias()
+    bias = load_heterogeneity_selection_bias().set_index("cause")
     robustness = load_heterogeneity_rurality_robustness()
-    with st.expander("The rurality finding needs a real caveat: click to see why", icon=":material/warning:"):
+    with st.expander("The rurality result: caveats", icon=":material/warning:"):
         st.write(
-            "A self-audit of this project's own most counterintuitive finding found a genuine selection "
-            "bias: counties *excluded* from the regression (too few non-suppressed years) are far more "
-            "rural, on average, than the counties actually included."
+            "Counties left out (too few deaths for a reliable rate) are much more rural than those included, "
+            "so the most rural places are still under-represented, though far less than under the earlier "
+            "year-by-year method:"
         )
-        for _, row in bias.iterrows():
-            st.write(
-                f"**{display_cause(row['cause'])}**: excluded counties average **{row['mean_excluded']*100:.0f}% rural**, "
-                f"included counties average **{row['mean_included']*100:.0f}% rural**."
-            )
-        st.write(
-            "Splitting the included counties at their own median rurality shows the two causes aren't "
-            "equally trustworthy here:"
-        )
-        for cause in ["Diabetes mellitus", "Drug overdose"]:
+        for cause in HETEROGENEITY_CAUSES:
+            row = bias.loc[cause]
             r = robustness[robustness["cause"] == cause].set_index("half")
             upper, lower = r.loc["upper_half"], r.loc["lower_half"]
-            if upper["p_value"] < 0.05:
-                st.success(
-                    f"**{display_cause(cause)}**: relationship holds up among the more-rural half of the included "
-                    f"sample (p={upper['p_value']:.3g}), even strengthening there vs. the less-rural "
-                    f"half (p={lower['p_value']:.3g}).", icon=":material/check_circle:",
-                )
-            else:
-                st.error(
-                    f"**{display_cause(cause)}**: relationship is driven almost entirely by the less-rural half "
-                    f"(p={lower['p_value']:.3g}) and is not significant among the more-rural half "
-                    f"(p={upper['p_value']:.3g}). Read this cause's rurality result with real "
-                    f"skepticism.", icon=":material/error:",
-                )
+            st.write(
+                f"**{display_cause(cause)}**: excluded counties average {row['mean_excluded']*100:.0f}% rural vs. "
+                f"{row['mean_included']*100:.0f}% included. Split at the median rurality, "
+                + rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])[0].lower()
+                + rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])[1:]
+            )
+        st.caption("Rural counties also tend to be older, and county rates aren't age-adjusted, so a rural link "
+                   "can partly reflect aging rather than the pandemic.")
 
 with limits_tab:
     st.write(

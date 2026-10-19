@@ -6,6 +6,7 @@ from app.components.data_loading import (
     display_cause,
     heterogeneity_synthetic_banner,
     load_bridging_summary,
+    load_county_bridging_check,
     load_disruption_summary,
     load_heterogeneity_summary,
     load_negative_control,
@@ -142,6 +143,16 @@ with bridging_tab:
         "(`src/cleaning/bridging.estimate_vintage_offset`). This does not correct the data, it "
         "only measures the size of the jump, so a real discontinuity is never mistaken for a "
         "COVID effect."
+    )
+    county_check = load_county_bridging_check().iloc[0]
+    st.caption(
+        f"**County level too:** heart disease for 2018–2019 was pulled from both databases and compared "
+        f"county by county. Deaths matched in {county_check['share_deaths_identical']:.0%} of "
+        f"{int(county_check['n_counties']):,} counties and population in "
+        f"{county_check['share_population_identical']:.0%}; the largest rate difference among the "
+        f"{int(county_check['n_with_reliable_rate']):,} counties with a reliable rate was "
+        f"{county_check['max_relative_rate_diff']:.1%}. So comparing 2015–19 (older database) with "
+        "2020–24 (newer database) is safe at county level."
     )
 
 with sensitivity_tab:

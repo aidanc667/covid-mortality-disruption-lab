@@ -28,8 +28,8 @@ QUESTION = (
     "Did COVID-19 disrupt the trend for six other leading causes of death, "
     "has it recovered, and where did it hit hardest?"
 )
-# The two largest 2020-21 disruptions, and the two causes with county data.
-HIGHLIGHT = set(HETEROGENEITY_CAUSES)
+# The two largest 2020-21 disruptions.
+HIGHLIGHT = {"Drug overdose", "Diabetes mellitus"}
 # End-of-line labels on chart A; "Alzheimer's" is shortened so it fits at phone width.
 CHART_LABELS = {c: display_cause(c) for c in TEST_CAUSES} | {"Alzheimer's disease": "Alzheimer's"}
 AGE_ADJUSTED_HELP = (
@@ -81,12 +81,15 @@ with right, st.container(border=True):
         width="stretch",
     )
 
-diabetes_n = scope.county_counts["Diabetes mellitus"]
-overdose_n = scope.county_counts["Drug overdose"]
+# County coverage differs by cause (rarer causes have more counties below
+# CDC's reliability threshold), so show the widest and name the narrowest.
+counts = scope.county_counts
+widest, narrowest = max(counts, key=counts.get), min(counts, key=counts.get)
 st.html(metric_strip_html([
     (str(scope.n_years), "years of CDC data", f"{scope.first_year}–{scope.last_year}, CDC WONDER"),
     (str(len(TEST_CAUSES)), "causes tested", "Plus a negative control"),
-    (f"{diabetes_n:,}", "counties analyzed", f"Diabetes; {overdose_n:,} for drug overdose"),
+    (f"{counts[widest]:,}", "counties",
+     f"Analyzed across {len(counts)} causes ({counts[narrowest]:,} for {display_cause(narrowest).lower()})"),
     ("Pre-registered", "", "Hypotheses locked before any 2020+ data"),
 ]))
 

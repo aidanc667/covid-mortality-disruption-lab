@@ -20,7 +20,7 @@ from src.analysis.excess_mortality import (
 )
 from src.analysis.changepoints import fit_pelt, fit_binseg, fit_segmented_regression
 from src.analysis.heterogeneity import (
-    compute_county_disruption, regress_disruption_on_context,
+    compute_county_disruption, compute_pooled_county_disruption, regress_disruption_on_context,
     compute_selection_bias, check_within_sample_robustness,
 )
 from src.cleaning.bridging import estimate_vintage_offset, is_bridging_reliable
@@ -29,7 +29,9 @@ from src.ingestion.county_health_rankings import load_year as load_chr_year
 from src.utils.config import OUTPUTS_MODELS, DATA_RAW
 from src.utils.synthetic_mortality import clear_synthetic_marker, SYNTHETIC_MARKER, SYNTHETIC_HETEROGENEITY_MARKER
 
-HETEROGENEITY_CAUSES = ["Diabetes mellitus", "Drug overdose"]
+# The original year-by-year county method was run on these two causes only;
+# its results are kept as a comparison for the pooled method.
+YEARLY_COMPARISON_CAUSES = ["Diabetes mellitus", "Drug overdose"]
 HETEROGENEITY_PRE_YEARS = (2015, 2019)
 HETEROGENEITY_POST_YEARS = (2020, 2024)
 # County-level heterogeneity uses crude rate, not age-adjusted rate, for
@@ -153,6 +155,75 @@ def load_real_county_data(cause: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         subdir_files=[CDC_WONDER_DIR / f"d158_county_{slug}_2020_2024.csv"], cause_label=cause
     )
     return pre_result.df, post_result.df
+
+
+def load_pooled_county_data(cause: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load one cause's pooled county exports: one row per county for
+    2015-2019 (D76) and for 2020-2024 (D158), per
+    docs/manual_data_acquisition.md's pooled section."""
+    slug = CAUSE_SLUGS[cause]
+    pre = load_manual_export(
+        subdir_files=[CDC_WONDER_DIR / f"d76_county_pooled_{slug}_2015_2019.csv"], cause_label=cause
+    )
+    post = load_manual_export(
+        subdir_files=[CDC_WONDER_DIR / f"d158_county_pooled_{slug}_2020_2024.csv"], cause_label=cause
+    )
+    if not (pre.pooled and post.pooled):
+        raise ValueError(f"{cause}: expected pooled (County-only) exports, got a year-by-year file")
+    return pre.df, post.df
+
+
+def run_county_stage(
+    disruption_by_cause: dict[str, pd.DataFrame], chr_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Regression on the five context variables, FDR-corrected separately per
+    cause (research_protocol.md §10: "for a given cause"), plus the rurality
+    selection-bias and within-sample robustness checks for each cause."""
+    context_vars = ["pct_uninsured_chr", "pct_smokers", "pct_obese", "median_income_chr", "pct_rural"]
+    reg_rows, bias_rows, robustness_rows = [], [], []
+    for cause, disruption_df in disruption_by_cause.items():
+        reg = regress_disruption_on_context(disruption_df, chr_df, context_vars)
+        p_values = dict(zip(reg["variable"], reg["p_value"].fillna(1.0)))
+        reg["fdr_significant"] = reg["variable"].map(benjamini_hochberg(p_values))
+        reg["cause"] = cause
+        reg_rows.append(reg)
+        # Excluded counties skew rural, so any rurality finding is checked
+        # against the included/excluded gap and within the more-rural half.
+        bias = compute_selection_bias(disruption_df, chr_df, "pct_rural")
+        bias["cause"] = cause
+        bias_rows.append(bias)
+        robustness = check_within_sample_robustness(disruption_df, chr_df, "pct_rural")
+        robustness["cause"] = cause
+        robustness_rows.append(robustness)
+    return (
+        pd.concat(reg_rows, ignore_index=True),
+        pd.DataFrame(bias_rows),
+        pd.concat(robustness_rows, ignore_index=True),
+    )
+
+
+def check_county_bridging() -> pd.DataFrame:
+    """County-level vintage check: heart disease 2018-2019 pulled from both
+    D76 and D158, compared county by county. Nationally the two databases
+    already match exactly over 2018-2019; this checks the same holds per
+    county, since the county stage compares D76 (pre) with D158 (post)."""
+    def load(db: str) -> pd.DataFrame:
+        df = load_manual_export(
+            subdir_files=[CDC_WONDER_DIR / f"{db}_county_pooled_heart_2018_2019.csv"], cause_label="Diseases of heart"
+        ).df.set_index("county_fips")
+        return df[["deaths", "population", "crude_rate"]].apply(pd.to_numeric, errors="coerce")
+
+    old, new = load("d76"), load("d158")
+    both = old.join(new, lsuffix="_d76", rsuffix="_d158", how="inner")
+    rates = both[["crude_rate_d76", "crude_rate_d158"]].dropna()
+    rel = ((rates["crude_rate_d158"] - rates["crude_rate_d76"]) / rates["crude_rate_d76"]).abs()
+    return pd.DataFrame([{
+        "cause": "Diseases of heart", "years": "2018-2019",
+        "n_counties": len(both), "n_with_reliable_rate": len(rates),
+        "share_deaths_identical": float((both["deaths_d76"] == both["deaths_d158"])[both["deaths_d76"].notna()].mean()),
+        "share_population_identical": float((both["population_d76"] == both["population_d158"]).mean()),
+        "median_relative_rate_diff": float(rel.median()), "max_relative_rate_diff": float(rel.max()),
+    }])
 
 
 def check_bridging(d76_df: pd.DataFrame, d158_df: pd.DataFrame) -> pd.DataFrame:
@@ -390,67 +461,44 @@ def main():
         national_rows.append(post[["cause", "year", "age_adjusted_rate"]])
     national_df = pd.concat(national_rows, ignore_index=True)
 
-    print("Running county-level heterogeneity analysis (REAL -- diabetes, overdose)...")
     chr_df = load_chr_year(2024)
 
-    heterogeneity_rows = []
-    selection_bias_rows = []
-    robustness_rows = []
-    for cause in HETEROGENEITY_CAUSES:
-        pre, post = load_real_county_data(cause)
-        print(
-            f"  {cause}: pre {len(pre)} rows / {pre['county_fips'].nunique()} counties, "
-            f"post {len(post)} rows / {post['county_fips'].nunique()} counties"
-        )
-        disruption_df = compute_county_disruption(
-            pre, post, value_col=HETEROGENEITY_VALUE_COL, min_years_each_period=2
-        )
-        print(f"    {len(disruption_df)} counties with >=2 non-suppressed years in both periods")
-
-        context_vars = ["pct_uninsured_chr", "pct_smokers", "pct_obese", "median_income_chr", "pct_rural"]
-        reg_result = regress_disruption_on_context(disruption_df, chr_df, context_vars)
-        reg_result["cause"] = cause
-        heterogeneity_rows.append(reg_result)
-
-        # Selection-bias check (research_protocol.md's 2026-09-01 addendum):
-        # the min_years_each_period filter excludes low-death-count counties,
-        # which are disproportionately rural -- so any rurality finding needs
-        # checking against whether the included/excluded samples actually
-        # differ on rurality, and whether the relationship survives when
-        # restricted to just the more-rural half of the included counties.
-        bias = compute_selection_bias(disruption_df, chr_df, "pct_rural")
-        bias["cause"] = cause
-        selection_bias_rows.append(bias)
-        robustness = check_within_sample_robustness(disruption_df, chr_df, "pct_rural")
-        robustness["cause"] = cause
-        robustness_rows.append(robustness)
-        print(
-            f"    Selection-bias check (rurality): included mean {bias['mean_included']*100:.1f}% rural, "
-            f"excluded mean {bias['mean_excluded']*100:.1f}% rural"
-        )
-
-        disruption_df["cause"] = cause
-        disruption_df.to_parquet(
+    # Protocol §10 / design spec §5.7: every test cause with a significant
+    # 2020-21 disruption gets a county analysis (research_protocol.md's
+    # 2026-10-19 addendum). Derived from the results, not hardcoded.
+    county_causes = [c for c in TEST_CAUSES if summary_df.set_index("cause").loc[c, "persistence_class"] != "No significant disruption"]
+    print(f"Running county-level heterogeneity analysis (REAL, pooled 5-year rates) for: {county_causes}")
+    pooled = {}
+    for cause in county_causes:
+        pre, post = load_pooled_county_data(cause)
+        pooled[cause] = compute_pooled_county_disruption(pre, post, value_col=HETEROGENEITY_VALUE_COL)
+        print(f"  {cause}: {len(pooled[cause])} counties with a reliable pooled rate in both periods")
+    heterogeneity_summary, selection_bias_df, robustness_df = run_county_stage(pooled, chr_df)
+    for cause, disruption_df in pooled.items():
+        disruption_df.assign(cause=cause).to_parquet(
             OUTPUTS_MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet", index=False
         )
-    heterogeneity_summary = pd.concat(heterogeneity_rows, ignore_index=True)
-    # FDR correction is applied SEPARATELY per cause (research_protocol.md
-    # #10: "for a given cause"), not pooled across both causes into one
-    # family of 10 -- found and fixed 2026-09-01. Pooling both causes
-    # together didn't happen to flip any flag on this data (verified by
-    # comparing both ways before fixing), but it wasn't what was
-    # documented and isn't guaranteed to stay harmless.
-    fdr_significant_col = pd.Series(index=heterogeneity_summary.index, dtype=bool)
-    for cause in heterogeneity_summary["cause"].unique():
-        cause_mask = heterogeneity_summary["cause"] == cause
-        cause_rows = heterogeneity_summary[cause_mask]
-        cause_p_values = dict(zip(cause_rows["variable"], cause_rows["p_value"].fillna(1.0)))
-        cause_fdr = benjamini_hochberg(cause_p_values)
-        fdr_significant_col[cause_mask] = cause_rows["variable"].map(cause_fdr)
-    heterogeneity_summary["fdr_significant"] = fdr_significant_col
 
-    selection_bias_df = pd.DataFrame(selection_bias_rows)
-    robustness_df = pd.concat(robustness_rows, ignore_index=True)
+    # Comparison only: the original year-by-year method (>=2 reliable years in
+    # each period) for the two causes it was run on. Kept so the switch to
+    # pooled rates can be checked against the earlier results, not hidden.
+    print("Running year-by-year comparison (diabetes, overdose)...")
+    yearly = {}
+    for cause in YEARLY_COMPARISON_CAUSES:
+        pre, post = load_real_county_data(cause)
+        yearly[cause] = compute_county_disruption(
+            pre, post, value_col=HETEROGENEITY_VALUE_COL, min_years_each_period=2
+        )
+        yearly[cause].assign(cause=cause).to_parquet(
+            OUTPUTS_MODELS / f"county_disruption_yearly_{cause.lower().replace(' ', '_')}.parquet", index=False
+        )
+        print(f"  {cause}: {len(yearly[cause])} counties (year-by-year rule)")
+    yearly_summary, _, _ = run_county_stage(yearly, chr_df)
+    yearly_summary.to_parquet(OUTPUTS_MODELS / "heterogeneity_summary_yearly.parquet", index=False)
+
+    county_bridging = check_county_bridging()
+    county_bridging.to_parquet(OUTPUTS_MODELS / "county_bridging_check.parquet", index=False)
+    print(f"  County vintage check (heart disease, 2018-2019): {county_bridging.iloc[0].to_dict()}")
 
     OUTPUTS_MODELS.mkdir(parents=True, exist_ok=True)
     national_df.to_parquet(OUTPUTS_MODELS / "national_mortality_series.parquet", index=False)

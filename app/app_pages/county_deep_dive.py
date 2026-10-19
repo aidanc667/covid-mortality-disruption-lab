@@ -14,7 +14,7 @@ from src.ingestion.county_health_rankings import load_year as load_chr_year
 st.title("County lookup")
 heterogeneity_synthetic_banner()
 st.caption(
-    "Pre (2015–2019) vs. post (2020–2024) crude death rates for the two causes with county-level data, "
+    "Pre (2015–2019) vs. post (2020–2024) crude death rates for the five causes with county-level data, "
     "plus local context. Only period averages exist at county level, not year-by-year trends "
     "(research_protocol.md §4)."
 )
@@ -76,16 +76,18 @@ if len(county_rows):
         alt.Chart(rates)
         .mark_bar(cornerRadiusEnd=2)
         .encode(
-            y=alt.Y("period:N", title=None, axis=alt.Axis(ticks=False, domain=False)),
+            # Same order as the cards above; the two periods sit side by side per cause.
+            y=alt.Y("cause:N", title=None, sort=[display_cause(c) for c in HETEROGENEITY_CAUSES],
+                    axis=alt.Axis(ticks=False, domain=False, labelFontSize=12, labelLimit=0)),
+            yOffset=alt.YOffset("period:N", sort=["2015–2019", "2020–2024"]),
             x=alt.X("rate:Q", title="Crude death rate per 100,000"),
             color=alt.Color(
                 "period:N", scale=alt.Scale(domain=["2015–2019", "2020–2024"], range=["#B4C0CC", "#2C5D86"]),
-                legend=None,
+                legend=alt.Legend(title=None, orient="top"),
             ),
-            row=alt.Row("cause:N", title=None, header=alt.Header(labelAngle=0, labelAlign="left")),
             tooltip=["cause:N", "period:N", alt.Tooltip("rate:Q", format=".1f")],
         )
-        .properties(height=60),
+        .properties(height=44 * rates["cause"].nunique(), padding={"left": 16, "top": 4, "right": 8, "bottom": 4}),
         width="stretch",
     )
 
