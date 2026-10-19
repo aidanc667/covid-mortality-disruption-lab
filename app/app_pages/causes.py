@@ -303,10 +303,14 @@ with trend_tab:
         )
 
 with robustness_tab:
+    autocorr = r["residual_autocorrelation"]
     st.caption(
-        "Same acute 2020–21 test, corrected for a real limitation: the primary p-value above assumes "
-        "each baseline year is independent noise, which measured autocorrelation shows isn't true for "
-        "this cause. Does the result survive an autocorrelation-robust standard error instead?"
+        "Same acute 2020–21 test, with a different uncertainty calculation: the primary p-value above "
+        "assumes each baseline year is independent noise. "
+        + (f"For this cause that's questionable (lag-1 autocorrelation {autocorr:.2f}). "
+           if autocorr >= 0.3 else
+           f"For this cause it roughly holds (lag-1 autocorrelation {autocorr:.2f}), so this is a confirmation. ")
+        + "Does the result survive an autocorrelation-robust standard error?"
     )
     st.metric(
         "HAC p-value", f"{r['hac_p_value']:.2g}",

@@ -6,7 +6,8 @@ disruption_summary.parquet -- writes a separate comparison output.
 
 Three axes, each independent of the others (only one choice is varied at
 a time, primary held fixed on the others):
-1. Baseline window: 1999-2019 (primary) vs. 2010-2019 (shorter, more recent).
+1. Baseline window: each cause's primary window (1999-2019, or 2010-2019 for the
+   causes in BASELINE_START_YEAR_OVERRIDES) vs. the other one.
 2. Significance threshold: alpha=0.05 (primary) vs. alpha=0.01 (stricter).
 3. Baseline trend shape: linear (primary) vs. quadratic (checks whether
    assuming a straight-line pre-pandemic trend, rather than a curved one,
@@ -83,7 +84,7 @@ def main():
     rows = []
 
     # Axis 1: baseline window. For the 4 causes still on the original
-    # 1999-2019 window, primary=1999 / alt=2010 as before. For the 2 causes
+    # 1999-2019 window, primary=1999 / alt=2010 as before. For the causes
     # already corrected to a 2010-2019 primary window (research_protocol.md's
     # 2026-09-01 baseline-window addendum), primary/alt are flipped so this
     # axis still tests "does window choice matter" around whichever window
@@ -100,7 +101,7 @@ def main():
         rows.append({
             # Check name stays constant across all causes -- app pages and
             # the report filter on this exact string -- even though which
-            # year is "primary" vs "alt" flips for the 2 corrected causes.
+            # year is "primary" vs "alt" flips for the corrected causes.
             "cause": cause, "check": "baseline_window (1999 vs 2010)",
             "primary_classification": primary["persistence_class"], "primary_p_value": primary["p_value"],
             "alt_classification": alt["persistence_class"], "alt_p_value": alt["p_value"],
@@ -126,7 +127,7 @@ def main():
 
     # Axis 2: significance threshold (alpha=0.05 vs alpha=0.01). Both sides
     # use each cause's actual primary baseline window (1999, or 2010 for the
-    # 2 corrected causes) -- only alpha varies.
+    # corrected causes) -- only alpha varies.
     print(f"Axis 2: significance threshold (0.05 vs {ALT_ALPHA})...")
     for cause in TEST_CAUSES:
         primary_start = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
@@ -142,7 +143,7 @@ def main():
     # Axis 3: baseline trend shape (linear vs quadratic). Both sides fit on
     # the SAME baseline window (each cause's actual primary) -- otherwise
     # this would compare "linear on 2010-2019" against "quadratic on
-    # 1999-2019" for the 2 corrected causes, which isn't a fair test of
+    # 1999-2019" for the corrected causes, which isn't a fair test of
     # trend shape alone.
     print("Axis 3: baseline trend shape (linear vs quadratic)...")
     for cause in TEST_CAUSES:

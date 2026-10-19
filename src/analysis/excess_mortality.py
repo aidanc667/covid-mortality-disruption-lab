@@ -214,8 +214,8 @@ def compute_hac_pvalue(
     OLS prediction-interval formula, which assumes independent residuals
     year to year -- research_protocol.md #12 documents this as a real,
     likely understated limitation: measured lag-1 autocorrelation is
-    0.50-0.82 for half the test causes (diabetes, drug overdose,
-    Alzheimer's, cerebrovascular disease), not the near-zero the classical
+    0.44-0.65 for some test causes (drug overdose, cerebrovascular disease,
+    Alzheimer's) on their current baselines, not the near-zero the classical
     formula effectively assumes.
 
     Refits the baseline regression independently (BaselineTrend only

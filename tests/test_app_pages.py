@@ -118,7 +118,7 @@ def test_findings_tabs_and_data_driven_takeaway():
 
 @pytest.mark.parametrize("page", PAGES)
 def test_no_page_claims_effects_persisted_through_2024(page):
-    # In 2024 only diabetes and cancer are significantly above trend, so copy
+    # In 2024 only cancer is significantly above trend, so copy
     # implying every disrupted cause was still off trend in 2024 is false.
     text = _page_text(_app_on(page))
     for phrase in ("still-unresolved", "none have reversed", "None of the disrupted causes have resolved",
@@ -130,8 +130,9 @@ def test_findings_overdose_dip_is_stated():
     text = _page_text(_app_on("findings"))
     # Overdose is "Persisted" (2022-23 significantly above) yet significantly below trend in 2024;
     # the caption says so rather than hiding it behind the label.
-    assert "Drug overdose is still classed Persisted" in text
-    assert "had fallen significantly below it (-18.0%)" in text
+    # disruption_deviations: overdose 2022 and 2023 significantly above, 2024 -18.0% significant.
+    assert "Drug overdose is still classed Persisted because its 2022–2023 years ran significantly above trend" in text
+    assert "had moved significantly below it (-18.0%)" in text
 
 
 def test_findings_keeps_every_caveat_section():

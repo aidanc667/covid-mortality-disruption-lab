@@ -79,7 +79,10 @@ CAUSE_EXPLANATIONS = {
             "code without lab confirmation, and research has found evidence that SARS-CoV-2 was "
             "sometimes substituted for competing causes of death on certificates, meaning some of "
             "the reported diabetes-mortality rise could reflect how deaths were coded, not only how "
-            "many actually occurred. This doesn't cancel out the finding (excess mortality still "
+            "many actually occurred. Baseline note: diabetes deaths stopped falling around 2010, so "
+            "this project measures against a 2010-2019 trend (a post hoc correction); against the "
+            "older 1999-2019 trend the 2020-21 jump looks larger (+27% vs. +17%) and 2024 still looks "
+            "elevated (+15% vs. about 0%). This doesn't cancel out the finding (excess mortality still "
             "shows up even in analyses designed to account for this), but it's a genuine source of "
             "uncertainty in the exact magnitude."
         ),

@@ -174,14 +174,17 @@ with results_tab:
             definition += f", and {_names(below_now)} had dipped below it ({gaps}, not significant)"
         definition += "."
     if crossed:
-        gaps = ", ".join(
-            f"{latest.loc[c, 'deviation'] / latest.loc[c, 'expected'] * 100:+.1f}%" for c in crossed
-        )
-        definition += (
-            f" {_names(crossed)} {'is' if len(crossed) == 1 else 'are'} still classed Persisted because "
-            f"its 2022–23 years ran significantly above trend, but by {latest_year} {'it' if len(crossed) == 1 else 'they'} "
-            f"had fallen significantly below it ({gaps})."
-        )
+        for c in crossed:
+            rose = summary.set_index("cause").loc[c, "acute_pct_deviation"] > 0
+            post = deviations[(deviations["cause"] == c) & deviations["year"].between(2022, latest_year - 1)
+                              & deviations["significant"] & ((deviations["deviation"] > 0) == rose)]
+            years = "–".join(str(int(y)) for y in (post["year"].min(), post["year"].max())) if len(post) else "2022–24"
+            pct = latest.loc[c, "deviation"] / latest.loc[c, "expected"] * 100
+            definition += (
+                f" {display_cause(c)} is still classed Persisted because its {years} years ran significantly "
+                f"{'above' if rose else 'below'} trend, but by {latest_year} it had moved significantly "
+                f"{'below' if rose else 'above'} it ({pct:+.1f}%)."
+            )
     st.caption(definition)
     display = summary.sort_values("p_value").copy()
     if sensitivity_check_available():
