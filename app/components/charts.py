@@ -1,0 +1,128 @@
+"""Chart builders and the small pure helpers behind them. No Streamlit
+calls here, so everything can be unit-tested directly."""
+import altair as alt
+import pandas as pd
+
+MONO = "IBM Plex Mono"
+MUTED = "#5A6875"
+GRID = "#E1E6EB"
+TREND_LINE = "#8795A3"
+# How much non-highlighted causes are washed toward white on chart A.
+BACKGROUND_TINT = 0.55
+# Minimum vertical spacing between end-of-line labels, in pixels.
+LABEL_GAP_PX = 13
+
+
+def deviation_pct(deviations: pd.DataFrame) -> pd.DataFrame:
+    """Copy of `deviations` with `pct`: (observed - expected) as a percent of expected."""
+    if (deviations["expected"] == 0).any():
+        raise ValueError("expected rate is 0 for at least one row; percent deviation is undefined")
+    out = deviations.copy()
+    out["pct"] = out["deviation"] / out["expected"] * 100
+    return out
+
+
+def tint(hex_color: str, amount: float) -> str:
+    """Mix a #RRGGBB color toward white by `amount` (0 = unchanged, 1 = white)."""
+    if not 0 <= amount <= 1:
+        raise ValueError(f"amount must be between 0 and 1, got {amount}")
+    h = hex_color.removeprefix("#")
+    if len(h) != 6:
+        raise ValueError(f"expected a #RRGGBB color, got {hex_color!r}")
+    channels = [int(h[i:i + 2], 16) for i in (0, 2, 4)]  # int() raises ValueError on non-hex
+    return "#" + "".join(f"{round(c + (255 - c) * amount):02X}" for c in channels)
+
+
+def spread_labels(values: list[float], min_gap: float) -> list[float]:
+    """Nudge end-of-line label positions so no two sit closer than `min_gap`
+    (data units). Walks from the highest value down, pushing crowded labels
+    lower; the top label never moves. Output keeps the input order."""
+    out = list(values)
+    prev = None
+    for i in sorted(range(len(values)), key=lambda i: values[i], reverse=True):
+        if prev is not None:
+            out[i] = min(values[i], prev - min_gap)
+        prev = out[i]
+    return out
+
+
+def gap_from_trend_chart(
+    dev: pd.DataFrame,
+    colors: dict[str, str],
+    labels: dict[str, str],
+    highlight: set[str],
+    height: int = 300,
+) -> alt.LayerChart:
+    """Home chart A: each cause's percent gap from its projected pre-pandemic
+    trend, one line per cause. Highlighted causes are drawn in full color; the
+    rest in a light tint of their own color, so the Home cause chips (full
+    color) still match their lines."""
+    present = set(dev["cause"])
+    causes = [c for c in labels if c in present]
+    if not causes:
+        raise ValueError("none of the labelled causes appear in the deviation data")
+
+    data = dev[dev["cause"].isin(causes)].copy()
+    data["label"] = data["cause"].map(labels)
+    data["highlighted"] = data["cause"].isin(highlight)
+    color = alt.Color(
+        "cause:N",
+        scale=alt.Scale(
+            domain=causes,
+            range=[colors[c] if c in highlight else tint(colors[c], BACKGROUND_TINT) for c in causes],
+        ),
+        legend=None,
+    )
+
+    years = sorted(int(y) for y in data["year"].unique())
+    y_lo, y_hi = float(min(data["pct"].min(), 0)), float(max(data["pct"].max(), 0))
+    pad = (y_hi - y_lo) * 0.08 or 1.0
+    y_domain = [y_lo - pad, y_hi + pad]
+    y_scale = alt.Scale(domain=y_domain, nice=False)
+    # Extend the x domain to the right so the end-of-line labels have room
+    # inside the plot instead of being clipped at its edge.
+    x_scale = alt.Scale(domain=[years[0] - 0.2, years[-1] + 1.7], nice=False)
+    x = alt.X("year:Q", scale=x_scale, title=None, axis=alt.Axis(
+        values=years, format="d", labelFont=MONO, labelColor=MUTED, grid=False, ticks=False, domain=False))
+    y = alt.Y("pct:Q", scale=y_scale, title=None, axis=alt.Axis(
+        labelFont=MONO, labelColor=MUTED, gridColor=GRID, ticks=False, domain=False, tickCount=5,
+        labelExpr="datum.value == 0 ? '0%' : (datum.value > 0 ? '+' : '') + datum.value + '%'"))
+
+    # Two line layers so highlighted causes are always drawn on top.
+    lines_bg = alt.Chart(data[~data["highlighted"]]).mark_line(strokeWidth=1.5, strokeJoin="round").encode(
+        x=x, y=y, color=color)
+    lines_fg = alt.Chart(data[data["highlighted"]]).mark_line(strokeWidth=2.6, strokeJoin="round").encode(
+        x=x, y=y, color=color)
+    points = alt.Chart(data).mark_circle(size=34).encode(
+        x=x, y=y, color=color,
+        opacity=alt.condition("datum.highlighted", alt.value(1.0), alt.value(0.0)),
+        tooltip=[
+            alt.Tooltip("label:N", title="Cause"),
+            alt.Tooltip("year:Q", title="Year", format="d"),
+            alt.Tooltip("pct:Q", title="vs. pre-pandemic trend", format="+.1f"),
+        ],
+    )
+
+    zero = pd.DataFrame({"year": [years[0] - 0.2], "pct": [0.0], "text": ["pre-pandemic trend"]})
+    trend_rule = alt.Chart(zero).mark_rule(color=TREND_LINE, strokeDash=[4, 3]).encode(y=alt.Y("pct:Q", scale=y_scale))
+    trend_label = alt.Chart(zero).mark_text(
+        align="left", dx=4, dy=11, fontStyle="italic", fontSize=11, color=MUTED,
+    ).encode(x=x, y=y, text="text:N")
+
+    ends = data[data["year"] == years[-1]].copy()
+    min_gap = (y_domain[1] - y_domain[0]) * LABEL_GAP_PX / height
+    ends["label_y"] = spread_labels(ends["pct"].tolist(), min_gap)
+    ends["end_text"] = ends.apply(lambda r: f"{r['label']} {r['pct']:+.0f}%", axis=1)
+    end_y = alt.Y("label_y:Q", scale=y_scale)
+    end_labels = [
+        alt.Chart(ends[ends["highlighted"]]).mark_text(align="left", dx=8, fontSize=11.5, fontWeight=600)
+        .encode(x=x, y=end_y, text="end_text:N", color=color),
+        alt.Chart(ends[~ends["highlighted"]]).mark_text(align="left", dx=8, fontSize=11, color=MUTED)
+        .encode(x=x, y=end_y, text="end_text:N"),
+    ]
+
+    return (
+        alt.layer(trend_rule, trend_label, lines_bg, lines_fg, points, *end_labels)
+        .properties(height=height)
+        .configure_view(stroke=None)
+    )
