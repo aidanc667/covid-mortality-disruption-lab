@@ -40,3 +40,6 @@ outputs/reports/*
 .streamlit/secrets.toml
 .pytest_cache/
 .ipynb_checkpoints/
+
+# Brainstorming companion mockups
+.superpowers/
