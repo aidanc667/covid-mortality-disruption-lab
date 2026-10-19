@@ -205,6 +205,6 @@ with sensitivity_tab:
         st.caption(
             "The negative control's baseline-window row (age-adjusted rate) disagreeing across windows "
             "reproduces the already-documented rounding artifact (see \"Why raw counts, not "
-            "age-adjusted rate?\" above), not a new instability. Its actual gate metric (raw death "
+            "age-adjusted rate?\" in the Negative control tab), not a new instability. Its actual gate metric (raw death "
             "counts, separate row above) is stable across both windows."
         )

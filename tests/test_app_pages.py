@@ -99,18 +99,39 @@ def test_findings_tabs_and_data_driven_takeaway():
     disrupted = summary.loc[summary["persistence_class"] != "No significant disruption", "cause"]
     still_above = [c for c in disrupted if latest.loc[c, "significant"] and latest.loc[c, "deviation"] > 0]
     html = " ".join(e.proto.body for e in at.get("html"))
-    assert f"{len(disrupted)} of 6 causes departed" in html
+    # 5 = every test cause except Alzheimer's (the only "No significant disruption"), pinned by hand.
+    assert len(disrupted) == 5
+    assert "5 of 6 causes departed" in html
     # Expected names written out by hand from the 2024 deviations table.
     assert set(still_above) == {"Diabetes mellitus", "Malignant neoplasms"}
     assert "only Diabetes and Cancer were still significantly above it" in html
 
 
-def test_findings_copy_no_longer_contradicts_the_2024_data():
+@pytest.mark.parametrize("page", PAGES)
+def test_no_page_claims_effects_persisted_through_2024(page):
+    # In 2024 only diabetes and cancer are significantly above trend, so copy
+    # implying every disrupted cause was still off trend in 2024 is false.
+    text = _page_text(_app_on(page))
+    for phrase in ("still-unresolved", "none have reversed", "None of the disrupted causes have resolved",
+                   "still significant, same direction, through", "none of them has fully returned"):
+        assert phrase not in text, phrase
+
+
+def test_findings_overdose_dip_is_stated():
     text = _page_text(_app_on("findings"))
-    for phrase in ("still-unresolved", "none have reversed", "None of the disrupted causes have resolved"):
-        assert phrase not in text
     # The overdose dip below trend in 2024 is stated, not hidden behind "Persisted".
     assert "Drug overdose -4.3%" in text
+
+
+def test_findings_keeps_every_caveat_section():
+    labels = _expander_labels(_app_on("findings"))
+    for caveat in (
+        "This wasn't the first choice: a real methodological correction",
+        "See the full robustness breakdown",
+        "Why might these specific counties differ? Read this before assuming a cause",
+        "The rurality finding needs a real caveat: click to see why",
+    ):
+        assert caveat in labels
 
 
 def test_causes_page_tabs_and_takeaway():
@@ -130,6 +151,17 @@ def test_geographic_patterns_tabs_and_takeaway():
     # slopes positive, income and rurality negative.
     assert ("Diabetes disruption was larger where obesity, smoking and the uninsured rate were higher, "
             "and smaller where household income and rurality were higher.") in html
+    assert "The rurality result has a selection-bias caveat" in html
+
+
+def test_geographic_takeaway_leaves_out_associations_that_fail_fdr():
+    at = _app_on("geographic_heterogeneity")
+    at.button_group[0].set_value("Drug overdose").run()
+    html = " ".join(e.proto.body for e in at.get("html"))
+    # heterogeneity_summary, overdose: rurality p=0.069, not FDR-significant; the other four are.
+    assert ("Drug overdose disruption was larger where smoking, the uninsured rate and obesity were higher, "
+            "and smaller where household income was higher.") in html
+    assert "rurality" not in html
 
 
 def test_county_lookup_shows_pre_post_chart():

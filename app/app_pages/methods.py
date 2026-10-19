@@ -159,9 +159,11 @@ with stats_tab:
     )
     st.write(
         "**Three-way persistence classification.** For causes with a significant acute-phase "
-        "(2020–2021) disruption: *Persisted* (still significant, same direction, through "
-        "2024), *Resolved* (shrank back within the prediction interval), or *Reversed* "
-        "(flipped sign). A binary scheme would flatten a reversal into a false \"resolved.\""
+        "(2020–2021) disruption: *Persisted* (the 2022–2024 years that are still significantly "
+        "off trend lean the same direction as 2020–21; it does not require 2024 itself to be "
+        "significant), *Resolved* (no 2022–2024 year significantly off trend), or *Reversed* "
+        "(those significant later years lean the opposite way). A binary scheme would flatten a "
+        "reversal into a false \"resolved.\""
     )
     st.write(
         "**Independent cross-check.** Three methods (PELT, binary segmentation, segmented "
@@ -257,7 +259,7 @@ with limits_tab:
         "diabetes, overdose, and Alzheimer's; 0.50 for stroke; 0.12–0.19 for heart "
         "disease and cancer, where the assumption roughly holds). This was a disclosed-but-unmodeled "
         "gap; a Newey-West (HAC) autocorrelation-robust version of the test is now also reported "
-        "(see Statistical methods above and Causes of death). It raises the classical p-value for "
+        "(see the Statistics tab and Causes of death). It raises the classical p-value for "
         "the high-autocorrelation causes by roughly 1-2 orders of magnitude, but all 5 causes "
         "previously found significant remain significant under it\n"
         "- **Heart disease and stroke use a corrected 2010–2019 baseline, not "
@@ -284,7 +286,7 @@ with limits_tab:
     # would be slow and fragile). Update by hand when tests/ changes;
     # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
     st.caption(
-        ":green-badge[151 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[160 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 

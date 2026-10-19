@@ -17,7 +17,7 @@ Of the 6 major causes of death tested, **5 departed significantly from their pre
 
 "Deviation" is the effect size: how far the observed rate is from the expected pre-pandemic trend, as a percent. This matters because significance and magnitude are different claims: diabetes and drug overdose show the largest disruptions (15-41%), while cancer, heart disease, and stroke are all real, FDR-significant, but modest by comparison (3-9%). Heart disease and stroke's deviations dropped substantially once their baseline was corrected (see the robustness section below and `research_protocol.md`'s 2026-09-01 baseline-correction addendum). And the picture keeps shifting through 2024: drug overdose has swung to *below* its expected trend (consistent with the real, documented 2023-2024 decline in overdose deaths), while heart disease and stroke have both drifted slightly *toward* their expected trend by 2024, not away from it (a reversal of what an earlier, uncorrected baseline for these two causes had shown).
 
-"Persisted" means the cause's death rate moved outside its expected pre-pandemic trend starting in 2020, and as of 2024 it is still outside that expected range: not resolved, not reversed.
+"Persisted" means the cause's death rate moved significantly outside its expected pre-pandemic trend in 2020-21, and the 2022-2024 years that were still significantly off trend leaned the same direction. It does not require 2024 itself to be off trend: drug overdose, heart disease, and stroke are classified Persisted but were back inside their expected range by 2024.
 
 ## The two results that weren't supposed to happen this way
 

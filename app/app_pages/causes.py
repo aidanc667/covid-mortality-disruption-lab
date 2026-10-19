@@ -82,15 +82,14 @@ cols = st.columns(3)
 for i, cause in enumerate(TEST_CAUSES):
     r = summary.loc[cause]
     badge_color, icon = CAUSE_BADGE_STYLE[cause]
-    with cols[i % 3]:
-        with st.container(border=True):
-            st.badge(display_cause(cause), icon=icon, color=badge_color)
-            st.write(f"**{r['persistence_class']}**")
-            st.caption(f"{r['acute_pct_deviation']:+.1f}% in 2020–21  •  p = {r['p_value']:.2g}")
-            if not _trend_shape_robust(cause):
-                st.badge("Not robust to trend shape", icon=":material/warning:", color="orange")
-            if _delayed_disruption(r):
-                st.badge("Delayed disruption (see 2020–24 p-value)", icon=":material/schedule:", color="blue")
+    with cols[i % 3], st.container(border=True):
+        st.badge(display_cause(cause), icon=icon, color=badge_color)
+        st.write(f"**{r['persistence_class']}**")
+        st.caption(f"{r['acute_pct_deviation']:+.1f}% in 2020–21  •  p = {r['p_value']:.2g}")
+        if not _trend_shape_robust(cause):
+            st.badge("Not robust to trend shape", icon=":material/warning:", color="gray")
+        if _delayed_disruption(r):
+            st.badge("Delayed disruption (see 2020–24 p-value)", icon=":material/schedule:", color="gray")
 
 cause = st.segmented_control(
     "Select a cause", options=TEST_CAUSES, default=TEST_CAUSES[0], label_visibility="collapsed",
@@ -106,11 +105,11 @@ explanation = CAUSE_EXPLANATIONS[cause]
 with st.container(horizontal=True):
     with st.container(border=True):
         st.caption("Result")
-        st.badge(r["persistence_class"], icon=CLASS_ICON.get(r["persistence_class"], ":material/help:"), color="gray" if r["persistence_class"] == "No significant disruption" else "red")
+        st.badge(r["persistence_class"], icon=CLASS_ICON.get(r["persistence_class"], ":material/help:"), color="gray")
         if not _trend_shape_robust(cause):
-            st.badge("Not robust to trend shape", icon=":material/warning:", color="orange")
+            st.badge("Not robust to trend shape", icon=":material/warning:", color="gray")
         if _delayed_disruption(r):
-            st.badge("Delayed disruption (see below)", icon=":material/schedule:", color="blue")
+            st.badge("Delayed disruption (see below)", icon=":material/schedule:", color="gray")
     with st.container(border=True):
         st.metric("2020–21 deviation", f"{r['acute_pct_deviation']:+.1f}%")
     with st.container(border=True):

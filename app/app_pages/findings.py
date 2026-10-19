@@ -51,7 +51,7 @@ n_disrupted = len(disrupted)
 n_fdr = int(summary["fdr_significant"].sum())
 still_above = [c for c in disrupted if latest.loc[c, "significant"] and latest.loc[c, "deviation"] > 0]
 faded = [c for c in disrupted if not latest.loc[c, "significant"]]
-below_now = [c for c in disrupted if latest.loc[c, "deviation"] < 0]
+below_now = [c for c in faded if latest.loc[c, "deviation"] < 0]
 
 st.html(takeaway_html(
     f"{n_disrupted} of {len(TEST_CAUSES)} causes departed from their pre-pandemic trend in 2020–21. "
@@ -365,26 +365,25 @@ with counties_tab:
         most = cd.loc[cd["disruption"].idxmax()]
         least = cd.loc[cd["disruption"].abs().idxmin()]
         county_examples[cause] = (most, least)
-        with example_cols[i]:
-            with st.container(border=True):
-                st.write(f"**{display_cause(cause)}**")
-                st.write(
-                    f"Most disrupted: **{most['county_name']}** "
-                    f"({most['crude_rate_pre']:.1f} → {most['crude_rate_post']:.1f} per 100,000, "
-                    f"{most['disruption']:+.1f})"
-                )
-                st.write(
-                    f"Least disrupted: **{least['county_name']}** "
-                    f"({least['crude_rate_pre']:.1f} → {least['crude_rate_post']:.1f} per 100,000, "
-                    f"{least['disruption']:+.1f})"
-                )
+        with example_cols[i], st.container(border=True):
+            st.write(f"**{display_cause(cause)}**")
+            st.write(
+                f"Most disrupted: **{most['county_name']}** "
+                f"({most['crude_rate_pre']:.1f} → {most['crude_rate_post']:.1f} per 100,000, "
+                f"{most['disruption']:+.1f})"
+            )
+            st.write(
+                f"Least disrupted: **{least['county_name']}** "
+                f"({least['crude_rate_pre']:.1f} → {least['crude_rate_post']:.1f} per 100,000, "
+                f"{least['disruption']:+.1f})"
+            )
 
     with st.expander("Why might these specific counties differ? Read this before assuming a cause"):
         st.write(
             "This project has no data on mask mandates, local ordinances, or age/race demographics "
             "anywhere in its pipeline; the regression above uses only the five CHR&R variables in its "
             "table. Assigning a specific policy or demographic story to any county below would be "
-            "invented, not measured, exactly what Methods → Causal language policy exists to rule out."
+            "invented, not measured, exactly what Methods → Language policy exists to rule out."
         )
         st.write(
             "A single county's pre/post average is also genuinely noisy: five years of a modest "
@@ -455,7 +454,7 @@ with limits_tab:
         "the same statistical signature: direct viral harm, deferred or interrupted medical care, "
         "healthcare-system strain, and economic/isolation stress. A \"Persisted\" classification for heart "
         "disease could be any of these, in any combination, which is why every result here is described as "
-        "\"associated with\" or \"consistent with,\" never \"caused by\" (see Methods → Causal language policy)."
+        "\"associated with\" or \"consistent with,\" never \"caused by\" (see Methods → Language policy)."
     )
 
     st.caption(

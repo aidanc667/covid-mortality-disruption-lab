@@ -63,10 +63,14 @@ if larger:
     clauses.append(f"larger where {_join(larger)} {'was' if len(larger) == 1 else 'were'} higher")
 if smaller:
     clauses.append(f"smaller where {_join(smaller)} {'was' if len(smaller) == 1 else 'were'} higher")
+# The rurality result carries a real selection-bias caveat (excluded counties
+# are far more rural); flag it here rather than only inside a tab.
+rurality_note = " The rurality result has a selection-bias caveat (see What predicts it)." if "rurality" in smaller + larger else ""
 st.html(takeaway_html(
     (f"{display_cause(cause)} disruption was " + ", and ".join(clauses) + ". " if clauses
      else f"No context variable survives FDR correction for {display_cause(cause)}. ")
     + "These are county-level associations, not causes."
+    + rurality_note
 ))
 
 map_tab, predicts_tab, all_tab = st.tabs(["Map", "What predicts it", "All counties"])
@@ -75,7 +79,7 @@ with map_tab:
     st.caption(
         f"Only {n_counties} of {total_us_counties} U.S. counties ({1 - excluded_pct:.0%}) have enough "
         f"non-suppressed years of data to appear here; the other {excluded_pct:.0%}, shown in gray, "
-        "are excluded, not zero. Blue = rate fell relative to pre-pandemic trend; orange = rate rose "
+        "are excluded, not zero. Blue = rate fell from 2015–19 to 2020–24; orange = rate rose "
         "(a colorblind-safe scale, since red/green or red/blue are hard to distinguish for the ~8% of "
         "men with red-green color vision deficiency). Hover a county for exact pre/post rates. Rates "
         "are **crude**, not age-adjusted: CDC WONDER doesn't offer age-adjustment at county "
