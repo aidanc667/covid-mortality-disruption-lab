@@ -108,3 +108,12 @@ def test_findings_copy_no_longer_contradicts_the_2024_data():
         assert phrase not in text
     # The overdose dip below trend in 2024 is stated, not hidden behind "Persisted".
     assert "Drug overdose -4.3%" in text
+
+
+def test_causes_page_tabs_and_takeaway():
+    at = _app_on("causes")
+    assert [t.label for t in at.tabs] == ["Trend", "Robustness", "What could explain it", "Sources"]
+    html = " ".join(e.proto.body for e in at.get("html"))
+    # From disruption_summary: overdose +40.9% and diabetes +26.9% are the two largest; Alzheimer's is not disrupted.
+    assert "drug overdose (+41%) and diabetes (+27%)" in html
+    assert "Alzheimer&#x27;s disease showed no significant 2020–21 disruption" in html
