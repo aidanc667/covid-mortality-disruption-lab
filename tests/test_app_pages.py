@@ -149,7 +149,8 @@ def test_findings_keeps_every_caveat_section():
 
 def test_causes_page_tabs_and_takeaway():
     at = _app_on("causes")
-    assert [t.label for t in at.tabs] == ["Trend", "Robustness", "What could explain it", "Sources"]
+    assert [t.label for t in at.tabs] == ["Trend", "Robustness", "Sources"]
+    assert "What could explain this?" in [s.value for s in at.subheader]
     html = " ".join(e.proto.body for e in at.get("html"))
     # From disruption_summary (2010-2019 baselines): overdose +26.6% and diabetes +16.7% are
     # the two largest; Alzheimer's is not disrupted.
@@ -226,5 +227,17 @@ def test_findings_mentions_alzheimers_county_run_as_exploratory():
 
 def test_findings_defines_disrupted_as_statistically_distinguishable():
     text = _page_text(_app_on("findings"))
-    assert "statistically distinguishable from that cause's normal year-to-year variation" in text
-    assert "doesn't mean no effect" in text
+    assert "statistically distinguishable from that cause of death's normal year-to-year variation" in text
+    assert "falling outside its projected range (gray band)" in text
+    assert "Distance from 0% alone" not in text
+
+
+@pytest.mark.parametrize("cause", [
+    "Diseases of heart", "Diabetes mellitus", "Alzheimer's disease",
+    "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
+])
+def test_causes_page_explains_each_cause_at_the_bottom(cause):
+    at = _app_on("causes")
+    at.button_group[0].set_value(cause).run()
+    assert not at.exception
+    assert at.subheader[-1].value == "What could explain this?"

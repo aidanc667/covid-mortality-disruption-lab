@@ -76,12 +76,6 @@ crossed = [
 CAUSE_LABELS = {c: display_cause(c) for c in TEST_CAUSES}
 
 
-def _band_pct(cause: str) -> float:
-    """Half-width of a cause's latest-year 95% prediction interval, as % of expected."""
-    r = latest.loc[cause]
-    return (r["pi_high"] - r["expected"]) / r["expected"] * 100
-
-
 st.html(takeaway_html(findings_takeaway(summary, deviations, CAUSE_LABELS)))
 
 chart_col, side_col = st.columns([2.2, 1], gap="large", vertical_alignment="center")
@@ -95,15 +89,12 @@ with side_col:
     st.caption(
         f"Hollow dot: the 2020–21 average gap from each cause's own pre-pandemic trend. Filled dot: "
         f"{latest_year}. **Gray band: that cause's normal year-to-year range in {latest_year}.** A filled "
-        f"dot outside its band is significant (solid); inside it, the gap is within normal noise (faded). "
-        "Distance from 0% alone doesn't decide it: cancer's band is about "
-        f"±{_band_pct('Malignant neoplasms'):.0f}%, stroke's about ±{_band_pct('Cerebrovascular disease'):.0f}%."
+        f"dot outside its band is significant (solid); inside it, the gap is within normal noise (faded)."
     )
     st.caption(
-        "**What \"disrupted\" means here:** statistically distinguishable from that cause's normal "
-        "year-to-year variation before 2020, not simply far from zero. \"Within normal range\" doesn't mean "
-        "no effect: a gap inside the band can still be thousands of deaths, it just can't be told apart "
-        "from ordinary year-to-year swings with this method."
+        "**What \"disrupted\" means here:** statistically distinguishable from that cause of death's "
+        "normal year-to-year variation before 2020. It's not about the distance from 0%, but about "
+        "falling outside its projected range (gray band)."
     )
     report_path = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
     if report_path.exists():

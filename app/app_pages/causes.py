@@ -122,8 +122,8 @@ with st.container(horizontal=True):
         )
 
 
-trend_tab, robustness_tab, explain_tab, sources_tab = st.tabs(
-    ["Trend", "Robustness", "What could explain it", "Sources"]
+trend_tab, robustness_tab, sources_tab = st.tabs(
+    ["Trend", "Robustness", "Sources"]
 )
 
 with trend_tab:
@@ -331,19 +331,19 @@ with robustness_tab:
              "replace the primary test or the headline result above; see Methods for why.",
     )
 
-with explain_tab:
-    st.caption(
-        "Background from the published research literature on pandemic-era mortality generally, "
-        "not something this project's own mortality data tested directly (research_protocol.md §11)."
-    )
-    st.write(explanation["summary"])
-    for title, desc in explanation["mechanisms"]:
-        with st.container(border=True):
-            st.markdown(f"**{title}**")
-            st.write(desc)
-    if explanation["note"]:
-        st.info(explanation["note"], icon=":material/info:")
-
 with sources_tab:
     for i, source in enumerate(explanation["sources"], start=1):
         st.markdown(f"{i}. {source['citation']} [↗]({source['url']})")
+
+st.subheader("What could explain this?")
+st.caption(
+    "Background from the published research literature on pandemic-era mortality generally, "
+    "not something this project's own mortality data tested directly (research_protocol.md §11)."
+)
+st.write(explanation["summary"])
+for title, desc in explanation["mechanisms"]:
+    with st.container(border=True):
+        st.markdown(f"**{title}**")
+        st.write(desc)
+if explanation["note"]:
+    st.info(explanation["note"], icon=":material/info:")
