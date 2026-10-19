@@ -85,6 +85,35 @@ Expect heavier suppression than the national pulls — many counties will show `
 
 **File naming:** `d76_county_diabetes_2015_2019.csv`, `d158_county_diabetes_2020_2024.csv`, `d76_county_overdose_2015_2019.csv`, `d158_county_overdose_2020_2024.csv`, saved to `data/raw/cdc_wonder/`.
 
+### County-level, pooled five-year totals (added 2026-10-19)
+
+Replaces the year-by-year county pulls above as the primary county data (see `research_protocol.md`'s 2026-10-19 addendum for why). **12 exports: 10 required, 2 for the vintage check.**
+
+| # | Cause | Database | Years | Cause selection | Save as |
+|---|---|---|---|---|---|
+| 1 | Heart disease | D76 | 2015–2019 | ICD-10 `I00-I09,I11,I13,I20-I51` | `d76_county_pooled_heart_2015_2019.csv` |
+| 2 | Heart disease | D158 | 2020–2024 | same | `d158_county_pooled_heart_2020_2024.csv` |
+| 3 | Diabetes | D76 | 2015–2019 | ICD-10 `E10-E14` | `d76_county_pooled_diabetes_2015_2019.csv` |
+| 4 | Diabetes | D158 | 2020–2024 | same | `d158_county_pooled_diabetes_2020_2024.csv` |
+| 5 | Stroke | D76 | 2015–2019 | ICD-10 `I60-I69` | `d76_county_pooled_cerebrovascular_2015_2019.csv` |
+| 6 | Stroke | D158 | 2020–2024 | same | `d158_county_pooled_cerebrovascular_2020_2024.csv` |
+| 7 | Drug overdose | D76 | 2015–2019 | Drug/Alcohol Induced Causes finder, all 4 intents (see above) | `d76_county_pooled_overdose_2015_2019.csv` |
+| 8 | Drug overdose | D158 | 2020–2024 | same | `d158_county_pooled_overdose_2020_2024.csv` |
+| 9 | Cancer | D76 | 2015–2019 | ICD-10 `C00-C97` | `d76_county_pooled_cancer_2015_2019.csv` |
+| 10 | Cancer | D158 | 2020–2024 | same | `d158_county_pooled_cancer_2020_2024.csv` |
+| 11 | Heart disease | D76 | **2018–2019** | ICD-10 `I00-I09,I11,I13,I20-I51` | `d76_county_pooled_heart_2018_2019.csv` |
+| 12 | Heart disease | D158 | **2018–2019** | same | `d158_county_pooled_heart_2018_2019.csv` |
+
+Files 11–12 check the D76/D158 database split county by county (both databases cover 2018–2019, so their rates should match). Heart disease is used because it has the most counties with reliable rates.
+
+**Steps:** same URLs, terms acceptance, and one-cause-per-query rule as the national exports, except:
+- **Group Results By: County.** Nothing else: leave **And By** at None. **Do not group by Year.** This is what makes the export pooled: one row per county for the whole period.
+- Year finder: the range in the table (click the first year, Shift+click the last).
+- Check **Crude Rate**, **Show Zero Values**, and **Show Suppressed Values**; uncheck **Show Totals**. Age-Adjusted Rate isn't needed (and isn't offered on D158 county queries).
+- Export Type **CSV**, save to `data/raw/cdc_wonder/` with the exact name above.
+
+Then run `python -m scripts.run_covid_disruption_pipeline`. The loader recognizes a County-only file as pooled automatically.
+
 ### If a query times out or errors (county-level)
 
 More likely here than at the national level, given ~3,000 counties × 5 years per file. Split by year range within the same period (e.g. 2015–2017 and 2018–2019) if a single query times out — the ingestion loader concatenates multiple files automatically and de-duplicates on `(county_fips, year, cause)`.

@@ -127,6 +127,28 @@ def check_within_sample_robustness(
     return pd.DataFrame(rows)
 
 
+def compute_pooled_county_disruption(
+    pre_period: pd.DataFrame, post_period: pd.DataFrame, value_col: str = "crude_rate",
+) -> pd.DataFrame:
+    """Per county: pooled post-period rate minus pooled pre-period rate.
+
+    For pooled CDC WONDER exports (grouped by County only, no Year): one row
+    per county per period, each rate being total deaths over total
+    person-years, i.e. an average annual rate. WONDER suppresses a cell under
+    10 deaths and flags one under 20 as Unreliable; both arrive here as NaN,
+    and a county is included only with a usable rate in BOTH periods. Pooling
+    five years means a county needs ~20 deaths across the period rather than
+    in a single year, which keeps far more small and rural counties than
+    compute_county_disruption's year-by-year rule (research_protocol.md's
+    2026-10-19 addendum). Missing rates are never imputed."""
+    keep = ["county_fips", value_col] + (["county"] if "county" in post_period.columns else [])
+    pre = pre_period[["county_fips", value_col]].rename(columns={value_col: f"{value_col}_pre"})
+    post = post_period[keep].rename(columns={value_col: f"{value_col}_post", "county": "county_name"})
+    merged = pre.merge(post, on="county_fips", how="inner")
+    merged = merged.dropna(subset=[f"{value_col}_pre", f"{value_col}_post"]).copy()
+    merged["disruption"] = merged[f"{value_col}_post"] - merged[f"{value_col}_pre"]
+    return merged.reset_index(drop=True)
+
 def regress_disruption_on_context(
     disruption_df: pd.DataFrame, context_df: pd.DataFrame, context_vars: list[str]
 ) -> pd.DataFrame:

@@ -79,6 +79,10 @@ class WonderLoadResult:
     n_unreliable: int
     geography: str  # "national", "state", or "county"
     age_adjusted_rate_available: bool = True
+    # True for a county export grouped by County only (no Year), where WONDER
+    # returns one multi-year total per county. `year` is then NaN, and each
+    # rate is deaths / summed person-years, i.e. an average annual rate.
+    pooled: bool = False
 
 
 def _read_wonder_export(path: Path) -> pd.DataFrame:
@@ -165,11 +169,19 @@ def load_manual_export(
 
     frames = []
     geographies = set()
+    pooled_flags = set()
     for f in files:
         df = _read_wonder_export(f)
-        _validate_columns(df, f)
         geography = _detect_geography(df, f)
+        # A county query grouped by County alone (no Year) is a valid pooled
+        # export. Any other export missing Year is mis-configured and still
+        # fails _validate_columns below.
+        is_pooled = geography == "county" and REQUIRED_COLUMNS["year"] not in df.columns
+        if is_pooled:
+            df[REQUIRED_COLUMNS["year"]] = float("nan")
+        _validate_columns(df, f)
         geographies.add(geography)
+        pooled_flags.add(is_pooled)
 
         if "Cause of death" in df.columns:
             if cause_label is not None:
@@ -196,6 +208,12 @@ def load_manual_export(
             "Load each geography level in a separate call."
         )
     geography = geographies.pop()
+    if len(pooled_flags) > 1:
+        raise ValueError(
+            f"Mixed pooled and year-by-year exports across {[f.name for f in files]}. "
+            "Load pooled (County only) and yearly (County + Year) files in separate calls."
+        )
+    pooled = pooled_flags.pop()
 
     combined = pd.concat(frames, ignore_index=True)
     rename_map = {v: k for k, v in REQUIRED_COLUMNS.items()}
@@ -208,7 +226,7 @@ def load_manual_export(
 
     if geography == "county":
         combined["county_fips"] = combined["county_code"].astype(str).str.zfill(5)
-        dedup_keys = ["county_fips", "year", "cause"]
+        dedup_keys = ["county_fips", "cause"] if pooled else ["county_fips", "year", "cause"]
     elif geography == "state":
         # State FIPS codes are conventionally 2-digit zero-padded (e.g. "01"
         # for Alabama) -- without this, pandas infers the column as integer
@@ -250,6 +268,7 @@ def load_manual_export(
         n_unreliable=int(combined["age_adjusted_rate_unreliable"].sum()),
         geography=geography,
         age_adjusted_rate_available=has_age_adjusted_rate,
+        pooled=pooled,
     )
 
 

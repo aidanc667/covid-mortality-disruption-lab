@@ -226,3 +226,54 @@ def test_load_manual_export_handles_missing_age_adjusted_rate_column(tmp_path):
     assert not row["age_adjusted_rate_suppressed"]
     assert not row["age_adjusted_rate_unreliable"]
     assert row["crude_rate"] == 48.1
+
+
+# --- Pooled (multi-year total) county exports: "Group Results By: County" only,
+# no Year grouping, so WONDER returns one row per county for the whole period.
+POOLED_CSV_HEADER = '"Notes","County","County Code",Deaths,Population,Crude Rate\n'
+
+
+def _write_pooled(tmp_path, name, rows):
+    path = tmp_path / name
+    path.write_text(POOLED_CSV_HEADER + "".join(rows) + '"---"\nFootnotes:\n"1. Data are pooled."\n')
+    return path
+
+
+def test_pooled_county_export_loads_one_row_per_county(tmp_path):
+    f = _write_pooled(tmp_path, "pooled.csv", [
+        ',"Autauga County, AL","01001",88,278000,31.7\n',
+        ',"Barbour County, AL","01005",14,123000,Unreliable\n',
+        ',"Bibb County, AL","01007",Suppressed,110000,Suppressed\n',
+    ])
+    result = load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
+    assert result.pooled is True
+    assert result.geography == "county"
+    assert result.n_rows == 3
+    df = result.df.set_index("county_fips")
+    assert df.loc["01001", "crude_rate"] == 31.7
+    assert df["year"].isna().all()  # no per-year rows in a pooled export
+    assert bool(df.loc["01005", "crude_rate_unreliable"]) is True
+    assert bool(df.loc["01007", "crude_rate_suppressed"]) is True
+
+
+def test_yearly_county_export_is_not_marked_pooled(tmp_path):
+    f = _write_fixture(tmp_path, "yearly.txt", ["Autauga County, AL\t01001\t2010\t12\t54000\t22.2\t21.5"])
+    assert load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus").pooled is False
+
+
+def test_pooled_county_export_rejects_duplicate_county(tmp_path):
+    f = _write_pooled(tmp_path, "pooled.csv", [
+        ',"Autauga County, AL","01001",88,278000,31.7\n',
+        ',"Autauga County, AL","01001",90,278000,32.4\n',
+    ])
+    with pytest.raises(ValueError, match="Duplicate"):
+        load_manual_export(subdir_files=[f], cause_label="Diabetes mellitus")
+
+
+def test_national_export_without_year_still_raises(tmp_path):
+    # Only county exports may omit Year (a pooled county pull); a national
+    # export with no Year column is a mis-configured query.
+    path = tmp_path / "national_no_year.csv"
+    path.write_text('"Notes",Deaths,Population,Crude Rate\n,100,1000000,10.0\n')
+    with pytest.raises(ValueError, match="Year"):
+        load_manual_export(subdir_files=[path], cause_label="Diabetes mellitus")

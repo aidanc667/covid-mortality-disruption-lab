@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from src.analysis.heterogeneity import (
+    compute_pooled_county_disruption,
     compute_county_disruption, regress_disruption_on_context,
     compute_selection_bias, check_within_sample_robustness,
 )
@@ -157,3 +158,35 @@ def test_check_within_sample_robustness_flags_too_small_half():
     result = check_within_sample_robustness(disruption_df, context_df, "pct_rural")
     assert result["n"].sum() >= 2
     assert np.isnan(result[result["half"] == "lower_half"].iloc[0]["slope"])
+
+
+def _pooled(rows):
+    # rows: (fips, name, crude_rate) with None meaning WONDER suppressed or
+    # flagged Unreliable (the loader stores those as NaN).
+    return pd.DataFrame({
+        "county_fips": [r[0] for r in rows], "county": [r[1] for r in rows],
+        "crude_rate": [np.nan if r[2] is None else r[2] for r in rows],
+    })
+
+
+def test_pooled_disruption_is_post_minus_pre_pooled_rate():
+    pre = _pooled([("01001", "Autauga County, AL", 31.7), ("01003", "Baldwin County, AL", 22.0)])
+    post = _pooled([("01001", "Autauga County, AL", 40.2), ("01003", "Baldwin County, AL", 20.5)])
+    out = compute_pooled_county_disruption(pre, post).set_index("county_fips")
+    assert out.loc["01001", "disruption"] == pytest.approx(8.5)
+    assert out.loc["01003", "disruption"] == pytest.approx(-1.5)
+    assert out.loc["01001", "crude_rate_pre"] == 31.7
+    assert out.loc["01001", "county_name"] == "Autauga County, AL"
+
+
+def test_pooled_disruption_needs_a_reliable_rate_in_both_periods():
+    pre = _pooled([("01001", "A", 31.7), ("01005", "B", None), ("01007", "C", 12.0)])
+    post = _pooled([("01001", "A", 40.2), ("01005", "B", 18.0), ("01007", "C", None)])
+    out = compute_pooled_county_disruption(pre, post)
+    assert list(out["county_fips"]) == ["01001"]
+
+
+def test_pooled_disruption_ignores_counties_missing_from_one_file():
+    pre = _pooled([("01001", "A", 31.7), ("01009", "D", 15.0)])
+    post = _pooled([("01001", "A", 40.2)])
+    assert list(compute_pooled_county_disruption(pre, post)["county_fips"]) == ["01001"]
