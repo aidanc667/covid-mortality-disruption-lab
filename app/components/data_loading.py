@@ -39,9 +39,11 @@ def display_cause(cause: str) -> str:
     return CAUSE_DISPLAY_NAMES.get(cause, cause)
 
 
-# Matches .streamlit/config.toml's chartCategoricalColors, in the same
-# TEST_CAUSES + NEGATIVE_CONTROL order, so a cause renders the same color
-# everywhere: chart marks, Home's cause chips, and the dumbbell/trend charts.
+# One color per cause. Charts that color by cause must pass these as an
+# explicit alt.Scale(domain=..., range=...): with only the theme palette,
+# Vega-Lite sorts nominal values alphabetically and the hues shift to the
+# wrong causes. Kept identical (same order) to config.toml's
+# chartCategoricalColors; tests/test_ui.py checks that.
 CAUSE_COLORS = {
     "Diseases of heart": "#C26A2E",
     "Diabetes mellitus": "#B3261E",

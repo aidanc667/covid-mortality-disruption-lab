@@ -92,3 +92,44 @@ def test_gap_chart_rejects_data_with_none_of_the_labelled_causes():
     dev = pd.DataFrame({"cause": ["Other"], "year": [2020], "pct": [1.0]})
     with pytest.raises(ValueError, match="labelled causes"):
         gap_from_trend_chart(dev, colors={}, labels={"Diabetes mellitus": "Diabetes"}, highlight=set())
+
+
+def _datasets_and_scales(spec):
+    """All dataset rows and every (field, scale-domain) pair in a Vega-Lite dict."""
+    rows = [r for values in spec.get("datasets", {}).values() for r in values]
+    scales = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            for key in ("y",):
+                enc = node.get("encoding", {}).get(key) if isinstance(node.get("encoding"), dict) else None
+                if enc and "scale" in enc and "domain" in enc["scale"]:
+                    scales.append((enc["field"], enc["scale"]["domain"]))
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(spec)
+    return rows, scales
+
+
+def test_gap_chart_keeps_crowded_low_labels_inside_the_y_domain():
+    # Three causes ending within 1 point of the series minimum: spreading
+    # pushes two labels below the lowest data value. They must stay on-chart.
+    causes = ["A", "B", "C"]
+    dev = pd.DataFrame({
+        "cause": [c for c in causes for _ in (2020, 2021)],
+        "year": [2020, 2021] * 3,
+        "pct": [30.0, -19.1, 20.0, -19.5, 10.0, -20.0],
+    })
+    spec = gap_from_trend_chart(
+        dev, colors=dict.fromkeys(causes, "#B3261E"), labels={c: c for c in causes}, highlight=set(),
+    ).to_dict()
+    rows, scales = _datasets_and_scales(spec)
+    label_ys = [r["label_y"] for r in rows if "label_y" in r]
+    (domain,) = {tuple(d) for field, d in scales if field == "label_y"}
+    assert len(label_ys) == 3
+    assert min(label_ys) < -20.0  # spreading really did push one below the data
+    assert all(domain[0] <= y <= domain[1] for y in label_ys)

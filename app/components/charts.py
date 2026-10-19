@@ -78,6 +78,15 @@ def gap_from_trend_chart(
     y_lo, y_hi = float(min(data["pct"].min(), 0)), float(max(data["pct"].max(), 0))
     pad = (y_hi - y_lo) * 0.08 or 1.0
     y_domain = [y_lo - pad, y_hi + pad]
+
+    # End-of-line labels, spread apart. spread_labels only pushes labels
+    # down, so lower the domain floor if needed to keep the lowest one on the
+    # chart instead of drawing over the year axis.
+    ends = data[data["year"] == years[-1]].copy()
+    min_gap = (y_domain[1] - y_domain[0]) * LABEL_GAP_PX / height
+    ends["label_y"] = spread_labels(ends["pct"].tolist(), min_gap)
+    ends["end_text"] = ends.apply(lambda r: f"{r['label']} {r['pct']:+.0f}%", axis=1)
+    y_domain[0] = min(y_domain[0], float(ends["label_y"].min()) - min_gap / 2)
     y_scale = alt.Scale(domain=y_domain, nice=False)
     # Extend the x domain past the last year so the end-of-line labels have
     # room inside the plot. (Chart padding can't do this: Streamlit's
@@ -110,10 +119,6 @@ def gap_from_trend_chart(
         align="left", dx=4, dy=11, fontStyle="italic", fontSize=11, color=MUTED,
     ).encode(x=x, y=y, text="text:N")
 
-    ends = data[data["year"] == years[-1]].copy()
-    min_gap = (y_domain[1] - y_domain[0]) * LABEL_GAP_PX / height
-    ends["label_y"] = spread_labels(ends["pct"].tolist(), min_gap)
-    ends["end_text"] = ends.apply(lambda r: f"{r['label']} {r['pct']:+.0f}%", axis=1)
     end_y = alt.Y("label_y:Q", scale=y_scale)
     end_labels = [
         alt.Chart(ends[ends["highlighted"]]).mark_text(align="left", dx=8, fontSize=11.5, fontWeight=600)

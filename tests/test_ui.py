@@ -1,5 +1,10 @@
-import pytest
+import re
+from pathlib import Path
 
+import pytest
+import tomllib
+
+from app.components.data_loading import CAUSE_COLORS, NEGATIVE_CONTROL, TEST_CAUSES
 from app.components.ui import (
     BASE_CSS,
     cause_chips_html,
@@ -44,9 +49,20 @@ def test_metric_strip_renders_value_unit_caption():
 
 def test_base_css_only_styles_its_own_classes():
     # Guard against regressing into DataForensics-style overrides of
-    # Streamlit internals, which break across Streamlit releases.
-    assert "data-testid" not in BASE_CSS
+    # Streamlit internals (or bare h1/button rules), which break across
+    # Streamlit releases and leak into every page.
     assert BASE_CSS.lstrip().startswith("<style>")
+    body = re.sub(r"@media[^{]*{", "", BASE_CSS.removeprefix("<style>").removesuffix("</style>"))
+    selectors = [s.strip() for block in re.findall(r"([^{}]+){", body) for s in block.split(",")]
+    assert selectors, "no selectors parsed"
+    for sel in selectors:
+        assert sel == ":root" or sel.startswith(".cmd-"), sel
+
+
+def test_theme_palette_matches_cause_colors_in_cause_order():
+    config = tomllib.loads((Path(__file__).resolve().parent.parent / ".streamlit/config.toml").read_text())
+    palette = config["theme"]["chartCategoricalColors"]
+    assert palette == [CAUSE_COLORS[c] for c in [*TEST_CAUSES, NEGATIVE_CONTROL]]
 
 
 def test_metric_strip_sets_word_values_in_the_smaller_word_style():

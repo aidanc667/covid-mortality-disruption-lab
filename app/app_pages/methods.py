@@ -4,6 +4,7 @@ import streamlit as st
 from app.components.data_loading import (
     data_available,
     load_covid_reference_series,
+    load_national_series,
     synthetic_banner,
 )
 
@@ -30,8 +31,13 @@ with overview:
         "have nothing to do with the infection itself. This project asks whether that happened, and "
         "left a measurable footprint in the mortality record."
     )
+    if data_available():
+        years = load_national_series()["year"]
+        span = f"{int(years.max()) - int(years.min()) + 1} years of"
+    else:
+        span = "decades of"
     st.write(
-        "Using 26 years of CDC mortality data, we establish each cause's pre-pandemic trajectory, "
+        f"Using {span} CDC mortality data, we establish each cause's pre-pandemic trajectory, "
         "estimate what 2020–2024 mortality would have looked like without a pandemic, and test whether "
         "observed mortality significantly departed from that baseline, then whether any disruption was "
         "temporary or persisted through 2024, both nationally and, for two causes, across U.S. counties "
@@ -275,7 +281,7 @@ with details:
         # would be slow and fragile). Update by hand when tests/ changes;
         # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
         st.caption(
-            ":green-badge[139 automated tests] :blue-badge[Pre-registered protocol] "
+            ":green-badge[141 automated tests] :blue-badge[Pre-registered protocol] "
             ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
         )
 

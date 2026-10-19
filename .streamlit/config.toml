@@ -30,9 +30,10 @@ buttonRadius = "3px"
 showWidgetBorder = true
 showSidebarBorder = false
 
-# Per-cause colors, in TEST_CAUSES + NEGATIVE_CONTROL order (heart, diabetes,
-# Alzheimer's, stroke, overdose, cancer, congenital) so a cause renders the
-# same hue everywhere. Must match CAUSE_COLORS in app/components/data_loading.py.
+# Per-cause colors in TEST_CAUSES + NEGATIVE_CONTROL order (heart, diabetes,
+# Alzheimer's, stroke, overdose, cancer, congenital), identical to CAUSE_COLORS
+# in app/components/data_loading.py. Cause-colored charts still pass
+# CAUSE_COLORS as an explicit scale; see the comment there.
 chartCategoricalColors = [
     "#C26A2E",
     "#B3261E",

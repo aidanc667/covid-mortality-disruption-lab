@@ -44,8 +44,12 @@ def test_renamed_pages_use_new_titles():
 def test_methods_overview_holds_content_moved_off_home():
     at = _app_on("methods")
     assert [t.label for t in at.tabs] == ["Overview", "Details"]
-    overview_headings = [s.value for s in at.tabs[0].subheader]
-    assert overview_headings == ["Why this matters", "What we did", "The breaking point"]
+    overview = at.tabs[0]
+    assert [s.value for s in overview.subheader] == ["Why this matters", "What we did", "The breaking point"]
+    card_text = " ".join(m.value for m in overview.markdown)
+    for card in ("Real data", "Locked before looking", "Tested, not assumed", "Mapped and explained"):
+        assert card in card_text
+    assert len(overview.get("vega_lite_chart")) == 1  # the COVID-19 reference chart
     details_expanders = _expander_labels(at.tabs[1])
     assert "Research question" in details_expanders
     assert "Ethics and project checks" in details_expanders
@@ -56,9 +60,14 @@ def test_home_shows_title_and_county_count_from_the_data():
     assert at.title[0].value == "COVID Mortality Disruption Lab"
     html = " ".join(e.proto.body for e in at.get("html"))
     # Expected value read straight from the parquet, independently of home_scope_metrics.
-    n = pd.read_parquet(ROOT / "outputs/models/county_disruption_diabetes_mellitus.parquet")["county_fips"].nunique()
-    assert f"{n:,}" in html
-    assert "counties analyzed" in html
+    models = ROOT / "outputs" / "models"
+    n_diabetes = pd.read_parquet(models / "county_disruption_diabetes_mellitus.parquet")["county_fips"].nunique()
+    n_overdose = pd.read_parquet(models / "county_disruption_drug_overdose.parquet")["county_fips"].nunique()
+    years = pd.read_parquet(models / "national_mortality_series.parquet")["year"]
+    n_years = int(years.max()) - int(years.min()) + 1
+    assert f'>{n_diabetes:,}<span class="cmd-kpi-unit">counties analyzed<' in html
+    assert f"Diabetes; {n_overdose:,} for drug overdose" in html
+    assert f'>{n_years}<span class="cmd-kpi-unit">years of CDC data<' in html
     assert "How the pandemic disrupted non-COVID mortality" in html
 
 
