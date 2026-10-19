@@ -77,3 +77,34 @@ def test_home_is_short():
     assert [s.value for s in at.subheader] == []
     assert _expander_labels(at) == []
     assert [b.label for b in at.button] == ["Read the findings"]
+
+
+def _page_text(at) -> str:
+    parts = [e.proto.body for e in at.get("html")]
+    for kind in ("markdown", "caption", "subheader", "title"):
+        parts += [str(e.value) for e in getattr(at, kind)]
+    return " ".join(parts)
+
+
+def test_findings_tabs_and_data_driven_takeaway():
+    at = _app_on("findings")
+    assert [t.label for t in at.tabs] == ["Results", "Surprises", "Robustness", "Counties", "Limits"]
+    models = ROOT / "outputs" / "models"
+    dev = pd.read_parquet(models / "disruption_deviations.parquet")
+    summary = pd.read_parquet(models / "disruption_summary.parquet")
+    latest = dev[dev["year"] == dev["year"].max()].set_index("cause")
+    disrupted = summary.loc[summary["persistence_class"] != "No significant disruption", "cause"]
+    still_above = [c for c in disrupted if latest.loc[c, "significant"] and latest.loc[c, "deviation"] > 0]
+    html = " ".join(e.proto.body for e in at.get("html"))
+    assert f"{len(disrupted)} of 6 causes departed" in html
+    # Expected names written out by hand from the 2024 deviations table.
+    assert set(still_above) == {"Diabetes mellitus", "Malignant neoplasms"}
+    assert "only Diabetes and Cancer were still significantly above it" in html
+
+
+def test_findings_copy_no_longer_contradicts_the_2024_data():
+    text = _page_text(_app_on("findings"))
+    for phrase in ("still-unresolved", "none have reversed", "None of the disrupted causes have resolved"):
+        assert phrase not in text
+    # The overdose dip below trend in 2024 is stated, not hidden behind "Persisted".
+    assert "Drug overdose -4.3%" in text

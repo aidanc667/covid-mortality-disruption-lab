@@ -23,6 +23,8 @@ BASE_CSS = """<style>
 .cmd-subtitle { font-family: var(--cmd-serif); font-size: 1.35rem; line-height: 1.3;
   color: var(--cmd-muted); margin: 0 0 1rem; }
 .cmd-question { font-size: 1.05rem; line-height: 1.6; color: var(--cmd-text); max-width: 34rem; margin: 0; }
+.cmd-takeaway { font-family: var(--cmd-serif); font-size: 1.2rem; line-height: 1.45; color: var(--cmd-text);
+  border-left: 3px solid #2C5D86; padding: 2px 0 2px 14px; margin: 0 0 0.5rem; max-width: 52rem; }
 .cmd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .cmd-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 500;
   padding: 3px 10px; background: var(--cmd-surface); border: 1px solid var(--cmd-border);
@@ -54,6 +56,11 @@ def eyebrow_html(tag: str, text: str) -> str:
 
 def hero_text_html(subtitle: str, question: str) -> str:
     return f'<p class="cmd-subtitle">{escape(subtitle)}</p><p class="cmd-question">{escape(question)}</p>'
+
+
+def takeaway_html(text: str) -> str:
+    """The one-sentence lede under an interior page's title."""
+    return f'<p class="cmd-takeaway">{escape(text)}</p>'
 
 
 def cause_chips_html(chips: list[tuple[str, str]]) -> str:

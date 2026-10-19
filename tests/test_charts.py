@@ -5,6 +5,7 @@ from app.components.charts import (
     deviation_pct,
     gap_from_trend_chart,
     spread_labels,
+    then_vs_now_chart,
     tint,
 )
 
@@ -133,3 +134,49 @@ def test_gap_chart_keeps_crowded_low_labels_inside_the_y_domain():
     assert len(label_ys) == 3
     assert min(label_ys) < -20.0  # spreading really did push one below the data
     assert all(domain[0] <= y <= domain[1] for y in label_ys)
+
+
+def _summary():
+    return pd.DataFrame({
+        "cause": ["Diabetes mellitus", "Drug overdose", "Diseases of heart"],
+        "acute_pct_deviation": [26.9, 40.9, 7.8],
+        "latest_pct_deviation": [15.0, -4.3, 3.0],
+    })
+
+
+LABELS = {"Diseases of heart": "Heart disease", "Diabetes mellitus": "Diabetes", "Drug overdose": "Drug overdose"}
+COLORS = {"Diseases of heart": "#C26A2E", "Diabetes mellitus": "#B3261E", "Drug overdose": "#2C5D86"}
+
+
+def test_then_vs_now_rows_are_sorted_by_2020_21_deviation():
+    spec = then_vs_now_chart(_summary(), COLORS, LABELS, latest_year=2024).to_dict()
+    sorts = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            y = node.get("encoding", {}).get("y") if isinstance(node.get("encoding"), dict) else None
+            if isinstance(y, dict) and isinstance(y.get("sort"), list):
+                sorts.append(y["sort"])
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(spec)
+    # Overdose +40.9 > Diabetes +26.9 > Heart +7.8
+    assert sorts and all(s == ["Drug overdose", "Diabetes", "Heart disease"] for s in sorts)
+
+
+def test_then_vs_now_plots_both_periods_per_cause():
+    spec = then_vs_now_chart(_summary(), COLORS, LABELS, latest_year=2024).to_dict()
+    rows = [r for values in spec["datasets"].values() for r in values if "period" in r]
+    points = {(r["label"], r["period"]): r["pct"] for r in rows}
+    assert points[("Drug overdose", "2020–21")] == pytest.approx(40.9)
+    assert points[("Drug overdose", "2024")] == pytest.approx(-4.3)
+    assert len(points) == 6
+
+
+def test_then_vs_now_rejects_summary_missing_a_labelled_cause():
+    with pytest.raises(ValueError, match="missing"):
+        then_vs_now_chart(_summary().iloc[:2], COLORS, LABELS, latest_year=2024)

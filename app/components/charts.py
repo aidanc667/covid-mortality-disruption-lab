@@ -46,6 +46,54 @@ def spread_labels(values: list[float], min_gap: float) -> list[float]:
     return out
 
 
+def then_vs_now_chart(
+    summary: pd.DataFrame, colors: dict[str, str], labels: dict[str, str], latest_year: int, height: int = 260,
+) -> alt.LayerChart:
+    """Findings chart B: per cause, the 2020-21 deviation (hollow dot) and the
+    latest-year deviation (filled dot), joined by a line, sorted by the size
+    of the 2020-21 deviation. `summary` needs cause, acute_pct_deviation and
+    latest_pct_deviation; `labels` fixes which causes are drawn."""
+    rows = summary[summary["cause"].isin(labels)].copy()
+    missing = set(labels) - set(rows["cause"])
+    if missing:
+        raise ValueError(f"summary is missing labelled causes: {sorted(missing)}")
+    rows["label"] = rows["cause"].map(labels)
+    order = rows.sort_values("acute_pct_deviation", ascending=False)["label"].tolist()
+    color = alt.Color(
+        "cause:N", scale=alt.Scale(domain=list(labels), range=[colors[c] for c in labels]), legend=None,
+    )
+    y = alt.Y("label:N", sort=order, title=None, axis=alt.Axis(
+        ticks=False, domain=False, labelFontSize=12, labelLimit=0))
+    x_title = f"% above (+) or below (−) the pre-pandemic trend: 2020–21 (hollow) → {latest_year} (filled)"
+    x = alt.X("pct:Q", title=x_title, axis=alt.Axis(
+        labelFont=MONO, labelColor=MUTED, gridColor=GRID, ticks=False, domain=False, titleColor=MUTED,
+        titleFontWeight=400, labelExpr="(datum.value > 0 ? '+' : '') + datum.value + '%'"))
+
+    long = rows.melt(
+        id_vars=["cause", "label"], value_vars=["acute_pct_deviation", "latest_pct_deviation"],
+        var_name="period", value_name="pct",
+    )
+    long["period"] = long["period"].map(
+        {"acute_pct_deviation": "2020–21", "latest_pct_deviation": str(latest_year)})
+    tooltip = [alt.Tooltip("label:N", title="Cause"), alt.Tooltip("period:N", title="Period"),
+               alt.Tooltip("pct:Q", title="vs. trend", format="+.1f")]
+
+    zero = alt.Chart(pd.DataFrame({"pct": [0.0]})).mark_rule(color=TREND_LINE, strokeDash=[4, 3]).encode(x="pct:Q")
+    connector = alt.Chart(rows).mark_rule(strokeWidth=2.5, opacity=0.35).encode(
+        x=alt.X("acute_pct_deviation:Q"), x2="latest_pct_deviation:Q", y=y, color=color)
+    acute = alt.Chart(long[long["period"] == "2020–21"]).mark_point(size=110, filled=False, strokeWidth=2.2).encode(
+        x=x, y=y, color=color, tooltip=tooltip)
+    latest = alt.Chart(long[long["period"] != "2020–21"]).mark_circle(size=120, opacity=1).encode(
+        x=x, y=y, color=color, tooltip=tooltip)
+    # Left padding: Vega-Lite's auto margin falls a few px short of the
+    # longest label and the canvas edge clips its first letter.
+    return (
+        alt.layer(zero, connector, acute, latest)
+        .properties(height=height, padding={"left": 24, "top": 4, "right": 8, "bottom": 4})
+        .configure_view(stroke=None)
+    )
+
+
 def gap_from_trend_chart(
     dev: pd.DataFrame,
     colors: dict[str, str],

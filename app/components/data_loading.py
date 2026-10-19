@@ -4,11 +4,14 @@ only reads the parquet files scripts/run_covid_disruption_pipeline.py (or,
 once real WONDER data exists, the equivalent real pipeline) already wrote
 to outputs/models/.
 """
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 from src.utils.config import OUTPUTS_MODELS
-from src.utils.synthetic_mortality import is_synthetic_active, SYNTHETIC_HETEROGENEITY_MARKER
+from src.utils.synthetic_mortality import (
+    SYNTHETIC_HETEROGENEITY_MARKER,
+    is_synthetic_active,
+)
 
 TEST_CAUSES = [
     "Diseases of heart", "Diabetes mellitus", "Alzheimer's disease",
@@ -54,16 +57,17 @@ CAUSE_COLORS = {
     NEGATIVE_CONTROL: "#8795A3",
 }
 
-# Semantic st.badge color names (Streamlit's fixed palette) paired with
-# Material Symbols icons, one per cause -- used for badges/metrics instead
-# of raw HTML/CSS, per this project's "no custom CSS unless requested" rule.
+# st.badge color names paired with Material Symbols icons, one per cause.
+# Each name resolves through config.toml's redColor/orangeColor/... to the
+# same hex as that cause's CAUSE_COLORS entry, so a cause's badge matches its
+# chart line (tests/test_ui.py checks this).
 CAUSE_BADGE_STYLE = {
-    "Diseases of heart": ("red", ":material/favorite:"),
-    "Diabetes mellitus": ("blue", ":material/water_drop:"),
-    "Alzheimer's disease": ("violet", ":material/psychology:"),
-    "Cerebrovascular disease": ("orange", ":material/bolt:"),
-    "Drug overdose": ("green", ":material/medication:"),
-    "Malignant neoplasms": ("yellow", ":material/biotech:"),
+    "Diseases of heart": ("orange", ":material/favorite:"),
+    "Diabetes mellitus": ("red", ":material/water_drop:"),
+    "Alzheimer's disease": ("yellow", ":material/psychology:"),
+    "Cerebrovascular disease": ("violet", ":material/bolt:"),
+    "Drug overdose": ("blue", ":material/medication:"),
+    "Malignant neoplasms": ("green", ":material/biotech:"),
     NEGATIVE_CONTROL: ("gray", ":material/verified:"),
 }
 

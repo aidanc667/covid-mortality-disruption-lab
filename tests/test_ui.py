@@ -4,13 +4,19 @@ from pathlib import Path
 import pytest
 import tomllib
 
-from app.components.data_loading import CAUSE_COLORS, NEGATIVE_CONTROL, TEST_CAUSES
+from app.components.data_loading import (
+    CAUSE_BADGE_STYLE,
+    CAUSE_COLORS,
+    NEGATIVE_CONTROL,
+    TEST_CAUSES,
+)
 from app.components.ui import (
     BASE_CSS,
     cause_chips_html,
     eyebrow_html,
     hero_text_html,
     metric_strip_html,
+    takeaway_html,
 )
 
 
@@ -21,6 +27,7 @@ def test_every_helper_escapes_its_text():
         hero_text_html(hostile, hostile),
         cause_chips_html([(hostile, "#B3261E")]),
         metric_strip_html([(hostile, hostile, hostile)]),
+        takeaway_html(hostile),
     ]
     for out in outputs:
         assert "<script>" not in out
@@ -69,3 +76,16 @@ def test_metric_strip_sets_word_values_in_the_smaller_word_style():
     out = metric_strip_html([("926", "counties", "c"), ("Pre-registered", "", "c")])
     assert out.count("cmd-kpi-word") == 1
     assert out.index("cmd-kpi-word") > out.index("926")
+
+
+def _config():
+    return tomllib.loads((Path(__file__).resolve().parent.parent / ".streamlit/config.toml").read_text())
+
+
+def test_cause_badges_render_in_the_same_color_as_the_cause_line():
+    theme = _config()["theme"]
+    for cause in [*TEST_CAUSES, NEGATIVE_CONTROL]:
+        badge_color, _icon = CAUSE_BADGE_STYLE[cause]
+        if badge_color == "gray":  # the negative control's badge is deliberately neutral
+            continue
+        assert theme[f"{badge_color}Color"] == CAUSE_COLORS[cause], cause
