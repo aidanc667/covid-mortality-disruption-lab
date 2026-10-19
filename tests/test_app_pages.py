@@ -201,3 +201,20 @@ def test_findings_states_that_the_rurality_result_changed():
     # Export counts in the Limits caption: 10 pooled + 4 year-by-year + 2 bridging.
     assert "County results use 10 pooled exports" in text
     assert "For all five causes, higher smoking rates went with larger disruption." in text
+
+
+def test_geographic_alzheimers_is_labeled_exploratory():
+    at = _app_on("geographic_heterogeneity")
+    at.button_group[0].set_value("Alzheimer's disease").run()
+    assert not at.exception
+    assert any("Exploratory." in i.value for i in at.info)
+    (takeaway,) = [e.proto.body for e in at.get("html") if 'class="cmd-takeaway"' in e.proto.body]
+    # heterogeneity_summary, Alzheimer's (exploratory): no measure survives FDR.
+    assert "No context variable survives FDR correction for Alzheimer" in takeaway
+
+
+def test_findings_mentions_alzheimers_county_run_as_exploratory():
+    text = _page_text(_app_on("findings"))
+    assert "Exploratory:" in text and "None of the five measures survives FDR correction for it." in text
+    # Still only five causes in the cross-cause summary.
+    assert "For all five causes, higher smoking rates went with larger disruption." in text

@@ -32,6 +32,10 @@ from src.utils.synthetic_mortality import clear_synthetic_marker, SYNTHETIC_MARK
 # The original year-by-year county method was run on these two causes only;
 # its results are kept as a comparison for the pooled method.
 YEARLY_COMPARISON_CAUSES = ["Diabetes mellitus", "Drug overdose"]
+# Run with the same method but outside the confirmatory county analysis
+# (research_protocol.md's 2026-10-19 exploratory addendum): no significant
+# 2020-21 disruption, so §10's rule doesn't select it.
+EXPLORATORY_COUNTY_CAUSES = ["Alzheimer's disease"]
 HETEROGENEITY_PRE_YEARS = (2015, 2019)
 HETEROGENEITY_POST_YEARS = (2020, 2024)
 # County-level heterogeneity uses crude rate, not age-adjusted rate, for
@@ -479,9 +483,21 @@ def main():
         pooled[cause] = compute_pooled_county_disruption(pre, post, value_col=HETEROGENEITY_VALUE_COL)
         print(f"  {cause}: {len(pooled[cause])} counties with a reliable pooled rate in both periods")
     heterogeneity_summary, selection_bias_df, robustness_df = run_county_stage(pooled, chr_df)
+    exploratory = {}
+    for cause in EXPLORATORY_COUNTY_CAUSES:
+        pre, post = load_pooled_county_data(cause)
+        exploratory[cause] = compute_pooled_county_disruption(pre, post, value_col=HETEROGENEITY_VALUE_COL)
+        print(f"  {cause} (exploratory): {len(exploratory[cause])} counties")
+    exp_summary, exp_bias, exp_robustness = run_county_stage(exploratory, chr_df)
+    heterogeneity_summary = pd.concat(
+        [heterogeneity_summary.assign(exploratory=False), exp_summary.assign(exploratory=True)], ignore_index=True
+    )
+    selection_bias_df = pd.concat([selection_bias_df, exp_bias], ignore_index=True)
+    robustness_df = pd.concat([robustness_df, exp_robustness], ignore_index=True)
+    pooled.update(exploratory)
     # Remove county files from an earlier run whose cause is no longer in the
     # set, so the app can't read stale results.
-    current = {f"county_disruption_{c.lower().replace(' ', '_')}.parquet" for c in county_causes}
+    current = {f"county_disruption_{c.lower().replace(' ', '_')}.parquet" for c in pooled}
     for stale in OUTPUTS_MODELS.glob("county_disruption_*.parquet"):
         if not stale.name.startswith("county_disruption_yearly_") and stale.name not in current:
             stale.unlink()

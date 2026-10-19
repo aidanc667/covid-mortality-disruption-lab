@@ -797,6 +797,18 @@ def build(data: dict) -> list:
             f"&bull; <b>{county_labels[cause]}:</b> more rural half {upper['slope']:+.1f} (p={upper['p_value']:.2g}), "
             f"less rural half {lower['slope']:+.1f} (p={lower['p_value']:.2g}). {reading}", styles["Body"]
         ))
+    alz_rows = het[het["cause"] == "Alzheimer's disease"] if "exploratory" in het.columns else het.iloc[0:0]
+    if len(alz_rows):
+        n_alz = len(pd.read_parquet(OUTPUTS_MODELS / "county_disruption_alzheimer's_disease.parquet"))
+        n_sig = int(alz_rows["fdr_significant"].sum())
+        story.append(Paragraph(
+            f"<b>Exploratory: Alzheimer's disease.</b> It had no 2020-21 disruption, so it isn't part of the "
+            f"county analysis above, but it was run the same way for comparison ({n_alz:,} counties). "
+            + ("None of the five county measures survives FDR correction for it. "
+               if n_sig == 0 else f"{n_sig} of the five county measures survive FDR correction. ")
+            + "Its national decline came in 2023-24, and averaging all of 2020-24 mixes that with earlier "
+            "years, so this is a blunt measure of it.", styles["Body"]
+        ))
     story.append(Paragraph(
         "This analysis has no data on local policies or on age and race, so it doesn't try to explain "
         "any single county, and these are associations, not causes.", styles["Body"]
@@ -848,7 +860,8 @@ def build(data: dict) -> list:
     story.append(Paragraph("7. Data and reproducibility", styles["H1"]))
     story.append(Paragraph(
         "National results use 15 CDC WONDER exports (7 from the 1999-2020 database, 8 from the "
-        "2018-2024 database). County results use 10 pooled exports (five causes, before and after 2020), "
+        "2018-2024 database). County results use 10 pooled exports (five causes, before and after 2020) "
+        "and 2 more for the exploratory Alzheimer's county run, "
         "plus 4 year-by-year exports kept for the diabetes and overdose comparison and 2 heart disease "
         "2018-2019 exports showing the two databases match exactly county by county. No synthetic data is used anywhere. The full method, the predictions made before "
         "seeing the data, and every change made along the way are in research_protocol.md. Export "

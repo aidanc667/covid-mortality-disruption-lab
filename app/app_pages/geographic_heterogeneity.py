@@ -6,8 +6,10 @@ from app.components.county_map import render_county_choropleth
 from app.components.county_text import rurality_split_reading
 from app.components.data_loading import (
     CONTEXT_VAR_LABELS,
-    HETEROGENEITY_CAUSES,
+    COUNTY_PAGE_CAUSES,
+    EXPLORATORY_COUNTY_CAUSES,
     YEARLY_COMPARISON_CAUSES,
+    county_cause_label,
     data_available,
     display_cause,
     heterogeneity_synthetic_banner,
@@ -32,7 +34,7 @@ if not data_available():
 het = load_heterogeneity_summary()
 
 cause = st.segmented_control(
-    "Cause", options=HETEROGENEITY_CAUSES, default=HETEROGENEITY_CAUSES[0], format_func=display_cause,
+    "Cause", options=COUNTY_PAGE_CAUSES, default=COUNTY_PAGE_CAUSES[0], format_func=county_cause_label,
 )
 if cause is None:
     st.stop()
@@ -76,6 +78,15 @@ st.html(takeaway_html(
     + "These are county-level associations, not causes."
     + rurality_note
 ))
+
+if cause in EXPLORATORY_COUNTY_CAUSES:
+    st.info(
+        f"**Exploratory.** {display_cause(cause)} had no significant 2020–21 disruption nationally, so it isn't "
+        "part of the main county analysis. It's shown with the same method for comparison. Its national "
+        "decline came in 2023–24, and averaging all of 2020–24 mixes that with the earlier years, so this "
+        "is a blunt measure of it (research_protocol.md, 2026-10-19 exploratory addendum).",
+        icon=":material/science:",
+    )
 
 map_tab, predicts_tab, all_tab = st.tabs(["Map", "What predicts it", "All counties"])
 

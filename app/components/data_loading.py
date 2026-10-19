@@ -23,6 +23,19 @@ NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnor
 HETEROGENEITY_CAUSES = [
     "Diseases of heart", "Diabetes mellitus", "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
 ]
+# Same county method, but outside the confirmatory analysis: Alzheimer's had
+# no significant 2020-21 disruption (research_protocol.md's 2026-10-19
+# exploratory addendum). Shown on the county pages, labeled exploratory, and
+# kept out of the cross-cause summary.
+EXPLORATORY_COUNTY_CAUSES = ["Alzheimer's disease"]
+COUNTY_PAGE_CAUSES = HETEROGENEITY_CAUSES + EXPLORATORY_COUNTY_CAUSES
+
+
+def county_cause_label(cause: str) -> str:
+    """Display name for county pages, flagging exploratory causes."""
+    return f"{display_cause(cause)} (exploratory)" if cause in EXPLORATORY_COUNTY_CAUSES else display_cause(cause)
+
+
 # The original year-by-year county method, kept as a comparison.
 YEARLY_COMPARISON_CAUSES = ["Diabetes mellitus", "Drug overdose"]
 

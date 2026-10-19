@@ -14,7 +14,7 @@ The two most interesting results are the two that weren't supposed to happen. Ca
 
 Both of these were decided in writing, with a stated confidence level, before any 2020-2024 data was pulled; otherwise a result that happens to confirm what you expected proves very little.
 
-Disruption also wasn't spread evenly across the country. County-level data covers all five disrupted causes, from 1,564 counties for drug overdose to 3,066 for heart disease. For every cause, counties with higher smoking and uninsured rates saw larger disruption, and higher-income counties saw smaller disruption for four of the five. Rurality is mixed: more rural counties saw larger disruption for heart disease, drug overdose, and cancer, smaller for stroke, and no clear difference for diabetes. An earlier version of this analysis, which kept mostly larger counties, had pointed to smaller disruption in more rural counties for diabetes and overdose; that didn't hold once rural counties were included. County rates aren't age-adjusted, so part of any rural difference may reflect older rural populations. Details and both versions: see Geographic patterns in the app.
+Disruption also wasn't spread evenly across the country. County-level data covers all five disrupted causes, from 1,564 counties for drug overdose to 3,066 for heart disease. For every cause, counties with higher smoking and uninsured rates saw larger disruption, and higher-income counties saw smaller disruption for four of the five. Rurality is mixed: more rural counties saw larger disruption for heart disease, drug overdose, and cancer, smaller for stroke, and no clear difference for diabetes. An earlier version of this analysis, which kept mostly larger counties, had pointed to smaller disruption in more rural counties for diabetes and overdose; that didn't hold once rural counties were included. County rates aren't age-adjusted, so part of any rural difference may reflect older rural populations. Alzheimer's, which had no 2020-21 disruption, was also run at county level as an exploratory check; no county measure was significantly linked to its change. Details and both versions: see Geographic patterns in the app.
 
 ## Why this exists
 
@@ -27,7 +27,7 @@ Excess-mortality analysis is the real technique public health agencies use to es
 - **Independent cross-check.** Three unrelated change-point detection methods (PELT, binary segmentation, segmented regression) are run on each series to see whether they land on a 2020 breakpoint without being told to.
 - **A three-axis sensitivity analysis.** The primary method is re-fit with a different baseline window, a stricter significance threshold, and a curved instead of linear trend, to see whether any result depends on a modeling choice rather than the data.
 - **An autocorrelation-robust check.** The classical significance test assumes each year's deviation from trend is independent noise, which is measurably false for several causes. A Newey-West (HAC) version of the same test is reported alongside the classical one: it widens the uncertainty for the affected causes but doesn't overturn any result.
-- **190 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
+- **192 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
 
 All of this is visible directly in the app's Data Quality page, not summarized away.
 
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 pytest
 ```
 
-The 31 CDC WONDER exports underlying this analysis (15 national, 16 county) aren't checked into the repo (see `docs/manual_data_acquisition.md` for why, and the exact steps to re-pull them). With them in place:
+The 33 CDC WONDER exports underlying this analysis (15 national, 18 county) aren't checked into the repo (see `docs/manual_data_acquisition.md` for why, and the exact steps to re-pull them). With them in place:
 
 ```bash
 python -m scripts.run_covid_disruption_pipeline   # national + county disruption/persistence/heterogeneity analysis

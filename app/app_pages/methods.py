@@ -50,7 +50,7 @@ with overview:
     with st.container(horizontal=True):
         for icon, title, body in [
             (":material/database:", "Real data",
-             "31 CDC WONDER mortality exports (15 national, 16 county), plus real County Health Rankings socioeconomic data."),
+             "33 CDC WONDER mortality exports (15 national, 18 county), plus real County Health Rankings socioeconomic data."),
             (":material/edit_note:", "Locked before looking",
              "Hypotheses and confidence levels for each cause were written down before any 2020–2024 data was analyzed."),
             (":material/verified:", "Tested, not assumed",
@@ -294,7 +294,7 @@ with limits_tab:
     # would be slow and fragile). Update by hand when tests/ changes;
     # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
     st.caption(
-        ":green-badge[190 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[192 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 

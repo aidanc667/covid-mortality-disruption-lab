@@ -3,9 +3,9 @@ import pandas as pd
 import streamlit as st
 
 from app.components.data_loading import (
-    HETEROGENEITY_CAUSES,
+    COUNTY_PAGE_CAUSES,
+    county_cause_label,
     data_available,
-    display_cause,
     heterogeneity_synthetic_banner,
     load_county_disruption,
 )
@@ -14,8 +14,8 @@ from src.ingestion.county_health_rankings import load_year as load_chr_year
 st.title("County lookup")
 heterogeneity_synthetic_banner()
 st.caption(
-    "Pre (2015–2019) vs. post (2020–2024) crude death rates for the five causes with county-level data, "
-    "plus local context. Only period averages exist at county level, not year-by-year trends "
+    "Pre (2015–2019) vs. post (2020–2024) crude death rates for the five disrupted causes "
+    "and, as an exploratory sixth, Alzheimer's, plus local context. Only period averages exist at county level, not year-by-year trends "
     "(research_protocol.md §4)."
 )
 
@@ -23,7 +23,7 @@ if not data_available():
     st.warning("No precomputed data available yet.", icon=":material/warning:")
     st.stop()
 
-frames = [load_county_disruption(c) for c in HETEROGENEITY_CAUSES]
+frames = [load_county_disruption(c) for c in COUNTY_PAGE_CAUSES]
 combined = pd.concat(frames, ignore_index=True)
 
 # County names come from the real CDC WONDER export
@@ -51,10 +51,10 @@ st.subheader(name_lookup.get(county_fips, f"County {county_fips}"))
 county_rows = combined[combined["county_fips"] == county_fips]
 
 with st.container(horizontal=True):
-    for cause in HETEROGENEITY_CAUSES:
+    for cause in COUNTY_PAGE_CAUSES:
         row = county_rows[county_rows["cause"] == cause]
         with st.container(border=True):
-            st.write(f"**{display_cause(cause)}**")
+            st.write(f"**{county_cause_label(cause)}**")
             if len(row):
                 r = row.iloc[0]
                 st.metric("Pre-period rate (crude)", f"{r['crude_rate_pre']:.1f}")
@@ -71,13 +71,13 @@ if len(county_rows):
         id_vars=["cause"], value_vars=["crude_rate_pre", "crude_rate_post"], var_name="period", value_name="rate",
     )
     rates["period"] = rates["period"].map({"crude_rate_pre": "2015–2019", "crude_rate_post": "2020–2024"})
-    rates["cause"] = rates["cause"].map(display_cause)
+    rates["cause"] = rates["cause"].map(county_cause_label)
     st.altair_chart(
         alt.Chart(rates)
         .mark_bar(cornerRadiusEnd=2)
         .encode(
             # Same order as the cards above; the two periods sit side by side per cause.
-            y=alt.Y("cause:N", title=None, sort=[display_cause(c) for c in HETEROGENEITY_CAUSES],
+            y=alt.Y("cause:N", title=None, sort=[county_cause_label(c) for c in COUNTY_PAGE_CAUSES],
                     axis=alt.Axis(ticks=False, domain=False, labelFontSize=12, labelLimit=0)),
             yOffset=alt.YOffset("period:N", sort=["2015–2019", "2020–2024"]),
             x=alt.X("rate:Q", title="Crude death rate per 100,000"),

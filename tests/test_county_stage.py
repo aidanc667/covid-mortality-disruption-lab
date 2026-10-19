@@ -81,4 +81,7 @@ def test_app_county_causes_match_pipeline_outputs():
     for cause in HETEROGENEITY_CAUSES:
         assert (MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet").exists()
     het = pd.read_parquet(MODELS / "heterogeneity_summary.parquet")
-    assert list(dict.fromkeys(het["cause"])) == HETEROGENEITY_CAUSES
+    assert list(dict.fromkeys(het.loc[~het["exploratory"], "cause"])) == HETEROGENEITY_CAUSES
+    # Alzheimer's is exploratory only: no significant 2020-21 disruption.
+    assert list(dict.fromkeys(het.loc[het["exploratory"], "cause"])) == ["Alzheimer's disease"]
+    assert summary.loc["Alzheimer's disease", "persistence_class"] == "No significant disruption"

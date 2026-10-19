@@ -11,6 +11,7 @@ from app.components.county_text import (
 from app.components.data_loading import (
     CAUSE_COLORS,
     CONTEXT_VAR_LABELS,
+    EXPLORATORY_COUNTY_CAUSES,
     HETEROGENEITY_CAUSES,
     NEGATIVE_CONTROL,
     TEST_CAUSES,
@@ -347,6 +348,16 @@ with counties_tab:
     )
     for sentence in county_pattern_sentences(het, county_labels):
         st.markdown(f"- {sentence}")
+    alz_het = het[het["cause"].isin(EXPLORATORY_COUNTY_CAUSES)]
+    for cause in EXPLORATORY_COUNTY_CAUSES:
+        rows = alz_het[alz_het["cause"] == cause]
+        sig = rows[rows["fdr_significant"]]
+        st.caption(
+            f"**Exploratory:** {display_cause(cause)}, which had no 2020–21 disruption, was run the same way "
+            f"({len(load_county_disruption(cause)):,} counties) and kept out of the summary above. "
+            + ("None of the five measures survives FDR correction for it."
+               if sig.empty else f"{len(sig)} of the five measures survive FDR correction; see Geographic patterns.")
+        )
     st.caption(
         "These are associations, not causes. County rates are crude, not age-adjusted (CDC doesn't offer "
         "age adjustment at county level for 2018–2024), so part of any change could reflect a county's "
@@ -482,7 +493,7 @@ with limits_tab:
 
     st.caption(
         "All national-level results use 15 real CDC WONDER exports. County results use 10 pooled exports "
-        "(five causes, 2015–2019 and 2020–2024), plus 4 year-by-year exports kept for the diabetes and "
+        "(five causes, 2015–2019 and 2020–2024), 2 for the exploratory Alzheimer's county run, plus 4 year-by-year exports kept for the diabetes and "
         "overdose comparison and 2 heart disease 2018–2019 exports used to check the two databases match "
         "county by county. Nothing in this project is synthetic. Full provenance: "
         "`docs/manual_data_acquisition.md`."
