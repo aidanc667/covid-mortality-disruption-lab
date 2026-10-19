@@ -124,7 +124,7 @@ with predicts_tab:
         alt.Chart(het_bar_display)
         .mark_bar()
         .encode(
-            x=alt.X("slope:Q", title="Slope (direction and magnitude)"),
+            x=alt.X("slope:Q", title="Slope"),
             y=alt.Y("variable:N", sort="-x", title=None),
             color=alt.condition("datum.slope > 0", alt.value("#C26A2E"), alt.value("#2C5D86")),
             tooltip=[

@@ -2,19 +2,19 @@
 
 **Live app:** [covid-mortality-disruption-lab.streamlit.app](https://covid-mortality-disruption-lab.streamlit.app) &nbsp;·&nbsp; **Full report:** [`outputs/reports/covid_mortality_disruption_report.pdf`](outputs/reports/covid_mortality_disruption_report.pdf) &nbsp;·&nbsp; **Findings:** [`docs/findings.md`](docs/findings.md)
 
-**Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death (heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that damage still unresolved, and where in the country did it land hardest?**
+**Did COVID-19 bend the trend for six other leading causes of death (heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer), has it recovered, and where did it hit hardest?**
 
 COVID-19 isn't the subject of this analysis; it's the shock. Rather than counting deaths attributed to the virus itself, this project treats the pandemic as a system-wide disruption and asks what it did to mortality from six other major causes, using 26 years of real CDC mortality data, not synthetic or simulated numbers.
 
 ## What it found
 
-Five of the six causes tested show a statistically significant deviation from their pre-pandemic trend that is still unresolved four years later; none have fully returned to normal, and none have reversed direction. Drug overdose shows the largest acute swing (+40.9% in 2020-21), easing back toward its pre-pandemic trend by 2024 (-4.3%) but not fully reversing. Diabetes (+26.9% acute, still +15.0% in 2024) and heart disease (+7.8% acute, after a baseline correction described below) have eased somewhat but remain significantly elevated rather than resolving.
+Five of the six causes tested departed significantly from their pre-pandemic trend in 2020-21, and all five stayed significantly off trend, in the same direction, for at least one later year (the project's "Persisted" classification). By 2024 the picture had narrowed: only diabetes (+15.0%) and cancer (+4.6%) were still significantly above trend. Drug overdose shows the largest acute swing (+40.9% in 2020-21), stayed far above trend through 2023, then dipped slightly below it in 2024 (-4.3%, not significant). Heart disease (+7.8% acute, after a baseline correction described below) and stroke were back inside their expected range by 2024.
 
 The two most interesting results are the two that weren't supposed to happen. Cancer was pre-registered as an expected null (the theory was that delayed screening wouldn't show up as excess deaths for years past this project's 2024 data window), and it showed a real, if modest, disruption anyway (+1.7%, still significant after correcting for testing six causes at once). Alzheimer's disease was pre-registered as a high-confidence, large effect, on the theory that pandemic isolation would show up clearly in dementia mortality, and it showed none in the acute 2020-21 window. Pooling all five post-2020 years instead of just the acute window turns up something else entirely: a real, later decline that only became significant in 2023-2024, consistent with mortality displacement rather than the originally hypothesized mechanism.
 
 Both of these were decided in writing, with a stated confidence level, before any 2020-2024 data was pulled; otherwise a result that happens to confirm what you expected proves very little.
 
-Disruption also wasn't spread evenly across the country. For diabetes and drug overdose, the two causes with county-level data, higher uninsured rate, smoking, and obesity all predict a larger disruption, and higher income predicts a smaller one. Grant County, Indiana saw the largest diabetes-mortality increase of any county in the dataset (60.2 → 123.0 per 100,000); Mercer County, West Virginia saw the largest for drug overdose (57.0 → 119.9). Full county-level detail, including a real selection-bias caveat the project's own self-audit found: see Geographic heterogeneity in the app.
+Disruption also wasn't spread evenly across the country. For diabetes and drug overdose, the two causes with county-level data, higher uninsured rate, smoking, and obesity all predict a larger disruption, and higher income predicts a smaller one. Grant County, Indiana saw the largest diabetes-mortality increase of any county in the dataset (60.2 → 123.0 per 100,000); Mercer County, West Virginia saw the largest for drug overdose (57.0 → 119.9). Full county-level detail, including a real selection-bias caveat the project's own self-audit found: see Geographic patterns in the app.
 
 ## Why this exists
 
@@ -27,16 +27,17 @@ Excess-mortality analysis is the real technique public health agencies use to es
 - **Independent cross-check.** Three unrelated change-point detection methods (PELT, binary segmentation, segmented regression) are run on each series to see whether they land on a 2020 breakpoint without being told to.
 - **A three-axis sensitivity analysis.** The primary method is re-fit with a different baseline window, a stricter significance threshold, and a curved instead of linear trend, to see whether any result depends on a modeling choice rather than the data.
 - **An autocorrelation-robust check.** The classical significance test assumes each year's deviation from trend is independent noise, which is measurably false for several causes. A Newey-West (HAC) version of the same test is reported alongside the classical one: it widens the uncertainty for the affected causes but doesn't overturn any result.
-- **106 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
+- **151 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
 
 All of this is visible directly in the app's Data Quality page, not summarized away.
 
 ## Inside the app
 
+- **Home**: the question, one chart of every cause's gap from its pre-pandemic trend, and the project's scope, on a single screen.
 - **Findings**: the plain-language summary of every result, including the two that contradicted the project's own priors.
 - **Causes of death**: a deep dive per cause, covering the trajectory chart, the effect size, three different significance checks side by side, and what the published research literature plausibly suggests as a mechanism (clearly separated from what this project's own data can prove).
-- **Geographic heterogeneity**: an interactive U.S. county choropleth for the two causes with usable county-level data, showing where disruption was largest and what socioeconomic or healthcare-access variables predict it.
-- **County deep dive**: look up any individual county's pre/post rates and real local context.
+- **Geographic patterns**: an interactive U.S. county choropleth for the two causes with usable county-level data, showing where disruption was largest and what socioeconomic or healthcare-access variables predict it.
+- **County lookup**: look up any individual county's pre/post rates and real local context.
 - **Data quality**: the negative control, the sensitivity analysis, vintage-bridging reliability, and every methodological correction, shown directly.
 - **Methods**: the full statistical design in one place.
 

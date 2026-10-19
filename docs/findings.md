@@ -4,7 +4,7 @@
 
 ## The headline
 
-Of the 6 major causes of death tested, **5 show a statistically significant, still-unresolved deviation from their pre-pandemic trend, four years after the pandemic began.** None of the 5 have resolved back to their expected trend by 2024, and none have reversed direction. The one cause with no significant disruption, Alzheimer's disease, is itself a real, meaningful result, not a gap in the data.
+Of the 6 major causes of death tested, **5 departed significantly from their pre-pandemic trend in 2020-21, and each stayed significantly off trend in the same direction for at least one later year.** By 2024 only diabetes (+15.0%) and cancer (+4.6%) were still significantly above trend; heart disease, stroke, and drug overdose were back inside their expected range, with drug overdose slightly below it (-4.3%, not significant). The one cause with no significant 2020-21 disruption, Alzheimer's disease, is itself a real, meaningful result, not a gap in the data.
 
 | Cause | Result | p-value | Survives FDR | 2020-21 deviation | 2024 deviation |
 |---|---|---|---|---|---|

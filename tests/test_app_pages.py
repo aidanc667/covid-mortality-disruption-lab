@@ -41,18 +41,21 @@ def test_renamed_pages_use_new_titles():
     assert _app_on("county_deep_dive").title[0].value == "County lookup"
 
 
-def test_methods_overview_holds_content_moved_off_home():
+def test_methods_tabs_hold_all_content_including_what_moved_off_home():
     at = _app_on("methods")
-    assert [t.label for t in at.tabs] == ["Overview", "Details"]
+    assert [t.label for t in at.tabs] == [
+        "Overview", "Hypotheses", "Data", "Statistics", "Counties", "Language policy", "Limitations & ethics",
+    ]
     overview = at.tabs[0]
     assert [s.value for s in overview.subheader] == ["Why this matters", "What we did", "The breaking point"]
     card_text = " ".join(m.value for m in overview.markdown)
     for card in ("Real data", "Locked before looking", "Tested, not assumed", "Mapped and explained"):
         assert card in card_text
     assert len(overview.get("vega_lite_chart")) == 1  # the COVID-19 reference chart
-    details_expanders = _expander_labels(at.tabs[1])
-    assert "Research question" in details_expanders
-    assert "Ethics and project checks" in details_expanders
+    assert [s.value for s in at.tabs[1].subheader] == ["Research question", "Pre-registered hypotheses"]
+    assert [s.value for s in at.tabs[6].subheader] == ["Known limitations", "Ethics and project checks"]
+    # Nothing left collapsed: every section is a tab now.
+    assert _expander_labels(at) == []
 
 
 def test_home_shows_title_and_county_count_from_the_data():
@@ -132,3 +135,9 @@ def test_geographic_patterns_tabs_and_takeaway():
 def test_county_lookup_shows_pre_post_chart():
     at = _app_on("county_deep_dive")
     assert len(at.get("vega_lite_chart")) == 1
+
+
+
+def test_data_quality_tabs():
+    at = _app_on("data_quality")
+    assert [t.label for t in at.tabs] == ["Negative control", "Multiple testing", "Vintage bridging", "Sensitivity"]

@@ -64,7 +64,10 @@ def then_vs_now_chart(
     )
     y = alt.Y("label:N", sort=order, title=None, axis=alt.Axis(
         ticks=False, domain=False, labelFontSize=12, labelLimit=0))
-    x_title = f"% above (+) or below (−) the pre-pandemic trend: 2020–21 (hollow) → {latest_year} (filled)"
+    # Kept short: under Streamlit's container-width fit a long axis title
+    # squeezes the plot to nothing at phone width. The page caption explains
+    # hollow (2020-21) vs. filled (latest year).
+    x_title = "% vs. pre-pandemic trend"
     x = alt.X("pct:Q", title=x_title, axis=alt.Axis(
         labelFont=MONO, labelColor=MUTED, gridColor=GRID, ticks=False, domain=False, titleColor=MUTED,
         titleFontWeight=400, labelExpr="(datum.value > 0 ? '+' : '') + datum.value + '%'"))
