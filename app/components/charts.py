@@ -10,7 +10,7 @@ TREND_LINE = "#8795A3"
 # How much non-highlighted causes are washed toward white on chart A.
 BACKGROUND_TINT = 0.55
 # Minimum vertical spacing between end-of-line labels, in pixels.
-LABEL_GAP_PX = 13
+LABEL_GAP_PX = 16
 
 
 def deviation_pct(deviations: pd.DataFrame) -> pd.DataFrame:
@@ -51,7 +51,7 @@ def gap_from_trend_chart(
     colors: dict[str, str],
     labels: dict[str, str],
     highlight: set[str],
-    height: int = 300,
+    height: int = 270,
 ) -> alt.LayerChart:
     """Home chart A: each cause's percent gap from its projected pre-pandemic
     trend, one line per cause. Highlighted causes are drawn in full color; the
@@ -79,9 +79,10 @@ def gap_from_trend_chart(
     pad = (y_hi - y_lo) * 0.08 or 1.0
     y_domain = [y_lo - pad, y_hi + pad]
     y_scale = alt.Scale(domain=y_domain, nice=False)
-    # Extend the x domain to the right so the end-of-line labels have room
-    # inside the plot instead of being clipped at its edge.
-    x_scale = alt.Scale(domain=[years[0] - 0.2, years[-1] + 1.7], nice=False)
+    # Extend the x domain past the last year so the end-of-line labels have
+    # room inside the plot. (Chart padding can't do this: Streamlit's
+    # container-width fit shrinks the plot by the padding instead.)
+    x_scale = alt.Scale(domain=[years[0] - 0.2, years[-1] + 2.8], nice=False)
     x = alt.X("year:Q", scale=x_scale, title=None, axis=alt.Axis(
         values=years, format="d", labelFont=MONO, labelColor=MUTED, grid=False, ticks=False, domain=False))
     y = alt.Y("pct:Q", scale=y_scale, title=None, axis=alt.Axis(

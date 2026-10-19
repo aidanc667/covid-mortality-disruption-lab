@@ -1,220 +1,96 @@
-import altair as alt
 import streamlit as st
 
+from app.components.charts import deviation_pct, gap_from_trend_chart
 from app.components.data_loading import (
-    load_disruption_summary, load_negative_control, load_covid_reference_series, data_available,
-    synthetic_banner, heterogeneity_synthetic_banner, TEST_CAUSES, CAUSE_BADGE_STYLE,
+    CAUSE_COLORS,
+    HETEROGENEITY_CAUSES,
+    TEST_CAUSES,
+    data_available,
     display_cause,
+    heterogeneity_synthetic_banner,
+    load_county_disruption,
+    load_disruption_deviations,
+    load_national_series,
+    load_negative_control,
+    synthetic_banner,
+)
+from app.components.home_metrics import home_scope_metrics
+from app.components.ui import (
+    cause_chips_html,
+    eyebrow_html,
+    hero_text_html,
+    metric_strip_html,
 )
 
-st.title("COVID Mortality Disruption Lab")
-st.header(
-    "Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death "
-    "(heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that "
-    "damage still unresolved, and where in the country did it land hardest?"
+TITLE = "COVID Mortality Disruption Lab"
+SUBTITLE = "How the pandemic disrupted non-COVID mortality"
+QUESTION = (
+    "Did COVID-19 bend the trend for six other leading causes of death, "
+    "has it recovered, and where did it hit hardest?"
 )
+# The two largest 2020-21 disruptions, and the two causes with county data.
+HIGHLIGHT = set(HETEROGENEITY_CAUSES)
+# End-of-line labels on chart A; "Alzheimer's" is shortened so it fits at phone width.
+CHART_LABELS = {c: display_cause(c) for c in TEST_CAUSES} | {"Alzheimer's disease": "Alzheimer's"}
+AGE_ADJUSTED_HELP = (
+    "Age-adjusted: each year's rate is reweighted as if the U.S. had the same age mix every "
+    "year, so a real change in risk isn't confused with the population getting older. "
+    "0% is where the cause's own pre-pandemic trend, projected forward, says it should be."
+)
+
 synthetic_banner()
-
-st.subheader("Why this matters")
-st.write(
-    "The impact of a pandemic can't be understood from deaths attributed to the virus alone: "
-    "disruption to healthcare, behavior, and daily life can also alter mortality from causes that "
-    "have nothing to do with the infection itself. This project asks whether that happened, and "
-    "left a measurable footprint in the mortality record."
-)
-st.write(
-    "Using 26 years of CDC mortality data, we establish each cause's pre-pandemic trajectory, "
-    "estimate what 2020–2024 mortality would have looked like without a pandemic, and test whether "
-    "observed mortality significantly departed from that baseline, then whether any disruption was "
-    "temporary or persisted through 2024, both nationally and, for two causes, across U.S. counties "
-    "by socioeconomic status, healthcare access, and rurality."
-)
-
-st.subheader("The breaking point")
-st.caption(
-    "COVID-19 itself is not one of the causes tested below. It's the fixed, known-date shock "
-    "the whole analysis is built around. Every cause is compared against the trend it was already "
-    "on before this date, not searched for after the fact."
-)
-with st.container(border=True):
-    st.badge("COVID-19", icon=":material/coronavirus:", color="primary")
-    st.write("**March 2020: the pandemic's onset, fixed as the breakpoint**")
-    st.caption(
-        "Shown as a reference series, not tested for its own disruption. COVID-19 mortality "
-        "is the event every other cause below is being tested against, not a hypothesis in itself."
-    )
-    covid_series = load_covid_reference_series()
-    covid_chart = (
-        alt.Chart(covid_series)
-        .mark_bar(color="#4F46E5")
-        .encode(
-            x=alt.X("year:O", title=None, axis=alt.Axis(labelAngle=0)),
-            # Shortened from "Age-adjusted rate (per 100,000)": at this
-            # chart's height, the full title rotated 90 degrees needed more
-            # vertical room than the chart had, clipping its top against
-            # the canvas edge (confirmed by inspecting the rendered SVG --
-            # not a left-margin issue like Geographic heterogeneity's bar
-            # chart, a different clipping cause with a similar symptom).
-            # Units are still in the tooltip and the caption below.
-            y=alt.Y("age_adjusted_rate:Q", title="Age-adjusted rate"),
-            tooltip=[
-                alt.Tooltip("year:O", title="Year"),
-                alt.Tooltip("age_adjusted_rate:Q", title="Rate per 100,000", format=".1f"),
-            ],
-        )
-        .properties(height=180, padding={"left": 5, "top": 5, "right": 5, "bottom": 5})
-    )
-    st.altair_chart(covid_chart, width="stretch")
-    peak = covid_series.loc[covid_series["age_adjusted_rate"].idxmax()]
-    st.caption(
-        f"COVID-19's own age-adjusted mortality rate peaked at {peak['age_adjusted_rate']:.1f} per "
-        f"100,000 in {int(peak['year'])}, then declined sharply through 2024. It has no "
-        "pre-pandemic baseline to test against (the cause didn't exist before 2020) -- it's shown "
-        "here only as the event this whole analysis is built around, not one of the 6 causes tested."
-    )
-    with st.expander("What does \"age-adjusted\" mean?"):
-        st.caption(
-            "It reweights each year's rate as if the U.S. had the exact same age mix every time, "
-            "so a real change in risk isn't confused with the population simply getting older "
-            "(older populations have higher death rates for almost any cause). Every national-level "
-            "rate in this app is age-adjusted, not the raw \"crude\" rate, so different years can be "
-            "compared fairly; the county-level maps use crude rate instead, since CDC WONDER "
-            "doesn't offer age-adjustment at that granularity (see Data Quality)."
-        )
-
-st.subheader("What we're testing")
-st.caption("Six major causes of death, each tested independently against its own pre-pandemic baseline trend.")
-cause_grid = st.columns(3)
-for i, cause in enumerate(TEST_CAUSES):
-    badge_color, icon = CAUSE_BADGE_STYLE[cause]
-    with cause_grid[i % 3]:
-        with st.container(border=True, width="stretch"):
-            st.badge(display_cause(cause), icon=icon, color=badge_color)
-
-st.subheader("What we did")
-steps = st.container(horizontal=True)
-with steps:
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/database: **Real data**")
-        st.caption("19 CDC WONDER mortality exports (national + county), plus real County Health Rankings socioeconomic data.")
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/edit_note: **Locked before looking**")
-        st.caption("Hypotheses and confidence levels for each cause were written down before any 2020–2024 data was analyzed.")
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/verified: **Tested, not assumed**")
-        st.caption("A negative control, 3 independent sensitivity checks, and FDR correction: a passing grade wasn't assumed.")
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/travel_explore: **Mapped and explained**")
-        st.caption("Results broken down by cause and by county, with research-grounded reasoning for what could explain each one.")
+heterogeneity_synthetic_banner()
 
 if not data_available():
+    st.title(TITLE)
     st.warning(
         "No precomputed results found yet. Run `python -m scripts.run_covid_disruption_pipeline` "
         "to populate outputs/models/.",
         icon=":material/warning:",
     )
-else:
-    summary = load_disruption_summary()
-    neg_control = load_negative_control().iloc[0]
-    passed = bool(neg_control["passed"])
-    n_disrupted = int((summary["persistence_class"] != "No significant disruption").sum())
+    st.stop()
 
-    st.subheader("The headline finding")
-    st.write(
-        f"**{n_disrupted} of the 6 major causes tested still show a statistically significant "
-        "deviation from their pre-pandemic trend. Four years later, none of them has fully "
-        "returned to normal, and none reversed direction.** The one cause with no disruption is "
-        "itself a real, meaningful result, not a gap in the data. Full breakdown, including two "
-        "results that contradicted this project's own predictions: see Findings."
+if not bool(load_negative_control().iloc[0]["passed"]):
+    st.error(
+        "The negative control did not pass. Per research_protocol.md §7 method 4, this is a hard "
+        "gate. Results on the other 6 causes should not be trusted until this is resolved.",
+        icon=":material/error:",
     )
 
-    with st.container(horizontal=True):
-        with st.container(border=True):
-            st.metric(
-                "Disrupted", f"{n_disrupted} of {len(summary)}", border=False,
-                help="Of the 6 causes tested, this many showed a death rate that moved outside "
-                     "what a straight-line projection of the pre-pandemic trend would predict: "
-                     "a real statistical deviation, not normal year-to-year noise.",
-            )
-            st.caption(":material/trending_up: 6 test causes, FDR-corrected (§7a)")
-        with st.container(border=True):
-            n_fdr = int(summary["fdr_significant"].sum())
-            st.metric(
-                "FDR-significant", f"{n_fdr} of {len(summary)}", border=False,
-                help="Testing 6 causes at once means some 'significant' results could appear by "
-                     "chance alone. FDR correction is a stricter bar that accounts for this, and "
-                     "this many results still clear it, meaning they're very likely real effects.",
-            )
-            st.caption(":material/functions: Benjamini-Hochberg across the 6-cause family")
-        with st.container(border=True):
-            reversed_causes = summary.loc[summary["persistence_class"] == "Reversed", "cause"].map(display_cause)
-            reversed_value = reversed_causes.iloc[0] if len(reversed_causes) else "None"
-            st.metric(
-                "Reversed", reversed_value if len(reversed_value) <= 12 else f"{len(reversed_causes)}",
-                border=False,
-                help=(
-                    f"{reversed_value}: a cause 'reverses' if it spiked one direction, then swung "
-                    "back past the pre-pandemic trend in the opposite direction."
-                    if len(reversed_causes) else
-                    "A cause 'reverses' if it spiked one direction, then swung back past the "
-                    "pre-pandemic trend in the opposite direction. None of the 6 causes did this: "
-                    "whatever changed, stayed changed in the same direction."
-                ),
-            )
-            st.caption(":material/u_turn_right: Spiked, then declined below the pre-pandemic trend")
-        with st.container(border=True):
-            st.metric(
-                "Negative control", "Passed" if passed else "FAILED", border=False,
-                help="A built-in sanity check: the identical method run on a cause with no "
-                     "direct COVID connection (a birth-defect category), to confirm the method "
-                     "doesn't just find 'disruption' everywhere by accident. It found nothing "
-                     "there, as expected: evidence the method works.",
-            )
-            st.caption(":material/verified: Congenital malformations, no direct COVID mechanism")
+scope = home_scope_metrics(load_national_series(), {c: load_county_disruption(c) for c in HETEROGENEITY_CAUSES})
+dev = deviation_pct(load_disruption_deviations())
 
-    if not passed:
-        st.error(
-            "The negative control did not pass. Per research_protocol.md §7 method 4, this "
-            "is a hard gate. Results on the other 6 causes should not be trusted until this "
-            "is resolved.",
-            icon=":material/error:",
-        )
-
-    # Test count is a static badge, not computed live (running pytest inside
-    # a deployed Streamlit app would be slow and fragile) -- update this
-    # number by hand when tests/ changes; verify with `pytest --collect-only -q`.
-    st.caption(
-        ":green-badge[106 automated tests] :blue-badge[Pre-registered protocol] "
-        ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
+left, right = st.columns([1, 1.05], gap="large", vertical_alignment="center")
+with left:
+    st.html(eyebrow_html("CDC WONDER", f"Mortality research · {scope.first_year}–{scope.last_year}"))
+    st.title(TITLE)
+    st.html(hero_text_html(SUBTITLE, QUESTION))
+    st.html(cause_chips_html([(display_cause(c), CAUSE_COLORS[c]) for c in TEST_CAUSES]))
+with right, st.container(border=True):
+    st.markdown("**How far each cause ran from its pre-pandemic trend**", help=AGE_ADJUSTED_HELP)
+    st.caption(f"Age-adjusted death rate vs. expected, {int(dev['year'].min())}–{int(dev['year'].max())}")
+    st.altair_chart(
+        gap_from_trend_chart(dev, CAUSE_COLORS, CHART_LABELS, HIGHLIGHT),
+        width="stretch",
     )
 
-st.subheader("Start here")
-row1 = st.container(horizontal=True)
-with row1:
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/insights: **Findings**")
-        st.caption("The plain-language summary: what we found, and the two results that contradicted our own priors.")
-        st.page_link("app_pages/findings.py", label="Read the findings", icon=":material/arrow_forward:")
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/monitor_heart: **Causes of death**")
-        st.caption("Deep dive into each of the 6 causes: the data, the effect size, and possible reasons why.")
-        st.page_link("app_pages/causes.py", label="Explore by cause", icon=":material/arrow_forward:")
+diabetes_n = scope.county_counts["Diabetes mellitus"]
+overdose_n = scope.county_counts["Drug overdose"]
+st.html(metric_strip_html([
+    (str(scope.n_years), "years of CDC data", f"{scope.first_year}–{scope.last_year}, CDC WONDER"),
+    (str(len(TEST_CAUSES)), "causes tested", "Plus a negative control"),
+    (f"{diabetes_n:,}", "counties analyzed", f"Diabetes; {overdose_n:,} for drug overdose"),
+    ("Pre-registered", "", "Hypotheses locked before any 2020+ data"),
+]))
 
-row2 = st.container(horizontal=True)
-with row2:
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/map: **Geographic heterogeneity**")
-        st.caption("An interactive U.S. county map: where disruption was largest, and what predicts it.")
-        st.page_link("app_pages/geographic_heterogeneity.py", label="See the map", icon=":material/arrow_forward:")
-    with st.container(border=True, width="stretch"):
-        st.markdown(":material/fact_check: **Data quality**")
-        st.caption("Suppression, vintage bridging, the negative control, and sensitivity analysis: shown, not hidden.")
-        st.page_link("app_pages/data_quality.py", label="Check the rigor", icon=":material/arrow_forward:")
-
-heterogeneity_synthetic_banner()
-
-with st.expander("Ethics statement", icon=":material/balance:"):
-    st.write(
-        "This project uses publicly available aggregate data and is intended for research and "
-        "educational purposes. It does not provide medical advice or individual-level risk predictions."
-    )
+st.divider()
+path, cta = st.columns([3, 1], vertical_alignment="center")
+with path, st.container(horizontal=True):
+    st.page_link("app_pages/findings.py", label="Findings", icon=":material/insights:")
+    st.page_link("app_pages/causes.py", label="Causes of death", icon=":material/monitor_heart:")
+    st.page_link("app_pages/geographic_heterogeneity.py", label="Geographic patterns", icon=":material/map:")
+    st.page_link("app_pages/methods.py", label="Methods", icon=":material/school:")
+with cta:
+    if st.button("Read the findings", type="primary", icon=":material/arrow_forward:",
+                 icon_position="right", width="stretch"):
+        st.switch_page("app_pages/findings.py")

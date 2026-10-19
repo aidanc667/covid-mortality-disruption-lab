@@ -33,9 +33,14 @@ BASE_CSS = """<style>
   padding: 16px 18px; }
 .cmd-kpi-value { font-family: var(--cmd-mono); font-size: 1.85rem; font-weight: 500; line-height: 1.1;
   color: var(--cmd-text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.cmd-kpi-unit { font-size: 0.9rem; font-weight: 500; margin-left: 8px; color: var(--cmd-text); }
+.cmd-kpi-unit { font-family: "IBM Plex Sans", sans-serif; font-size: 0.9rem; font-weight: 500; margin-left: 8px;
+  color: var(--cmd-text); }
+.cmd-kpi-value.cmd-kpi-word { font-family: var(--cmd-serif); font-size: 1.45rem; font-weight: 600; }
 .cmd-kpi-caption { font-size: 0.8rem; color: var(--cmd-muted); margin-top: 8px; line-height: 1.45; }
-@media (max-width: 900px) { .cmd-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .cmd-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cmd-kpi-unit { display: block; margin: 4px 0 0; }
+}
 </style>"""
 
 
@@ -60,9 +65,15 @@ def cause_chips_html(chips: list[tuple[str, str]]) -> str:
     return f'<div class="cmd-chips">{"".join(parts)}</div>'
 
 
+# Values longer than this are words ("Pre-registered"), not numbers; they're
+# set in the serif at a smaller size so they fit the card instead of wrapping.
+_MAX_NUMERIC_VALUE_LEN = 6
+
+
 def metric_strip_html(items: list[tuple[str, str, str]]) -> str:
     cards = "".join(
-        f'<div class="cmd-kpi"><div class="cmd-kpi-value">{escape(value)}'
+        f'<div class="cmd-kpi"><div class="cmd-kpi-value'
+        f'{" cmd-kpi-word" if len(value) > _MAX_NUMERIC_VALUE_LEN else ""}">{escape(value)}'
         f'<span class="cmd-kpi-unit">{escape(unit)}</span></div>'
         f'<div class="cmd-kpi-caption">{escape(caption)}</div></div>'
         for value, unit, caption in items

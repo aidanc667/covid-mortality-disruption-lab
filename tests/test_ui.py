@@ -47,3 +47,9 @@ def test_base_css_only_styles_its_own_classes():
     # Streamlit internals, which break across Streamlit releases.
     assert "data-testid" not in BASE_CSS
     assert BASE_CSS.lstrip().startswith("<style>")
+
+
+def test_metric_strip_sets_word_values_in_the_smaller_word_style():
+    out = metric_strip_html([("926", "counties", "c"), ("Pre-registered", "", "c")])
+    assert out.count("cmd-kpi-word") == 1
+    assert out.index("cmd-kpi-word") > out.index("926")

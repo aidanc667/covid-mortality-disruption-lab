@@ -3,6 +3,7 @@ each page renders without an exception. Needs the precomputed parquet
 outputs; skips with a reason when they're absent (e.g. a fresh clone)."""
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -48,3 +49,22 @@ def test_methods_overview_holds_content_moved_off_home():
     details_expanders = _expander_labels(at.tabs[1])
     assert "Research question" in details_expanders
     assert "Ethics and project checks" in details_expanders
+
+
+def test_home_shows_title_and_county_count_from_the_data():
+    at = _app_on("home")
+    assert at.title[0].value == "COVID Mortality Disruption Lab"
+    html = " ".join(e.proto.body for e in at.get("html"))
+    # Expected value read straight from the parquet, independently of home_scope_metrics.
+    n = pd.read_parquet(ROOT / "outputs/models/county_disruption_diabetes_mellitus.parquet")["county_fips"].nunique()
+    assert f"{n:,}" in html
+    assert "counties analyzed" in html
+    assert "How the pandemic disrupted non-COVID mortality" in html
+
+
+def test_home_is_short():
+    at = _app_on("home")
+    # The long-form sections moved to Methods/Findings; Home has no section headings or expanders.
+    assert [s.value for s in at.subheader] == []
+    assert _expander_labels(at) == []
+    assert [b.label for b in at.button] == ["Read the findings"]
