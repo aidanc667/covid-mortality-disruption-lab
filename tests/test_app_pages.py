@@ -72,6 +72,8 @@ def test_home_shows_title_and_county_count_from_the_data():
     assert f"Diabetes; {n_overdose:,} for drug overdose" in html
     assert f'>{n_years}<span class="cmd-kpi-unit">years of CDC data<' in html
     assert "How the pandemic impacted non-COVID mortality" in html
+    assert ("<b>Research Question:</b> Did COVID-19 disrupt the trend for six other leading causes of death, "
+            "has it recovered, and where did it hit hardest?") in html
 
 
 def test_home_is_short():

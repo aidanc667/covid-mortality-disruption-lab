@@ -54,8 +54,11 @@ def eyebrow_html(tag: str, text: str) -> str:
     return f'<div class="cmd-eyebrow"><b>{escape(tag)}</b>{escape(text)}</div>'
 
 
-def hero_text_html(subtitle: str, question: str) -> str:
-    return f'<p class="cmd-subtitle">{escape(subtitle)}</p><p class="cmd-question">{escape(question)}</p>'
+def hero_text_html(subtitle: str, question: str, question_label: str = "Research Question:") -> str:
+    return (
+        f'<p class="cmd-subtitle">{escape(subtitle)}</p>'
+        f'<p class="cmd-question"><b>{escape(question_label)}</b> {escape(question)}</p>'
+    )
 
 
 def takeaway_html(text: str) -> str:

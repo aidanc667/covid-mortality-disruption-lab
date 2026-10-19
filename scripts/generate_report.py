@@ -436,7 +436,7 @@ def build(data: dict) -> list:
     story.append(Paragraph("COVID Mortality Disruption Lab", styles["ReportTitle"]))
     story.append(Paragraph("How the pandemic impacted non-COVID mortality", styles["ReportSubtitle"]))
     story.append(Paragraph(
-        "Did COVID-19 disrupt the trend for six other leading causes of death, has it recovered, and "
+        "<b>Research Question:</b> Did COVID-19 disrupt the trend for six other leading causes of death, has it recovered, and "
         "where did it hit hardest?", styles["ReportSubtitle"]
     ))
     story.append(Paragraph(f"Aidan Chi &nbsp;&bull;&nbsp; {date.today().strftime('%B %Y')}", styles["Byline"]))
