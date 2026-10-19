@@ -8,7 +8,6 @@ save, print, or attach without running anything.
 Requires reportlab, which is NOT in the main requirements.txt (the
 deployed Streamlit app doesn't need it) -- see requirements-report.txt.
 """
-from datetime import date
 
 import pandas as pd
 from reportlab.lib import colors
@@ -77,7 +76,7 @@ OUTPUT_PATH = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle("ReportTitle", parent=styles["Title"], fontSize=22, spaceAfter=6))
-styles.add(ParagraphStyle("ReportSubtitle", parent=styles["Normal"], fontSize=13, textColor=colors.HexColor("#444444"), spaceAfter=4))
+styles.add(ParagraphStyle("ReportSubtitle", parent=styles["Normal"], fontSize=13, leading=18, textColor=colors.HexColor("#444444"), spaceAfter=4))
 styles.add(ParagraphStyle("Byline", parent=styles["Normal"], fontSize=10, textColor=colors.HexColor("#666666"), spaceAfter=24))
 styles.add(ParagraphStyle("H1", parent=styles["Heading1"], keepWithNext=1, fontSize=15, spaceBefore=18, spaceAfter=8, textColor=colors.HexColor("#1a1a1a")))
 styles.add(ParagraphStyle("H2", parent=styles["Heading2"], keepWithNext=1, fontSize=12, spaceBefore=12, spaceAfter=6, textColor=colors.HexColor("#333333")))
@@ -449,12 +448,13 @@ def build(data: dict) -> list:
     # --- Title page ---
     story.append(Spacer(1, 1.2 * inch))
     story.append(Paragraph("COVID Mortality Disruption Lab", styles["ReportTitle"]))
-    story.append(Paragraph("How the pandemic impacted non-COVID mortality", styles["ReportSubtitle"]))
+    story.append(Spacer(1, 0.25 * inch))
     story.append(Paragraph(
         "<b>Research Question:</b> Did COVID-19 disrupt the trend for six other leading causes of death, has it recovered, and "
         "where did it hit hardest?", styles["ReportSubtitle"]
     ))
-    story.append(Paragraph(f"Aidan Chi &nbsp;&bull;&nbsp; {date.today().strftime('%B %Y')}", styles["Byline"]))
+    story.append(Spacer(1, 0.2 * inch))
+    story.append(Paragraph("By: Aidan Chi", styles["Byline"]))
     story.append(HRFlowable(width="100%", color=colors.HexColor("#cccccc")))
     story.append(Spacer(1, 0.3 * inch))
 
