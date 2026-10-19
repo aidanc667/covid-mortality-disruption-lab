@@ -7,11 +7,11 @@ from app.components.data_loading import (
 )
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 
-st.title("County deep dive")
+st.title("County lookup")
 heterogeneity_synthetic_banner()
 st.caption(
     "County-level heterogeneity data exists only as pre/post period aggregates for the "
-    "causes analyzed in the Geographic Heterogeneity page, not full annual trajectories "
+    "causes analyzed on the Geographic patterns page, not full annual trajectories "
     "like the original diabetes-only pilot. See research_protocol.md §4 for why county-level "
     "analysis uses coarser aggregation than the national/state series."
 )

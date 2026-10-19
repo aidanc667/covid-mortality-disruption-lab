@@ -1,46 +1,46 @@
 [theme]
 base = "light"
-primaryColor = "#4F46E5"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F5F5FF"
-textColor = "#1E1B2E"
-borderColor = "#E2E1F0"
-linkColor = "#4F46E5"
+primaryColor = "#2C5D86"
+backgroundColor = "#F3F5F7"
+secondaryBackgroundColor = "#EEF2F6"
+textColor = "#15212B"
+borderColor = "#D5DCE3"
+linkColor = "#2C5D86"
 
-redColor = "#DC2626"
-orangeColor = "#EA580C"
-yellowColor = "#D97706"
-greenColor = "#059669"
-blueColor = "#2563EB"
-violetColor = "#7C3AED"
-grayColor = "#6B7280"
+redColor = "#B3261E"
+orangeColor = "#C26A2E"
+yellowColor = "#8A5D06"
+greenColor = "#2F6F4E"
+blueColor = "#2C5D86"
+violetColor = "#7A5C99"
+grayColor = "#5A6875"
 
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-headingFont = "Manrope:https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap"
-codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+font = "'IBM Plex Sans':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+headingFont = "'Source Serif 4':https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap"
+codeFont = "'IBM Plex Mono':https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
 
 baseFontSize = 15
 baseFontWeight = 400
-headingFontSizes = ["32px", "24px", "19px", "16px", "14px", "13px"]
-headingFontWeights = [800, 700, 700, 600, 600, 600]
+headingFontSizes = ["40px", "26px", "20px", "16px", "14px", "13px"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
 linkUnderline = false
 
-baseRadius = "12px"
-buttonRadius = "10px"
+baseRadius = "4px"
+buttonRadius = "3px"
 showWidgetBorder = true
-showSidebarBorder = true
+showSidebarBorder = false
 
-# Consistent per-cause colors across every chart in the app: order matches
-# TEST_CAUSES + NEGATIVE_CONTROL in app/components/data_loading.py, so a
-# cause always renders the same hue everywhere it appears.
+# Per-cause colors, in TEST_CAUSES + NEGATIVE_CONTROL order (heart, diabetes,
+# Alzheimer's, stroke, overdose, cancer, congenital) so a cause renders the
+# same hue everywhere. Must match CAUSE_COLORS in app/components/data_loading.py.
 chartCategoricalColors = [
-    "#DC2626",
-    "#2563EB",
-    "#7C3AED",
-    "#EA580C",
-    "#059669",
-    "#DB2777",
-    "#64748B",
+    "#C26A2E",
+    "#B3261E",
+    "#8A6D3B",
+    "#7A5C99",
+    "#2C5D86",
+    "#2F6F4E",
+    "#8795A3",
 ]
 chartSequentialColors = [
     "#FFF7ED",
@@ -55,12 +55,13 @@ chartSequentialColors = [
     "#7C2D12",
 ]
 
-dataframeBorderColor = "#E2E1F0"
-dataframeHeaderBackgroundColor = "#F5F5FF"
+dataframeBorderColor = "#D5DCE3"
+dataframeHeaderBackgroundColor = "#EEF2F6"
 
 [theme.sidebar]
-backgroundColor = "#1E1B2E"
-secondaryBackgroundColor = "#2D2846"
-textColor = "#F3F2FA"
-borderColor = "#3D3660"
-primaryColor = "#818CF8"
+backgroundColor = "#15212B"
+secondaryBackgroundColor = "#2A3947"
+textColor = "#E6EBF0"
+borderColor = "#2A3947"
+primaryColor = "#8FB3D9"
+linkColor = "#AAB6C2"

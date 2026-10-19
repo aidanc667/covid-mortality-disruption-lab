@@ -7,11 +7,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
+from app.components.ui import inject_base_css
+
 st.set_page_config(
     page_title="COVID Mortality Disruption Lab",
     page_icon=":material/monitor_heart:",
     layout="wide",
 )
+inject_base_css()
 
 page = st.navigation(
     {
@@ -21,8 +24,8 @@ page = st.navigation(
         ],
         "Explore": [
             st.Page("app_pages/causes.py", title="Causes of death", icon=":material/monitor_heart:"),
-            st.Page("app_pages/geographic_heterogeneity.py", title="Geographic heterogeneity", icon=":material/map:"),
-            st.Page("app_pages/county_deep_dive.py", title="County deep dive", icon=":material/location_on:"),
+            st.Page("app_pages/geographic_heterogeneity.py", title="Geographic patterns", icon=":material/map:"),
+            st.Page("app_pages/county_deep_dive.py", title="County lookup", icon=":material/location_on:"),
         ],
         "Rigor": [
             st.Page("app_pages/data_quality.py", title="Data quality", icon=":material/fact_check:"),
@@ -34,7 +37,8 @@ page = st.navigation(
 
 with st.sidebar:
     st.divider()
-    st.caption("Built by Aidan Chi")
+    st.markdown("**COVID Mortality Disruption Lab**")
+    st.caption("By Aidan Chi")
     st.link_button(
         "View source on GitHub",
         "https://github.com/aidanc667/covid-mortality-disruption-lab",

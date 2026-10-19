@@ -145,7 +145,7 @@ with st.expander("Known limitations", icon=":material/warning:"):
         "included for diabetes; 74.4% vs. 23.8% for overdose). The rurality finding is more "
         "trustworthy for diabetes (holds up among more-rural included counties) than for drug "
         "overdose (driven by less-rural counties, not significant among more-rural ones). See "
-        "Geographic Heterogeneity for the full check\n"
+        "Geographic patterns for the full check\n"
         "- Mortality-vintage discontinuity between the two CDC WONDER databases\n"
         "- ICD-10 coding practices may have shifted during 2020–2021 due to strain on death-certification systems\n"
         "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that. Cancer shows a significant, still-persisting disruption, not the null originally expected\n"

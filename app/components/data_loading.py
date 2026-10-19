@@ -34,37 +34,22 @@ CAUSE_DISPLAY_NAMES = {
     "Malignant neoplasms": "Cancer",
 }
 
-# Home-page-only labels: the simplified name with the official CDC WONDER
-# name parenthesized after it, so a reader who clicks through to Methods
-# or Data Quality (which still cite the official term) can connect the
-# two. Only used for the "What we're testing" box grid on home.py -- every
-# other surface in the app uses the plain CAUSE_DISPLAY_NAMES form.
-CAUSE_HOME_LABELS = {
-    "Diseases of heart": "Heart disease (Diseases of heart)",
-    "Diabetes mellitus": "Diabetes (Diabetes mellitus)",
-    "Alzheimer's disease": "Alzheimer's disease",
-    "Cerebrovascular disease": "Stroke (Cerebrovascular disease)",
-    "Drug overdose": "Drug overdose",
-    "Malignant neoplasms": "Cancer (Malignant neoplasms)",
-}
-
 
 def display_cause(cause: str) -> str:
     return CAUSE_DISPLAY_NAMES.get(cause, cause)
 
+
 # Matches .streamlit/config.toml's chartCategoricalColors, in the same
 # TEST_CAUSES + NEGATIVE_CONTROL order, so a cause renders the same color
-# everywhere it appears in a chart (Altair mark color -- legitimate data
-# encoding, not app-chrome theming, so it's not subject to the "no custom
-# CSS" rule that governs st.markdown/st.html styling elsewhere in the app).
+# everywhere: chart marks, Home's cause chips, and the dumbbell/trend charts.
 CAUSE_COLORS = {
-    "Diseases of heart": "#DC2626",
-    "Diabetes mellitus": "#2563EB",
-    "Alzheimer's disease": "#7C3AED",
-    "Cerebrovascular disease": "#EA580C",
-    "Drug overdose": "#059669",
-    "Malignant neoplasms": "#DB2777",
-    NEGATIVE_CONTROL: "#64748B",
+    "Diseases of heart": "#C26A2E",
+    "Diabetes mellitus": "#B3261E",
+    "Alzheimer's disease": "#8A6D3B",
+    "Cerebrovascular disease": "#7A5C99",
+    "Drug overdose": "#2C5D86",
+    "Malignant neoplasms": "#2F6F4E",
+    NEGATIVE_CONTROL: "#8795A3",
 }
 
 # Semantic st.badge color names (Streamlit's fixed palette) paired with

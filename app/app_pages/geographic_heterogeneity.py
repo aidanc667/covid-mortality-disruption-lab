@@ -10,7 +10,7 @@ from app.components.data_loading import (
 from app.components.county_map import render_county_choropleth
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 
-st.title("Geographic heterogeneity")
+st.title("Geographic patterns")
 heterogeneity_synthetic_banner()
 st.caption(
     "Is county-level disruption magnitude associated with socioeconomic status, healthcare "
