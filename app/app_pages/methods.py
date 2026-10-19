@@ -129,8 +129,8 @@ with hypotheses_tab:
 with data_tab:
     st.write(
         "Baseline: 1999–2019, CDC WONDER \"Underlying Cause of Death, 1999-2020\" (database D76) "
-        "for 4 of the 6 test causes. Heart disease and stroke use a shorter, "
-        "corrected 2010–2019 baseline. See Known limitations for why."
+        "for Alzheimer's and cancer. Heart disease, stroke, diabetes, and drug overdose use a shorter, "
+        "corrected 2010–2019 baseline. See Limitations & ethics for why."
     )
     st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158). Confirmed live: no 2025 data exists yet.")
     st.write(
@@ -152,8 +152,8 @@ with stats_tab:
     )
     st.write(
         "**Known-date interrupted time series (\"excess mortality\").** Fit an expected trend "
-        "on the pre-pandemic baseline (1999–2019 for 4 of the 6 test causes, 2010–2019 for the "
-        "2 causes with a corrected window), project it forward with a 95% prediction interval, "
+        "on the pre-pandemic baseline (1999–2019 for Alzheimer's and cancer, 2010–2019 for the "
+        "4 causes with a corrected window), project it forward with a 95% prediction interval, "
         "and flag a year as significantly disrupted if the observed value falls outside that "
         "interval. The breakpoint (2020) is fixed by the shock's known date, not searched for."
     )
@@ -205,14 +205,14 @@ with stats_tab:
     st.write(
         "**Autocorrelation-robust p-value (Newey-West/HAC).** The primary p-value assumes each "
         "baseline year's deviation from trend is independent noise. Measured lag-1 autocorrelation "
-        "is 0.50-0.82 for diabetes, drug overdose, Alzheimer's, and stroke, meaning a rough year "
+        "is 0.44-0.65 for drug overdose, stroke, and Alzheimer's, meaning a rough year "
         "really does tend to follow another rough year for these causes, which the classical "
         "formula can't account for. This produces a second p-value for the identical window and "
         "trend line, replacing only the uncertainty calculation (a Newey-West sandwich covariance, "
         "derived from the baseline's own lag-0 and lag-1 autocovariances, not assumed independent). "
-        "On the real data this raises several causes' p-values by 1-2 orders of magnitude (e.g. "
-        "drug overdose: 5.98e-8 to 2.5e-5) without changing which causes clear significance; all 5 "
-        "remain significant. See research_protocol.md's 2026-09-02 addendum for the full derivation."
+        "On the real data it changes the p-values by up to about one order of magnitude in either "
+        "direction (e.g. drug overdose: 3.4e-4 to 6.0e-4) without changing which causes clear "
+        "significance; all 5 remain significant. See research_protocol.md's 2026-09-02 addendum for the full derivation."
     )
 
 with counties_tab:
@@ -263,21 +263,22 @@ with limits_tab:
         "- Multiple testing across both the 6-cause family and the per-cause context-variable family\n"
         "- Counties are not geographically independent (spatial autocorrelation not yet modeled)\n"
         "- The primary p-value's prediction-interval math assumes independent baseline residuals, "
-        "which is measurably false for half the test causes (lag-1 autocorrelation 0.65–0.82 for "
-        "diabetes, overdose, and Alzheimer's; 0.50 for stroke; 0.12–0.19 for heart "
-        "disease and cancer, where the assumption roughly holds). This was a disclosed-but-unmodeled "
+        "which is measurably false for some test causes (lag-1 autocorrelation 0.65 for "
+        "Alzheimer's, 0.50 for stroke, 0.44 for drug overdose; 0.12–0.19 for heart disease and "
+        "cancer and −0.31 for diabetes, where the assumption roughly holds). This was a disclosed-but-unmodeled "
         "gap; a Newey-West (HAC) autocorrelation-robust version of the test is now also reported "
         "(see the Statistics tab and Causes of death). It raises the classical p-value for "
-        "the high-autocorrelation causes by roughly 1-2 orders of magnitude, but all 5 causes "
-        "previously found significant remain significant under it\n"
-        "- **Heart disease and stroke use a corrected 2010–2019 baseline, not "
-        "1999–2019 like the other four test causes**, after finding the longer window was already "
-        "diverging from their real trajectory before 2020. See research_protocol.md's 2026-09-01 "
-        "addendum. Heart disease is now fully robust across every check; stroke is "
+        "the most autocorrelated causes, but all 5 causes previously found significant remain "
+        "significant under it\n"
+        "- **Heart disease, stroke, diabetes, and drug overdose use a corrected 2010–2019 baseline, "
+        "not 1999–2019**, after finding the longer window was already diverging from their real "
+        "trajectory before 2020: heart disease and stroke had flattened (research_protocol.md, "
+        "2026-09-01), diabetes had flattened and overdose had accelerated (2026-10-19, a post hoc "
+        "change made after all results were known; the 1999–2019 results are kept for comparison). Heart disease is now fully robust across every check; stroke is "
         "substantially improved but remains this project's single most uncertain \"Persisted\" "
         "result (its significance doesn't fully survive an alternate curved-trend check, p=0.096)\n"
-        "- \"Significant\" and \"large\" are different claims: diabetes (+26.9%) and drug overdose "
-        "(+40.9%) show the largest 2020-21 deviations; cancer (+1.7%), heart disease (+7.8%), and "
+        "- \"Significant\" and \"large\" are different claims: drug overdose (+26.6%) and diabetes "
+        "(+16.7%) show the largest 2020-21 deviations; cancer (+1.7%), heart disease (+7.8%), and "
         "stroke (+8.8%) are all real and FDR-significant but modest by comparison. "
         "See the Findings page for effect sizes\n"
         "- All findings remain associational. The mechanism behind any confirmed disruption "

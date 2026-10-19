@@ -311,8 +311,8 @@ with robustness_tab:
     st.metric(
         "HAC p-value", f"{r['hac_p_value']:.2g}",
         help="Newey-West (HAC) standard errors instead of the classical formula, which assumes "
-             "independent year-to-year residuals -- measured autocorrelation is 0.50-0.82 for half "
-             "the test causes, so that assumption is often false here. Keeps the same trend line and "
+             "independent year-to-year residuals -- measured autocorrelation is 0.44-0.65 for drug "
+             "overdose, stroke, and Alzheimer's, so that assumption is often false here. Keeps the same trend line and "
              "acute 2020–21 window; only the uncertainty calculation changes. See Methods for why "
              "this matters and how it's computed.",
     )

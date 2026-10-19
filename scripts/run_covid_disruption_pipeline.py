@@ -98,6 +98,11 @@ NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnor
 BASELINE_START_YEAR_OVERRIDES = {
     "Diseases of heart": 2010,
     "Cerebrovascular disease": 2010,
+    # 2026-10-19 (post hoc, research_protocol.md addendum): the 1999-2019
+    # line ran 5.2% (diabetes) and 8.7% (overdose) below the actual 2017-2019
+    # rates, overstating every later gap. Same 2010-2019 window as above.
+    "Diabetes mellitus": 2010,
+    "Drug overdose": 2010,
 }
 
 CDC_WONDER_DIR = DATA_RAW / "cdc_wonder"

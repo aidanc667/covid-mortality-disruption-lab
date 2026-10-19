@@ -66,6 +66,12 @@ n_disrupted = len(disrupted)
 n_fdr = int(summary["fdr_significant"].sum())
 faded = [c for c in disrupted if not latest.loc[c, "significant"]]
 below_now = [c for c in faded if latest.loc[c, "deviation"] < 0]
+# Disrupted upward in 2020-21 but significantly BELOW trend in the latest year
+# (still "Persisted": the significant 2022-24 years lean upward on average).
+crossed = [
+    c for c in disrupted
+    if latest.loc[c, "significant"] and (latest.loc[c, "deviation"] > 0) != (summary.set_index("cause").loc[c, "acute_pct_deviation"] > 0)
+]
 
 CAUSE_LABELS = {c: display_cause(c) for c in TEST_CAUSES}
 
@@ -91,7 +97,7 @@ with side_col:
         f"{latest_year}. **Gray band: that cause's normal year-to-year range in {latest_year}.** A filled "
         f"dot outside its band is significant (solid); inside it, the gap is within normal noise (faded). "
         "Distance from 0% alone doesn't decide it: cancer's band is about "
-        f"±{_band_pct('Malignant neoplasms'):.0f}%, drug overdose's about ±{_band_pct('Drug overdose'):.0f}%."
+        f"±{_band_pct('Malignant neoplasms'):.0f}%, stroke's about ±{_band_pct('Cerebrovascular disease'):.0f}%."
     )
     st.caption(
         "**What \"disrupted\" means here:** statistically distinguishable from that cause's normal "
@@ -167,6 +173,15 @@ with results_tab:
             )
             definition += f", and {_names(below_now)} had dipped below it ({gaps}, not significant)"
         definition += "."
+    if crossed:
+        gaps = ", ".join(
+            f"{latest.loc[c, 'deviation'] / latest.loc[c, 'expected'] * 100:+.1f}%" for c in crossed
+        )
+        definition += (
+            f" {_names(crossed)} {'is' if len(crossed) == 1 else 'are'} still classed Persisted because "
+            f"its 2022–23 years ran significantly above trend, but by {latest_year} {'it' if len(crossed) == 1 else 'they'} "
+            f"had fallen significantly below it ({gaps})."
+        )
     st.caption(definition)
     display = summary.sort_values("p_value").copy()
     if sensitivity_check_available():
@@ -319,18 +334,19 @@ with robustness_tab:
                         icon=":material/warning:",
                     )
             st.caption(
-                "The trend-shape check originally flagged both heart disease and stroke. Heart "
-                "disease's baseline was since corrected to a shorter, more recent window and is now "
-                "fully robust; stroke's significance still depends partly on the straight-line "
-                "assumption (research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and "
-                "cancer hold up across every axis without correction."
+                "The trend-shape check originally flagged heart disease and stroke, whose declines had "
+                "flattened after 2010; both now use a 2010–2019 baseline, and heart disease is fully "
+                "robust while stroke still depends partly on the straight-line assumption "
+                "(research_protocol.md, 2026-09-01). Diabetes and drug overdose were later moved to "
+                "2010–2019 too, because their 1999–2019 lines ran 5–9% below the actual 2017–19 rates "
+                "(post hoc, 2026-10-19). Both, and cancer, hold up across every axis."
             )
             if not hac_disagree:
                 st.success(
                     "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant "
                     "causes stay significant. The classical test assumes independent baseline years, "
-                    "which is measurably false for several causes; HAC correction raises those p-values "
-                    "1-2 orders of magnitude, but none cross back over 0.05.",
+                    "which is measurably false for several causes; the HAC version moves p-values by up "
+                    "to about an order of magnitude in either direction, but none cross 0.05.",
                     icon=":material/check_circle:",
                 )
             else:

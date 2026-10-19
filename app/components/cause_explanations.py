@@ -36,7 +36,9 @@ CAUSE_EXPLANATIONS = {
             "One important caution from the research literature itself: some analyses suggest a "
             "meaningful share of the 2020-2021 increase was a continuation of a fentanyl-driven "
             "trend already underway since mid-to-late 2019, not something the pandemic newly "
-            "created. Our own finding that overdose deaths swung to below the expected trend by "
+            "created. This project's 2010-2019 baseline partly accounts for that rising trend, which "
+            "is why its estimate of the 2020-21 jump (+27%) is smaller than a 1999-2019 line gives "
+            "(+41%). Our finding that overdose deaths fell significantly below the expected trend by "
             "2024 is consistent with the broader national decline reported for that period."
         ),
         "sources": [

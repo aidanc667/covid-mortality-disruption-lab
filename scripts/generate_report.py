@@ -412,6 +412,11 @@ def build(data: dict) -> list:
     off_parts = [t for t in (f"{above_text} above it" if above_text else "",
                              f"{below_text} below it" if below_text else "") if t]
     band = (latest["pi_high"] - latest["expected"]) / latest["expected"] * 100
+    # Contrast for the significance explainer: the test cause with the largest
+    # latest-year gap that is still within its normal range.
+    not_sig = [c for c in s["cause"] if not latest.loc[c, "significant"]]
+    contrast = max(not_sig, key=lambda c: abs(latest_pct[c]))
+    contrast_name = display_cause(contrast).lower()
 
     story = []
 
@@ -443,8 +448,8 @@ def build(data: dict) -> list:
         "variation before 2020, not simply far from zero: the gap falls outside the range that variation "
         "would explain. That range is narrow for steady causes and "
         f"wide for volatile ones: about ±{band['Malignant neoplasms']:.0f}% for cancer in {latest_year}, but "
-        f"about ±{band['Drug overdose']:.0f}% for drug overdose. So cancer's {latest_pct['Malignant neoplasms']:+.1f}% "
-        f"counts, while drug overdose's {latest_pct['Drug overdose']:+.1f}% doesn't. Being within the normal "
+        f"about ±{band[contrast]:.0f}% for {contrast_name}. So cancer's {latest_pct['Malignant neoplasms']:+.1f}% "
+        f"counts, while {contrast_name}'s {latest_pct[contrast]:+.1f}% doesn't. Being within the normal "
         "range doesn't mean no effect, only that the gap can't be told apart from ordinary year-to-year "
         "swings with this method.", styles["Body"]
     ))
@@ -491,8 +496,9 @@ def build(data: dict) -> list:
     story.append(Paragraph("<b>Excess mortality with a fixed breakpoint.</b> For each cause, I fit a "
         "straight-line trend to its pre-pandemic age-adjusted death rate and projected it forward "
         "through 2020-2024 with a 95% prediction interval. A year counts as disrupted when the observed "
-        "rate falls outside that interval. Most causes use a 1999-2019 baseline; heart disease and "
-        "stroke use 2010-2019 for reasons covered in section 4. The breakpoint is 2020 because that's "
+        "rate falls outside that interval. Heart disease, stroke, diabetes, and drug overdose use a "
+        "2010-2019 baseline and Alzheimer's and cancer use 1999-2019, for reasons covered in section 4. "
+        "The breakpoint is 2020 because that's "
         "when the pandemic started, not because a search found it.",
         styles["Body"]))
     story.append(Paragraph("<b>How long it lasted.</b> Causes with a significant 2020-21 disruption "
@@ -530,9 +536,9 @@ def build(data: dict) -> list:
     story.append(Paragraph("3. Results", styles["H1"]))
     story.append(Paragraph(
         "Figure 1 shows the method on drug overdose, the cause with the largest jump. The solid line "
-        "is the observed death rate. The dashed gray line is where the 1999-2019 trend says the rate "
+        "is the observed death rate. The dashed gray line is where the 2010-2019 trend says the rate "
         "should have gone, and the two thin pink lines mark its 95% prediction interval. Overdose "
-        f"deaths broke above that interval in 2020 and stayed there through 2023, then fell back in "
+        f"deaths broke above that interval in 2020 and stayed there through 2023, then fell below it in "
         f"{latest_year}.",
         styles["Body"]
     ))
@@ -654,7 +660,19 @@ def build(data: dict) -> list:
         styles["Body"]
     ))
     story.append(Paragraph(
-        "With that correction in place, three sensitivity checks re-run the main test with one "
+        "<b>A later correction for diabetes and drug overdose.</b> Checking how well each 1999-2019 line "
+        "fit the last pre-pandemic years found two more misfits: the line ran 5.2% below the actual "
+        "2017-2019 diabetes rate, which had stopped falling around 2010, and 8.7% below the overdose "
+        "rate, which had been accelerating. Both lines sat too low by 2020 and overstated every later "
+        "gap. They were moved to the same 2010-2019 window. This change was made after all the results "
+        "were known, so it is logged as post hoc in research_protocol.md (2026-10-19 addendum). Both "
+        "causes stay significantly disrupted in 2020-21 either way (diabetes +17% vs. +27% before; "
+        "overdose +27% vs. +41%). What changes is 2024: diabetes goes from +15% above trend to about "
+        "level with it, and overdose from slightly below trend to significantly below it (-18%).",
+        styles["Body"]
+    ))
+    story.append(Paragraph(
+        "With those corrections in place, three sensitivity checks re-run the main test with one "
         "modeling choice changed at a time.", styles["Body"]
     ))
     axis_labels = {
@@ -682,13 +700,13 @@ def build(data: dict) -> list:
     ))
     story.append(Paragraph(
         "Lag-1 autocorrelation measures whether a year that runs above trend tends to be followed by "
-        "another one. In the pre-pandemic baselines it is high for diabetes, overdose, and Alzheimer's "
-        "(0.65-0.82), moderate for stroke (0.50), and low for heart disease and cancer (0.12-0.19). "
-        "Heart disease and stroke had much higher values (0.92 and 0.93) on the old 1999-2019 "
-        "baseline, which is another sign that a straight line was the wrong fit there. Because the "
-        "standard test assumes no autocorrelation, the same test was rerun with Newey-West (HAC) "
-        "standard errors. That raises the p-values for diabetes, overdose, and stroke by one to two "
-        f"orders of magnitude, but all {n_disrupted} significant causes stay significant.",
+        "another one. In the pre-pandemic baselines it is moderate for Alzheimer's (0.65), stroke "
+        "(0.50), and drug overdose (0.44), and low or negative for heart disease, cancer, and diabetes "
+        "(-0.31 to 0.19). Heart disease, stroke, and diabetes had much higher values (0.82-0.93) on "
+        "their old 1999-2019 baselines, which is another sign that a straight line was the wrong fit "
+        "there. Because the standard test assumes no autocorrelation, the same test was rerun with "
+        "Newey-West (HAC) standard errors. That moves p-values by up to about an order of magnitude in "
+        f"either direction, but all {n_disrupted} significant causes stay significant.",
         styles["Body"]
     ))
     hac_table_data = [["Cause", "Autocorrelation", "Classical p-value", "HAC p-value"]]
@@ -835,14 +853,15 @@ def build(data: dict) -> list:
         ("Cancer was predicted to show no disruption and showed a small one. The cause isn't clear, "
         f"and its {cancer['latest_pct_deviation']:+.1f}% deviation in {latest_year} is modest."),
         ("The standard test assumes baseline years are independent, which isn't true for several causes "
-        "(autocorrelation 0.65-0.82 for diabetes, overdose, and Alzheimer's; 0.50 for stroke; "
-        "0.12-0.19 for heart disease and cancer). The HAC version of the test accounts for this, "
+        "(autocorrelation 0.65 for Alzheimer's, 0.50 for stroke, 0.44 for drug overdose; low or "
+        "negative for heart disease, cancer, and diabetes). The HAC version of the test accounts for this, "
         f"and all {n_disrupted} significant causes stay significant under it (section 4)."),
         ("Significant doesn't mean large. Drug overdose and diabetes had the biggest 2020-21 jumps "
-        "(roughly 27-41%), while cancer, heart disease, and stroke were real but much smaller (about 2-9%)."),
-        ("Heart disease and stroke use a 2010-2019 baseline instead of 1999-2019 because the longer "
-        "window didn't fit their pre-pandemic trend (section 4). Heart disease now holds up under "
-        "either baseline shape. Stroke remains the least certain result."),
+        "(roughly 17-27%), while cancer, heart disease, and stroke were real but much smaller (about 2-9%)."),
+        ("Heart disease, stroke, diabetes, and drug overdose use a 2010-2019 baseline instead of "
+        "1999-2019 because the longer window didn't fit their pre-pandemic trend (section 4). The "
+        "diabetes and overdose change was made after the results were known. Heart disease now holds "
+        "up under either baseline shape; stroke remains the least certain result."),
         ("County rates are crude, not age-adjusted, so some measured disruption may reflect each "
         "county's population getting older."),
         "Small counties are suppressed or unstable in the county data.",

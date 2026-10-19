@@ -38,7 +38,7 @@ AGE_ADJUSTED_HELP = (
     "0% is where the cause's own pre-pandemic trend, projected forward, says it should be. "
     "Disrupted means statistically distinguishable from that cause's normal year-to-year "
     "variation before 2020, not simply far from zero. So a steady cause like cancer can be "
-    "significant at +5% while a volatile one like drug overdose isn't at -4%. Within normal "
+    "significant at +5% while a more variable one like stroke isn't at +6%. Within normal "
     "range doesn't mean no effect, only that the gap can't be told apart from ordinary swings."
 )
 
