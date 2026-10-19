@@ -71,7 +71,7 @@ def test_home_shows_title_and_county_count_from_the_data():
     assert f'>{n_diabetes:,}<span class="cmd-kpi-unit">counties analyzed<' in html
     assert f"Diabetes; {n_overdose:,} for drug overdose" in html
     assert f'>{n_years}<span class="cmd-kpi-unit">years of CDC data<' in html
-    assert "How the pandemic disrupted non-COVID mortality" in html
+    assert "How the pandemic impacted non-COVID mortality" in html
 
 
 def test_home_is_short():

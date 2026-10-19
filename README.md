@@ -2,7 +2,7 @@
 
 **Live app:** [covid-mortality-disruption-lab.streamlit.app](https://covid-mortality-disruption-lab.streamlit.app) &nbsp;·&nbsp; **Full report:** [`outputs/reports/covid_mortality_disruption_report.pdf`](outputs/reports/covid_mortality_disruption_report.pdf) &nbsp;·&nbsp; **Findings:** [`docs/findings.md`](docs/findings.md)
 
-**Did COVID-19 bend the trend for six other leading causes of death (heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer), has it recovered, and where did it hit hardest?**
+**Did COVID-19 disrupt the trend for six other leading causes of death (heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer), has it recovered, and where did it hit hardest?**
 
 COVID-19 isn't the subject of this analysis; it's the shock. Rather than counting deaths attributed to the virus itself, this project treats the pandemic as a system-wide disruption and asks what it did to mortality from six other major causes, using 26 years of real CDC mortality data, not synthetic or simulated numbers.
 

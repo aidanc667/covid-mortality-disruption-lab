@@ -23,9 +23,9 @@ from app.components.ui import (
 )
 
 TITLE = "COVID Mortality Disruption Lab"
-SUBTITLE = "How the pandemic disrupted non-COVID mortality"
+SUBTITLE = "How the pandemic impacted non-COVID mortality"
 QUESTION = (
-    "Did COVID-19 bend the trend for six other leading causes of death, "
+    "Did COVID-19 disrupt the trend for six other leading causes of death, "
     "has it recovered, and where did it hit hardest?"
 )
 # The two largest 2020-21 disruptions, and the two causes with county data.
