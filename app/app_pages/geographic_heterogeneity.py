@@ -2,20 +2,24 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from app.components.data_loading import (
-    load_heterogeneity_summary, load_county_disruption, load_heterogeneity_selection_bias,
-    load_heterogeneity_rurality_robustness, data_available, heterogeneity_synthetic_banner,
-    HETEROGENEITY_CAUSES, CONTEXT_VAR_LABELS, scale_context_slope_for_display, display_cause,
-)
 from app.components.county_map import render_county_choropleth
+from app.components.data_loading import (
+    CONTEXT_VAR_LABELS,
+    HETEROGENEITY_CAUSES,
+    data_available,
+    display_cause,
+    heterogeneity_synthetic_banner,
+    load_county_disruption,
+    load_heterogeneity_rurality_robustness,
+    load_heterogeneity_selection_bias,
+    load_heterogeneity_summary,
+    scale_context_slope_for_display,
+)
+from app.components.ui import takeaway_html
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 
 st.title("Geographic patterns")
 heterogeneity_synthetic_banner()
-st.caption(
-    "Is county-level disruption magnitude associated with socioeconomic status, healthcare "
-    "access, or rurality? Associational only. See Methods for the causal-language policy."
-)
 
 if not data_available():
     st.warning("No precomputed data available yet.", icon=":material/warning:")
@@ -35,132 +39,164 @@ n_counties = len(county_disruption)
 total_us_counties = load_chr_year(2024)["county_fips"].nunique()
 excluded_pct = 1 - n_counties / total_us_counties
 
-st.subheader("Where disruption was largest")
-st.caption(
-    f"Only {n_counties} of {total_us_counties} U.S. counties ({1 - excluded_pct:.0%}) have enough "
-    f"non-suppressed years of data to appear here; the other {excluded_pct:.0%}, shown in gray, "
-    "are excluded, not zero. Blue = rate fell relative to pre-pandemic trend; orange = rate rose "
-    "(a colorblind-safe scale, since red/green or red/blue are hard to distinguish for the ~8% of "
-    "men with red-green color vision deficiency). Hover a county for exact pre/post rates. Rates "
-    "are **crude**, not age-adjusted: CDC WONDER doesn't offer age-adjustment at county "
-    "granularity (research_protocol.md's 2026-09-01 addendum)."
-)
-st.altair_chart(render_county_choropleth(county_disruption, display_cause(cause)), width="stretch")
 
-worsened = int((county_disruption["disruption"] > 0).sum())
-improved = int((county_disruption["disruption"] < 0).sum())
-with st.container(horizontal=True):
-    with st.container(border=True):
-        st.metric(
-            "Counties included", f"{n_counties} of {total_us_counties}",
-            delta=f"{1 - excluded_pct:.0%} of all U.S. counties", delta_color="off",
-            help="The rest are excluded for insufficient non-suppressed years of data, "
-                 "disproportionately rural counties -- see the rurality caveat below.",
-        )
-    with st.container(border=True):
-        st.metric("Rate rose (worse)", f"{worsened} ({worsened / n_counties:.0%})")
-    with st.container(border=True):
-        st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
+# Plain-language names for the takeaway sentence (CONTEXT_VAR_LABELS are
+# column-header style: "% adult smokers", "Median household income (per $10k)").
+PLAIN_VAR = {
+    "pct_uninsured_chr": "the uninsured rate",
+    "pct_smokers": "smoking",
+    "pct_obese": "obesity",
+    "median_income_chr": "household income",
+    "pct_rural": "rurality",
+}
 
-st.subheader(f"Context-variable associations: {display_cause(cause)}")
-cause_het_display = cause_het.copy()
-cause_het_display["slope"] = cause_het_display.apply(
-    lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
-)
-cause_het_display["variable"] = cause_het_display["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het_display["variable"])
 
-# A chart, not just the table below: which variables move disruption the
-# most, and in which direction, should be visible at a glance rather than
-# requiring the reader to scan 5 rows of numbers to find the pattern. Uses
-# a shorter income label than the table below (the full "Median household
-# income (per $10k)" is one factor in the clipping fixed below). Explicit
-# left padding is required, not optional: Vega-Lite auto-computed only
-# ~100px of left margin here (confirmed by inspecting the rendered SVG's
-# transform), nowhere near enough for a ~15-character label, so labels
-# rendered starting in negative x-space and were clipped by the SVG
-# canvas edge -- not a labelLimit/truncation issue, an under-computed
-# margin.
-het_bar_display = cause_het_display.copy()
-het_bar_display["variable"] = het_bar_display["variable"].replace(
-    "Median household income (per $10k)", "Income (per $10k)"
-)
-het_bar = (
-    alt.Chart(het_bar_display)
-    .mark_bar()
-    .encode(
-        x=alt.X("slope:Q", title="Slope (direction and magnitude)"),
-        y=alt.Y("variable:N", sort="-x", title=None),
-        color=alt.condition("datum.slope > 0", alt.value("#EA580C"), alt.value("#2563EB")),
-        tooltip=[
-            alt.Tooltip("variable:N", title="Context variable"),
-            alt.Tooltip("slope:Q", title="Slope", format=".3f"),
-            alt.Tooltip("p_value:Q", title="p-value", format=".3g"),
-        ],
+def _join(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+sig = cause_het[cause_het["fdr_significant"]]
+larger = [PLAIN_VAR.get(v, v) for v in sig.loc[sig["slope"] > 0, "variable"]]
+smaller = [PLAIN_VAR.get(v, v) for v in sig.loc[sig["slope"] < 0, "variable"]]
+clauses = []
+if larger:
+    clauses.append(f"larger where {_join(larger)} {'was' if len(larger) == 1 else 'were'} higher")
+if smaller:
+    clauses.append(f"smaller where {_join(smaller)} {'was' if len(smaller) == 1 else 'were'} higher")
+st.html(takeaway_html(
+    (f"{display_cause(cause)} disruption was " + ", and ".join(clauses) + ". " if clauses
+     else f"No context variable survives FDR correction for {display_cause(cause)}. ")
+    + "These are county-level associations, not causes."
+))
+
+map_tab, predicts_tab, all_tab = st.tabs(["Map", "What predicts it", "All counties"])
+
+with map_tab:
+    st.caption(
+        f"Only {n_counties} of {total_us_counties} U.S. counties ({1 - excluded_pct:.0%}) have enough "
+        f"non-suppressed years of data to appear here; the other {excluded_pct:.0%}, shown in gray, "
+        "are excluded, not zero. Blue = rate fell relative to pre-pandemic trend; orange = rate rose "
+        "(a colorblind-safe scale, since red/green or red/blue are hard to distinguish for the ~8% of "
+        "men with red-green color vision deficiency). Hover a county for exact pre/post rates. Rates "
+        "are **crude**, not age-adjusted: CDC WONDER doesn't offer age-adjustment at county "
+        "granularity (research_protocol.md's 2026-09-01 addendum)."
     )
-    .properties(height=200, padding={"left": 150, "top": 5, "right": 5, "bottom": 5})
-)
-st.altair_chart(het_bar, width="stretch")
-st.caption("Orange bars predict **larger** disruption; blue bars predict **smaller** disruption. Exact numbers, sample size, and FDR status below.")
-st.dataframe(
-    cause_het_display[["variable", "slope", "p_value", "n", "fdr_significant"]],
-    column_config={
-        "variable": st.column_config.TextColumn("Context variable", width="large"),
-        "slope": st.column_config.NumberColumn("Slope", format="%.3f", width="small"),
-        "p_value": st.column_config.NumberColumn("p-value", format="%.4g", width="small"),
-        "n": st.column_config.NumberColumn("Counties", width="small"),
-        "fdr_significant": st.column_config.CheckboxColumn("FDR-significant", width="small"),
-    },
-    hide_index=True,
-    width="stretch",
-)
+    st.altair_chart(render_county_choropleth(county_disruption, display_cause(cause)), width="stretch")
 
-n_fdr = int(cause_het["fdr_significant"].sum())
-st.caption(
-    f"{n_fdr} of {len(cause_het)} context variables survive FDR correction across this "
-    "cause's family of comparisons (research_protocol.md §10). Multiple correlated variables "
-    "surviving together (e.g. uninsured rate, smoking, income) likely reflects that those "
-    "variables are themselves correlated in the real data, not independent effects. This "
-    "analysis cannot separate them."
-)
+    worsened = int((county_disruption["disruption"] > 0).sum())
+    improved = int((county_disruption["disruption"] < 0).sum())
+    with st.container(horizontal=True):
+        with st.container(border=True):
+            st.metric(
+                "Counties included", f"{n_counties} of {total_us_counties}",
+                delta=f"{1 - excluded_pct:.0%} of all U.S. counties", delta_color="off",
+                help="The rest are excluded for insufficient non-suppressed years of data, "
+                     "disproportionately rural counties -- see the rurality caveat below.",
+            )
+        with st.container(border=True):
+            st.metric("Rate rose (worse)", f"{worsened} ({worsened / n_counties:.0%})")
+        with st.container(border=True):
+            st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
 
-rural_row = cause_het[cause_het["variable"] == "pct_rural"]
-if len(rural_row):
-    bias = load_heterogeneity_selection_bias()
-    bias_row = bias[bias["cause"] == cause].iloc[0]
-    robustness = load_heterogeneity_rurality_robustness()
-    cause_robustness = robustness[robustness["cause"] == cause].set_index("half")
-    upper = cause_robustness.loc["upper_half"]
-    lower = cause_robustness.loc["lower_half"]
-
-    st.warning(
-        f"**Rurality finding: read this before trusting it.** The counties *excluded* from this "
-        f"analysis (too few non-suppressed years) are on average "
-        f"**{bias_row['mean_excluded']*100:.0f}% rural**, vs. **{bias_row['mean_included']*100:.0f}% rural** "
-        f"for the counties actually included. Suppression disproportionately drops small, rural "
-        f"counties, so this regression describes suburban/small-city counties far more than it "
-        f"describes rural America.", icon=":material/warning:",
+with predicts_tab:
+    cause_het_display = cause_het.copy()
+    cause_het_display["slope"] = cause_het_display.apply(
+        lambda r: scale_context_slope_for_display(r["variable"], r["slope"]), axis=1
     )
-    if cause_robustness.loc["upper_half", "p_value"] < 0.05 and (
-        cause_robustness.loc["upper_half", "slope"] < 0
-    ) == (rural_row.iloc[0]["slope"] < 0):
-        st.caption(
-            f"For {display_cause(cause)}, the relationship holds up reasonably well as a robustness check: split "
-            f"the *included* counties at the median rurality, and the rurality-disruption "
-            f"relationship is still significant among the more-rural half (p={upper['p_value']:.3g}, "
-            f"n={int(upper['n'])}); if anything, it's stronger there than among the less-rural half "
-            f"(p={lower['p_value']:.3g}). Still doesn't cover the excluded, most-rural counties above."
-        )
-    else:
-        st.caption(
-            f"For {display_cause(cause)}, this robustness check is a real concern: split the *included* counties "
-            f"at the median rurality, and the relationship is driven almost entirely by the "
-            f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}). Among the "
-            f"more-rural half of the included sample, it's not significant "
-            f"(p={upper['p_value']:.3g}, n={int(upper['n'])}). Read the pooled slope above with real "
-            f"caution for this cause."
-        )
+    cause_het_display["variable"] = cause_het_display["variable"].map(CONTEXT_VAR_LABELS).fillna(cause_het_display["variable"])
 
-with st.expander("County-level disruption distribution and full table"):
+    # A chart, not just the table below: which variables move disruption the
+    # most, and in which direction, should be visible at a glance rather than
+    # requiring the reader to scan 5 rows of numbers to find the pattern. Uses
+    # a shorter income label than the table below (the full "Median household
+    # income (per $10k)" is one factor in the clipping fixed below). Explicit
+    # left padding is required, not optional: Vega-Lite auto-computed only
+    # ~100px of left margin here (confirmed by inspecting the rendered SVG's
+    # transform), nowhere near enough for a ~15-character label, so labels
+    # rendered starting in negative x-space and were clipped by the SVG
+    # canvas edge -- not a labelLimit/truncation issue, an under-computed
+    # margin.
+    het_bar_display = cause_het_display.copy()
+    het_bar_display["variable"] = het_bar_display["variable"].replace(
+        "Median household income (per $10k)", "Income (per $10k)"
+    )
+    het_bar = (
+        alt.Chart(het_bar_display)
+        .mark_bar()
+        .encode(
+            x=alt.X("slope:Q", title="Slope (direction and magnitude)"),
+            y=alt.Y("variable:N", sort="-x", title=None),
+            color=alt.condition("datum.slope > 0", alt.value("#C26A2E"), alt.value("#2C5D86")),
+            tooltip=[
+                alt.Tooltip("variable:N", title="Context variable"),
+                alt.Tooltip("slope:Q", title="Slope", format=".3f"),
+                alt.Tooltip("p_value:Q", title="p-value", format=".3g"),
+            ],
+        )
+        .properties(height=200, padding={"left": 150, "top": 5, "right": 5, "bottom": 5})
+    )
+    st.altair_chart(het_bar, width="stretch")
+    st.caption("Orange bars predict **larger** disruption; blue bars predict **smaller** disruption. Exact numbers, sample size, and FDR status below.")
+    st.dataframe(
+        cause_het_display[["variable", "slope", "p_value", "n", "fdr_significant"]],
+        column_config={
+            "variable": st.column_config.TextColumn("Context variable", width="large"),
+            "slope": st.column_config.NumberColumn("Slope", format="%.3f", width="small"),
+            "p_value": st.column_config.NumberColumn("p-value", format="%.4g", width="small"),
+            "n": st.column_config.NumberColumn("Counties", width="small"),
+            "fdr_significant": st.column_config.CheckboxColumn("FDR-significant", width="small"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+
+    n_fdr = int(cause_het["fdr_significant"].sum())
+    st.caption(
+        f"{n_fdr} of {len(cause_het)} context variables survive FDR correction across this "
+        "cause's family of comparisons (research_protocol.md §10). Multiple correlated variables "
+        "surviving together (e.g. uninsured rate, smoking, income) likely reflects that those "
+        "variables are themselves correlated in the real data, not independent effects. This "
+        "analysis cannot separate them."
+    )
+
+    rural_row = cause_het[cause_het["variable"] == "pct_rural"]
+    if len(rural_row):
+        bias = load_heterogeneity_selection_bias()
+        bias_row = bias[bias["cause"] == cause].iloc[0]
+        robustness = load_heterogeneity_rurality_robustness()
+        cause_robustness = robustness[robustness["cause"] == cause].set_index("half")
+        upper = cause_robustness.loc["upper_half"]
+        lower = cause_robustness.loc["lower_half"]
+
+        st.warning(
+            f"**Rurality finding: read this before trusting it.** The counties *excluded* from this "
+            f"analysis (too few non-suppressed years) are on average "
+            f"**{bias_row['mean_excluded']*100:.0f}% rural**, vs. **{bias_row['mean_included']*100:.0f}% rural** "
+            f"for the counties actually included. Suppression disproportionately drops small, rural "
+            f"counties, so this regression describes suburban/small-city counties far more than it "
+            f"describes rural America.", icon=":material/warning:",
+        )
+        if cause_robustness.loc["upper_half", "p_value"] < 0.05 and (
+            cause_robustness.loc["upper_half", "slope"] < 0
+        ) == (rural_row.iloc[0]["slope"] < 0):
+            st.caption(
+                f"For {display_cause(cause)}, the relationship holds up reasonably well as a robustness check: split "
+                f"the *included* counties at the median rurality, and the rurality-disruption "
+                f"relationship is still significant among the more-rural half (p={upper['p_value']:.3g}, "
+                f"n={int(upper['n'])}); if anything, it's stronger there than among the less-rural half "
+                f"(p={lower['p_value']:.3g}). Still doesn't cover the excluded, most-rural counties above."
+            )
+        else:
+            st.caption(
+                f"For {display_cause(cause)}, this robustness check is a real concern: split the *included* counties "
+                f"at the median rurality, and the relationship is driven almost entirely by the "
+                f"**less**-rural half (p={lower['p_value']:.3g}, n={int(lower['n'])}). Among the "
+                f"more-rural half of the included sample, it's not significant "
+                f"(p={upper['p_value']:.3g}, n={int(upper['n'])}). Read the pooled slope above with real "
+                f"caution for this cause."
+            )
+
+with all_tab:
     bins = pd.cut(county_disruption["disruption"], bins=15)
     hist_df = bins.value_counts().sort_index().reset_index()
     hist_df.columns = ["range", "counties"]

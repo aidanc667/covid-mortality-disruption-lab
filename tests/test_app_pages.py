@@ -117,3 +117,18 @@ def test_causes_page_tabs_and_takeaway():
     # From disruption_summary: overdose +40.9% and diabetes +26.9% are the two largest; Alzheimer's is not disrupted.
     assert "drug overdose (+41%) and diabetes (+27%)" in html
     assert "Alzheimer&#x27;s disease showed no significant 2020–21 disruption" in html
+
+
+def test_geographic_patterns_tabs_and_takeaway():
+    at = _app_on("geographic_heterogeneity")
+    assert [t.label for t in at.tabs] == ["Map", "What predicts it", "All counties"]
+    html = " ".join(e.proto.body for e in at.get("html"))
+    # heterogeneity_summary, diabetes: all five FDR-significant; uninsured/smoking/obesity
+    # slopes positive, income and rurality negative.
+    assert ("Diabetes disruption was larger where obesity, smoking and the uninsured rate were higher, "
+            "and smaller where household income and rurality were higher.") in html
+
+
+def test_county_lookup_shows_pre_post_chart():
+    at = _app_on("county_deep_dive")
+    assert len(at.get("vega_lite_chart")) == 1

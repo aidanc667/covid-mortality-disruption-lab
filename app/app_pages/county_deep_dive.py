@@ -1,19 +1,22 @@
+import altair as alt
 import pandas as pd
 import streamlit as st
 
 from app.components.data_loading import (
-    load_county_disruption, data_available, heterogeneity_synthetic_banner, HETEROGENEITY_CAUSES,
+    HETEROGENEITY_CAUSES,
+    data_available,
     display_cause,
+    heterogeneity_synthetic_banner,
+    load_county_disruption,
 )
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 
 st.title("County lookup")
 heterogeneity_synthetic_banner()
 st.caption(
-    "County-level heterogeneity data exists only as pre/post period aggregates for the "
-    "causes analyzed on the Geographic patterns page, not full annual trajectories "
-    "like the original diabetes-only pilot. See research_protocol.md §4 for why county-level "
-    "analysis uses coarser aggregation than the national/state series."
+    "Pre (2015–2019) vs. post (2020–2024) crude death rates for the two causes with county-level data, "
+    "plus local context. Only period averages exist at county level, not year-by-year trends "
+    "(research_protocol.md §4)."
 )
 
 if not data_available():
@@ -55,9 +58,36 @@ with st.container(horizontal=True):
             if len(row):
                 r = row.iloc[0]
                 st.metric("Pre-period rate (crude)", f"{r['crude_rate_pre']:.1f}")
-                st.metric("Post-period rate (crude)", f"{r['crude_rate_post']:.1f}", delta=f"{r['disruption']:+.1f}")
+                # inverse: a falling death rate is the good direction (green).
+                st.metric(
+                    "Post-period rate (crude)", f"{r['crude_rate_post']:.1f}",
+                    delta=f"{r['disruption']:+.1f}", delta_color="inverse",
+                )
             else:
                 st.caption("Excluded: insufficient non-missing years in one or both periods.")
+
+if len(county_rows):
+    rates = county_rows.melt(
+        id_vars=["cause"], value_vars=["crude_rate_pre", "crude_rate_post"], var_name="period", value_name="rate",
+    )
+    rates["period"] = rates["period"].map({"crude_rate_pre": "2015–2019", "crude_rate_post": "2020–2024"})
+    rates["cause"] = rates["cause"].map(display_cause)
+    st.altair_chart(
+        alt.Chart(rates)
+        .mark_bar(cornerRadiusEnd=2)
+        .encode(
+            y=alt.Y("period:N", title=None, axis=alt.Axis(ticks=False, domain=False)),
+            x=alt.X("rate:Q", title="Crude death rate per 100,000"),
+            color=alt.Color(
+                "period:N", scale=alt.Scale(domain=["2015–2019", "2020–2024"], range=["#B4C0CC", "#2C5D86"]),
+                legend=None,
+            ),
+            row=alt.Row("cause:N", title=None, header=alt.Header(labelAngle=0, labelAlign="left")),
+            tooltip=["cause:N", "period:N", alt.Tooltip("rate:Q", format=".1f")],
+        )
+        .properties(height=60),
+        width="stretch",
+    )
 
 st.subheader("Context (real 2024 CHR&R data)")
 chr_df = load_chr_year(2024)
