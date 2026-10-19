@@ -61,7 +61,7 @@ Save to `data/raw/cdc_wonder/`, named by database + cause, e.g. `d76_national_di
 
 ### County-level heterogeneity data
 
-The heterogeneity stage (`docs/research_protocol.md` §10) needs **diabetes and drug overdose only**, at **county level**, for a pre-period and post-period. This is **4 exports, not 2** — like every national cause, each one needs a separate pull per database vintage (D76 can't see 2020+, D158 can't see pre-2018), so "pre-period" and "post-period" are two different queries, not two halves of one file.
+*(Superseded 2026-10-19 by the pooled five-year exports below, which cover all five disrupted causes. These year-by-year diabetes and overdose files are kept as a comparison.)* The original heterogeneity stage (`docs/research_protocol.md` §10) used **diabetes and drug overdose only**, at **county level**, for a pre-period and post-period. This is **4 exports, not 2** — like every national cause, each one needs a separate pull per database vintage (D76 can't see 2020+, D158 can't see pre-2018), so "pre-period" and "post-period" are two different queries, not two halves of one file.
 
 **Pre/post window:** Pre-period = **2015–2019** (D76, 5 years — a recent pre-pandemic baseline, not the full 1999–2019 range, to keep the file size and suppression manageable per `research_protocol.md` §4's "coarser aggregate" design). Post-period = **2020–2024** (D158, 5 years) — same database split as the national analysis, so no new vintage-bridging step is needed; `compute_county_disruption` just averages each period and takes the difference.
 

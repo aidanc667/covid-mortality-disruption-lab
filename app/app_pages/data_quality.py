@@ -145,14 +145,19 @@ with bridging_tab:
         "COVID effect."
     )
     county_check = load_county_bridging_check().iloc[0]
+    # Same 10% reliability threshold as the national check above.
+    county_ok = county_check["max_relative_rate_diff"] <= 0.10
     st.caption(
-        f"**County level too:** heart disease for 2018–2019 was pulled from both databases and compared "
-        f"county by county. Deaths matched in {county_check['share_deaths_identical']:.0%} of "
-        f"{int(county_check['n_counties']):,} counties and population in "
+        f"**County level:** heart disease for 2018–2019 was pulled from both databases and compared "
+        f"county by county ({int(county_check['n_counties']):,} counties). Deaths matched in "
+        f"{county_check['share_deaths_identical']:.0%} of counties with reported deaths and population in "
         f"{county_check['share_population_identical']:.0%}; the largest rate difference among the "
         f"{int(county_check['n_with_reliable_rate']):,} counties with a reliable rate was "
-        f"{county_check['max_relative_rate_diff']:.1%}. So comparing 2015–19 (older database) with "
-        "2020–24 (newer database) is safe at county level."
+        f"{county_check['max_relative_rate_diff']:.1%}. "
+        + ("That's within the 10% threshold, which supports comparing 2015–19 (older database) with "
+           "2020–24 (newer database) at county level; it was checked on heart disease only."
+           if county_ok else
+           "That exceeds the 10% threshold, so county comparisons across the two databases need caution.")
     )
 
 with sensitivity_tab:

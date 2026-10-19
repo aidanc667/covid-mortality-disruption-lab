@@ -2,7 +2,12 @@ import pandas as pd
 import streamlit as st
 
 from app.components.charts import then_vs_now_chart
-from app.components.county_text import county_pattern_sentences, rurality_split_reading
+from app.components.county_text import (
+    county_pattern_sentences,
+    rurality_change,
+    rurality_change_is_notable,
+    rurality_split_reading,
+)
 from app.components.data_loading import (
     CAUSE_COLORS,
     CONTEXT_VAR_LABELS,
@@ -30,6 +35,10 @@ from app.components.findings_text import findings_takeaway
 from app.components.ui import takeaway_html
 from src.ingestion.county_health_rankings import load_year as load_chr_year
 from src.utils.config import OUTPUTS_REPORTS
+
+
+def _names_with(items: list[str]) -> str:
+    return " and ".join(items) if len(items) <= 2 else ", ".join(items[:-1]) + ", and " + items[-1]
 
 
 def _names(causes) -> str:
@@ -345,24 +354,23 @@ with counties_tab:
     )
 
     yearly_het = load_heterogeneity_summary_yearly()
-    flipped = []
+    changes = {}
     for cause in YEARLY_COMPARISON_CAUSES:
         now = het[(het["cause"] == cause) & (het["variable"] == "pct_rural")].iloc[0]
         before = yearly_het[(yearly_het["cause"] == cause) & (yearly_het["variable"] == "pct_rural")].iloc[0]
-        # The earlier method pointed to smaller disruption in more rural counties
-        # (significantly for diabetes, just short of it for overdose).
-        if before["slope"] < 0 and not (now["fdr_significant"] and now["slope"] < 0):
-            flipped.append(cause)
-    if flipped:
+        change = rurality_change(before["slope"], before["fdr_significant"], now["slope"], now["fdr_significant"])
+        if rurality_change_is_notable(change, before["fdr_significant"]):
+            changes[cause] = change
+    if changes:
+        outcomes = _names_with([f"{'disappears' if ch == 'disappears' else 'reverses'} for {display_cause(c).lower()}"
+                                for c, ch in changes.items()])
         st.info(
             f"**This changed the rurality result.** The earlier year-by-year method kept only "
             f"{len(load_county_disruption_yearly('Diabetes mellitus')):,} counties for diabetes and "
             f"{len(load_county_disruption_yearly('Drug overdose')):,} for drug overdose, mostly larger and "
             "less rural ones, and pointed to smaller disruption in more rural counties. With the rural "
-            "counties included, that no longer holds for "
-            + _names(flipped).lower()
-            + ". It was largely a product of which counties were left out. Geographic patterns → What "
-            "predicts it shows both versions side by side.",
+            f"counties included, that pattern {outcomes}. It was largely a product of which counties were "
+            "left out. Geographic patterns → What predicts it shows both versions side by side.",
             icon=":material/sync_alt:",
         )
 
@@ -453,11 +461,12 @@ with counties_tab:
             row = bias.loc[cause]
             r = robustness[robustness["cause"] == cause].set_index("half")
             upper, lower = r.loc["upper_half"], r.loc["lower_half"]
+            full_sig = bool(het[(het["cause"] == cause) & (het["variable"] == "pct_rural")].iloc[0]["fdr_significant"])
+            reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"],
+                                             full_significant=full_sig)
             st.write(
                 f"**{display_cause(cause)}**: excluded counties average {row['mean_excluded']*100:.0f}% rural vs. "
-                f"{row['mean_included']*100:.0f}% included. Split at the median rurality, "
-                + rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])[0].lower()
-                + rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])[1:]
+                f"{row['mean_included']*100:.0f}% included. Split at the median rurality: {reading}"
             )
         st.caption("Rural counties also tend to be older, and county rates aren't age-adjusted, so a rural link "
                    "can partly reflect aging rather than the pandemic.")
@@ -472,7 +481,9 @@ with limits_tab:
     )
 
     st.caption(
-        "All national-level results use 15 real CDC WONDER exports; all county-level results use 4 real "
-        "CDC WONDER exports. Nothing in this project is synthetic. Full provenance: "
+        "All national-level results use 15 real CDC WONDER exports. County results use 10 pooled exports "
+        "(five causes, 2015–2019 and 2020–2024), plus 4 year-by-year exports kept for the diabetes and "
+        "overdose comparison and 2 heart disease 2018–2019 exports used to check the two databases match "
+        "county by county. Nothing in this project is synthetic. Full provenance: "
         "`docs/manual_data_acquisition.md`."
     )

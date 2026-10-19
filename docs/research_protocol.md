@@ -48,7 +48,7 @@ Each of the 6 test causes' age-adjusted rate (per 100,000, 2000 U.S. standard po
 
 **National/state-level disruption analysis:** no per-geography eligibility gate — national and state totals are large enough across all 8 series (including drowning and Alzheimer's) that suppression is not expected to be a material concern at this level of aggregation.
 
-**County-level heterogeneity analysis:** a county is included only if it has at least 2 non-missing years of data in both the pre-period and post-period aggregation windows (`src/analysis/heterogeneity.compute_county_disruption`'s `min_years_each_period` parameter). This replaces the old single-disease `MIN_NONSUPPRESSED_YEARS`/`MIN_COUNTY_POPULATION` thresholds, which do not apply to this design's coarser county-level aggregation.
+**County-level heterogeneity analysis:** a county is included only if it has at least 2 non-missing years of data in both the pre-period and post-period aggregation windows (`src/analysis/heterogeneity.compute_county_disruption`'s `min_years_each_period` parameter). This replaces the old single-disease `MIN_NONSUPPRESSED_YEARS`/`MIN_COUNTY_POPULATION` thresholds, which do not apply to this design's coarser county-level aggregation. *(Superseded 2026-10-19: the county stage now uses pooled five-year rates, including a county when CDC reports a reliable rate in both periods; see the 2026-10-19 addenda. This year-by-year rule is kept only for the diabetes/overdose comparison.)*
 
 Counties failing this criterion are excluded from the heterogeneity regression only — they remain visible elsewhere (e.g. the Data Quality page) rather than being dropped from the dataset entirely.
 

@@ -197,5 +197,7 @@ def test_findings_states_that_the_rurality_result_changed():
     # Year-by-year: rural slope negative for diabetes (FDR) and overdose (p=0.069).
     # Pooled: diabetes not significant, overdose significantly positive.
     assert "This changed the rurality result." in text
-    assert "that no longer holds for diabetes and drug overdose" in text
+    assert "that pattern disappears for diabetes and reverses for drug overdose" in text
+    # Export counts in the Limits caption: 10 pooled + 4 year-by-year + 2 bridging.
+    assert "County results use 10 pooled exports" in text
     assert "For all five causes, higher smoking rates went with larger disruption." in text

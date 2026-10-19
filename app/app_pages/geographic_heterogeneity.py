@@ -177,11 +177,13 @@ with predicts_tab:
         lower = cause_robustness.loc["lower_half"]
 
         def _direction(row) -> str:
+            if row["p_value"] >= 0.05:
+                return f"no significant link (p={row['p_value']:.2g})"
             sign = "larger" if row["slope"] > 0 else "smaller"
             return f"{sign} disruption in more rural counties (p={row['p_value']:.2g})"
 
         st.warning(
-            f"**Read the rurality result with two caveats.** First, the {total_us_counties - n_counties:,} "
+            f"**Read the rurality result with two caveats.** First, the {int(bias_row['n_excluded']):,} "
             f"counties left out average **{bias_row['mean_excluded']*100:.0f}% rural**, vs. "
             f"**{bias_row['mean_included']*100:.0f}% rural** for the counties included, so the most rural "
             "places are under-represented. Second, these rates are crude, not age-adjusted, and rural "
@@ -189,7 +191,8 @@ with predicts_tab:
             "death rates could be population aging rather than the pandemic.",
             icon=":material/warning:",
         )
-        reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])
+        reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"],
+                                         full_significant=bool(rural_row.iloc[0]["fdr_significant"]))
         st.caption(
             f"Within the included counties, split at their median rurality: the more rural half shows "
             f"{_direction(upper)}, n={int(upper['n']):,}; the less rural half shows {_direction(lower)}, "

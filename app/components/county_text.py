@@ -61,15 +61,36 @@ def county_pattern_sentences(het: pd.DataFrame, labels: dict[str, str]) -> list[
 
 
 def rurality_split_reading(upper_slope: float, upper_p: float, lower_slope: float, lower_p: float,
-                           alpha: float = 0.05) -> str:
+                           alpha: float = 0.05, full_significant: bool = True) -> str:
     """How to read the rurality slope when the included counties are split at
-    their median rurality (upper = more rural half, lower = less rural half)."""
+    their median rurality (upper = more rural half, lower = less rural half).
+    `full_significant`: whether the whole-sample rurality slope survived FDR."""
     upper_sig, lower_sig = upper_p < alpha, lower_p < alpha
     if upper_sig and lower_sig and (upper_slope > 0) == (lower_slope > 0):
         return "The pattern holds in both halves."
     if upper_sig and lower_sig:
         return "The two halves point in opposite directions, so the overall rurality result isn't one simple pattern."
     if upper_sig or lower_sig:
-        return (f"The overall result comes mainly from the {'more' if upper_sig else 'less'} rural half; "
-                "the other half shows no significant link.")
+        half = "more" if upper_sig else "less"
+        if not full_significant:
+            return f"Only the {half} rural half shows a significant link; the full sample doesn't."
+        return f"The overall result comes mainly from the {half} rural half; the other half shows no significant link."
     return "Neither half shows a significant link on its own."
+
+
+def rurality_change(earlier_slope: float, earlier_significant: bool, now_slope: float, now_significant: bool) -> str:
+    """How the pooled rurality result compares with the earlier year-by-year one,
+    when the earlier one pointed to smaller disruption in more rural counties:
+    "holds", "reverses", or "disappears". "no earlier pattern" if it didn't."""
+    if earlier_slope >= 0:
+        return "no earlier pattern"
+    if now_significant and now_slope < 0:
+        return "holds"
+    if now_significant and now_slope > 0:
+        return "reverses"
+    return "disappears"
+
+
+def rurality_change_is_notable(change: str, earlier_significant: bool) -> bool:
+    """Worth flagging: a significant earlier pattern that no longer holds, or any reversal."""
+    return change == "reverses" or (change == "disappears" and earlier_significant)

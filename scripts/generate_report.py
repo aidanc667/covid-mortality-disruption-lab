@@ -28,7 +28,11 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from app.components.county_text import county_pattern_sentences, rurality_split_reading
+from app.components.county_text import (
+    county_pattern_sentences,
+    rurality_change,
+    rurality_split_reading,
+)
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
 
 # Duplicated from app/components/data_loading.py's CONTEXT_VAR_LABELS/
@@ -514,8 +518,8 @@ def build(data: dict) -> list:
         styles["Body"]))
     story.append(Paragraph("<b>Data.</b> CDC WONDER Underlying Cause of Death, from two databases joined "
         "at their 2018-2019 overlap: D76 (1999-2020) for the baseline and D158 (2018-2024, Single Race) "
-        "for 2020-2024. County data for diabetes and drug overdose compares 2015-2019 with 2020-2024 "
-        "and is matched to County Health Rankings &amp; Roadmaps measures.",
+        "for 2020-2024. County data for the five disrupted causes compares pooled 2015-2019 with pooled "
+        "2020-2024 rates and is matched to County Health Rankings &amp; Roadmaps measures.",
         styles["Body"]))
 
     # --- 3. Results ---
@@ -749,17 +753,23 @@ def build(data: dict) -> list:
     yearly = data["heterogeneity_yearly"]
     yearly_counts = {c: len(df) for c, df in data["county_disruption_yearly"].items()}
     story.append(Paragraph("The rurality result changed", styles["H2"]))
+    yearly_rows = yearly.set_index(["cause", "variable"])
+    pooled_rows = het.set_index(["cause", "variable"])
+    earlier_bits, outcome_bits = [], []
+    for cause in data["county_disruption_yearly"]:
+        before, now = yearly_rows.loc[(cause, "pct_rural")], pooled_rows.loc[(cause, "pct_rural")]
+        earlier_bits.append(
+            f"{before['slope']:+.1f}, {'significant' if before['fdr_significant'] else f'p = {before.p_value:.2f}'}, "
+            f"for {county_labels[cause].lower()}"
+        )
+        change = rurality_change(before["slope"], before["fdr_significant"], now["slope"], now["fdr_significant"])
+        outcome_bits.append(f"{change if change != 'no earlier pattern' else 'was never there'} for {county_labels[cause].lower()}")
     story.append(Paragraph(
         f"An earlier version of this analysis needed a reliable rate in at least two individual years of "
         f"each period. That kept only {yearly_counts['Diabetes mellitus']:,} counties for diabetes and "
         f"{yearly_counts['Drug overdose']:,} for drug overdose, mostly larger and less rural ones, and it "
-        f"pointed to smaller disruption in more rural counties (slope "
-        f"{yearly.set_index(['cause', 'variable']).loc[('Diabetes mellitus', 'pct_rural'), 'slope']:+.1f}, "
-        f"significant, for diabetes; "
-        f"{yearly.set_index(['cause', 'variable']).loc[('Drug overdose', 'pct_rural'), 'slope']:+.1f}, "
-        f"p = {yearly.set_index(['cause', 'variable']).loc[('Drug overdose', 'pct_rural'), 'p_value']:.2f}, "
-        f"for overdose). With five-year totals, which keep most rural counties, that pattern disappears for "
-        f"diabetes and reverses for overdose. It was largely a product of which counties were left out. "
+        f"pointed to smaller disruption in more rural counties (slope {'; '.join(earlier_bits)}). With "
+        f"five-year totals, which keep most rural counties, that pattern {' and '.join(outcome_bits)}. "
         f"The switch was made after the earlier results were known, so it's logged in "
         f"research_protocol.md (2026-10-19 addendum) and both versions are shown in the app.",
         styles["Body"]
@@ -776,7 +786,8 @@ def build(data: dict) -> list:
     for cause in COUNTY_CAUSES:
         r = rurality_robustness[rurality_robustness["cause"] == cause].set_index("half")
         upper, lower = r.loc["upper_half"], r.loc["lower_half"]
-        reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"])
+        reading = rurality_split_reading(upper["slope"], upper["p_value"], lower["slope"], lower["p_value"],
+                                         full_significant=bool(pooled_rows.loc[(cause, "pct_rural"), "fdr_significant"]))
         story.append(Paragraph(
             f"&bull; <b>{county_labels[cause]}:</b> more rural half {upper['slope']:+.1f} (p={upper['p_value']:.2g}), "
             f"less rural half {lower['slope']:+.1f} (p={lower['p_value']:.2g}). {reading}", styles["Body"]

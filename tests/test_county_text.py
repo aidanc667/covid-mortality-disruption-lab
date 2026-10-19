@@ -51,3 +51,25 @@ def test_rurality_split_reading_cases():
         "The overall result comes mainly from the less rural half; the other half shows no significant link."
     )
     assert rurality_split_reading(1.0, 0.3, 1.0, 0.4) == "Neither half shows a significant link on its own."
+
+
+
+def test_split_reading_when_full_sample_is_not_significant():
+    from app.components.county_text import rurality_split_reading
+    assert rurality_split_reading(-1.0, 0.5, 4.0, 0.01, full_significant=False) == (
+        "Only the less rural half shows a significant link; the full sample doesn't."
+    )
+
+
+def test_rurality_change_outcomes():
+    from app.components.county_text import rurality_change, rurality_change_is_notable
+    # Real cases: diabetes -3.6 (FDR) -> +1.0 (n.s.); overdose -3.9 (p=0.069) -> +2.3 (FDR).
+    assert rurality_change(-3.6, True, 1.0, False) == "disappears"
+    assert rurality_change(-3.9, False, 2.3, True) == "reverses"
+    assert rurality_change(-3.0, True, -2.0, True) == "holds"
+    assert rurality_change(2.0, True, 3.0, True) == "no earlier pattern"
+    assert rurality_change_is_notable("disappears", earlier_significant=True)
+    assert rurality_change_is_notable("reverses", earlier_significant=False)
+    # A non-significant earlier slope that is still non-significant isn't a change worth flagging.
+    assert not rurality_change_is_notable("disappears", earlier_significant=False)
+    assert not rurality_change_is_notable("holds", earlier_significant=True)

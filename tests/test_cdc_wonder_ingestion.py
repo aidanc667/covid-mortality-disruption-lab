@@ -7,7 +7,9 @@ tests verify the parsing/suppression/validation logic independent of that.
 import pandas as pd
 import pytest
 
-from src.ingestion.cdc_wonder import load_manual_export, _read_wonder_export, _validate_columns
+from src.ingestion.cdc_wonder import (
+    load_manual_export,
+)
 
 FIXTURE_HEADER = "County\tCounty Code\tYear\tDeaths\tPopulation\tCrude Rate\tAge Adjusted Rate"
 
@@ -277,3 +279,10 @@ def test_national_export_without_year_still_raises(tmp_path):
     path.write_text('"Notes",Deaths,Population,Crude Rate\n,100,1000000,10.0\n')
     with pytest.raises(ValueError, match="Year"):
         load_manual_export(subdir_files=[path], cause_label="Diabetes mellitus")
+
+
+def test_mixing_pooled_and_yearly_county_files_is_an_error(tmp_path):
+    pooled = _write_pooled(tmp_path, "pooled.csv", [',"Autauga County, AL","01001",88,278000,31.7\n'])
+    yearly = _write_fixture(tmp_path, "yearly.txt", ["Baldwin County, AL\t01003\t2016\t45\t183000\t24.6\t23.1"])
+    with pytest.raises(ValueError, match="Mixed pooled and year-by-year"):
+        load_manual_export(subdir_files=[pooled, yearly], cause_label="Diabetes mellitus")

@@ -162,12 +162,16 @@ def load_pooled_county_data(cause: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     2015-2019 (D76) and for 2020-2024 (D158), per
     docs/manual_data_acquisition.md's pooled section."""
     slug = CAUSE_SLUGS[cause]
-    pre = load_manual_export(
-        subdir_files=[CDC_WONDER_DIR / f"d76_county_pooled_{slug}_2015_2019.csv"], cause_label=cause
-    )
-    post = load_manual_export(
-        subdir_files=[CDC_WONDER_DIR / f"d158_county_pooled_{slug}_2020_2024.csv"], cause_label=cause
-    )
+    pre_path = CDC_WONDER_DIR / f"d76_county_pooled_{slug}_2015_2019.csv"
+    post_path = CDC_WONDER_DIR / f"d158_county_pooled_{slug}_2020_2024.csv"
+    # A pooled export has no Year column, so a file saved under the wrong
+    # name would load silently; check the query's years in WONDER's footer.
+    for path, years in [(pre_path, HETEROGENEITY_PRE_YEARS), (post_path, HETEROGENEITY_POST_YEARS)]:
+        expected = "; ".join(str(y) for y in range(years[0], years[1] + 1))
+        if f'"Year/Month: {expected}"' not in path.read_text(encoding="utf-8-sig"):
+            raise ValueError(f"{path.name}: footer doesn't show Year/Month {expected}; wrong file for this name?")
+    pre = load_manual_export(subdir_files=[pre_path], cause_label=cause)
+    post = load_manual_export(subdir_files=[post_path], cause_label=cause)
     if not (pre.pooled and post.pooled):
         raise ValueError(f"{cause}: expected pooled (County-only) exports, got a year-by-year file")
     return pre.df, post.df
@@ -462,6 +466,7 @@ def main():
     national_df = pd.concat(national_rows, ignore_index=True)
 
     chr_df = load_chr_year(2024)
+    OUTPUTS_MODELS.mkdir(parents=True, exist_ok=True)
 
     # Protocol §10 / design spec §5.7: every test cause with a significant
     # 2020-21 disruption gets a county analysis (research_protocol.md's
@@ -474,6 +479,12 @@ def main():
         pooled[cause] = compute_pooled_county_disruption(pre, post, value_col=HETEROGENEITY_VALUE_COL)
         print(f"  {cause}: {len(pooled[cause])} counties with a reliable pooled rate in both periods")
     heterogeneity_summary, selection_bias_df, robustness_df = run_county_stage(pooled, chr_df)
+    # Remove county files from an earlier run whose cause is no longer in the
+    # set, so the app can't read stale results.
+    current = {f"county_disruption_{c.lower().replace(' ', '_')}.parquet" for c in county_causes}
+    for stale in OUTPUTS_MODELS.glob("county_disruption_*.parquet"):
+        if not stale.name.startswith("county_disruption_yearly_") and stale.name not in current:
+            stale.unlink()
     for cause, disruption_df in pooled.items():
         disruption_df.assign(cause=cause).to_parquet(
             OUTPUTS_MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet", index=False
