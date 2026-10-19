@@ -439,11 +439,14 @@ def build(data: dict) -> list:
         f"{_join_names(back_in_range).capitalize()} were back within their normal range.", styles["Body"]
     ))
     story.append(Paragraph(
-        "\"Significant\" here doesn't mean far from zero. It means outside the range that a cause's own "
-        "year-to-year variation before 2020 would explain. That range is narrow for steady causes and "
+        "\"Disrupted\" here means statistically distinguishable from a cause's normal year-to-year "
+        "variation before 2020, not simply far from zero: the gap falls outside the range that variation "
+        "would explain. That range is narrow for steady causes and "
         f"wide for volatile ones: about ±{band['Malignant neoplasms']:.0f}% for cancer in {latest_year}, but "
         f"about ±{band['Drug overdose']:.0f}% for drug overdose. So cancer's {latest_pct['Malignant neoplasms']:+.1f}% "
-        f"counts, while drug overdose's {latest_pct['Drug overdose']:+.1f}% doesn't.", styles["Body"]
+        f"counts, while drug overdose's {latest_pct['Drug overdose']:+.1f}% doesn't. Being within the normal "
+        "range doesn't mean no effect, only that the gap can't be told apart from ordinary year-to-year "
+        "swings with this method.", styles["Body"]
     ))
     story.append(Paragraph(
         "Two results went against what I predicted before looking at the data. Cancer was expected "

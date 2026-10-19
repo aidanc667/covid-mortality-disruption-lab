@@ -36,9 +36,10 @@ AGE_ADJUSTED_HELP = (
     "Age-adjusted: each year's rate is reweighted as if the U.S. had the same age mix every "
     "year, so a real change in risk isn't confused with the population getting older. "
     "0% is where the cause's own pre-pandemic trend, projected forward, says it should be. "
-    "Significant means outside the range that cause's own pre-2020 year-to-year variation "
-    "would explain, so a steady cause like cancer can be significant at +5% while a volatile "
-    "one like drug overdose isn't at -4%."
+    "Disrupted means statistically distinguishable from that cause's normal year-to-year "
+    "variation before 2020, not simply far from zero. So a steady cause like cancer can be "
+    "significant at +5% while a volatile one like drug overdose isn't at -4%. Within normal "
+    "range doesn't mean no effect, only that the gap can't be told apart from ordinary swings."
 )
 
 synthetic_banner()

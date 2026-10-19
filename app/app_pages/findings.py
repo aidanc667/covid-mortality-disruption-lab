@@ -93,6 +93,12 @@ with side_col:
         "Distance from 0% alone doesn't decide it: cancer's band is about "
         f"±{_band_pct('Malignant neoplasms'):.0f}%, drug overdose's about ±{_band_pct('Drug overdose'):.0f}%."
     )
+    st.caption(
+        "**What \"disrupted\" means here:** statistically distinguishable from that cause's normal "
+        "year-to-year variation before 2020, not simply far from zero. \"Within normal range\" doesn't mean "
+        "no effect: a gap inside the band can still be thousands of deaths, it just can't be told apart "
+        "from ordinary year-to-year swings with this method."
+    )
     report_path = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
     if report_path.exists():
         st.download_button(

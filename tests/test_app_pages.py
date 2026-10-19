@@ -218,3 +218,9 @@ def test_findings_mentions_alzheimers_county_run_as_exploratory():
     assert "Exploratory:" in text and "None of the five measures survives FDR correction for it." in text
     # Still only five causes in the cross-cause summary.
     assert "For all five causes, higher smoking rates went with larger disruption." in text
+
+
+def test_findings_defines_disrupted_as_statistically_distinguishable():
+    text = _page_text(_app_on("findings"))
+    assert "statistically distinguishable from that cause's normal year-to-year variation" in text
+    assert "doesn't mean no effect" in text
