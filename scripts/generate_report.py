@@ -79,8 +79,8 @@ styles = getSampleStyleSheet()
 styles.add(ParagraphStyle("ReportTitle", parent=styles["Title"], fontSize=22, spaceAfter=6))
 styles.add(ParagraphStyle("ReportSubtitle", parent=styles["Normal"], fontSize=13, textColor=colors.HexColor("#444444"), spaceAfter=4))
 styles.add(ParagraphStyle("Byline", parent=styles["Normal"], fontSize=10, textColor=colors.HexColor("#666666"), spaceAfter=24))
-styles.add(ParagraphStyle("H1", parent=styles["Heading1"], fontSize=15, spaceBefore=18, spaceAfter=8, textColor=colors.HexColor("#1a1a1a")))
-styles.add(ParagraphStyle("H2", parent=styles["Heading2"], fontSize=12, spaceBefore=12, spaceAfter=6, textColor=colors.HexColor("#333333")))
+styles.add(ParagraphStyle("H1", parent=styles["Heading1"], keepWithNext=1, fontSize=15, spaceBefore=18, spaceAfter=8, textColor=colors.HexColor("#1a1a1a")))
+styles.add(ParagraphStyle("H2", parent=styles["Heading2"], keepWithNext=1, fontSize=12, spaceBefore=12, spaceAfter=6, textColor=colors.HexColor("#333333")))
 styles.add(ParagraphStyle("Body", parent=styles["Normal"], fontSize=10, leading=14, spaceAfter=8))
 styles.add(ParagraphStyle("Caption", parent=styles["Normal"], fontSize=8.5, leading=11, textColor=colors.HexColor("#666666"), spaceAfter=10))
 styles.add(ParagraphStyle("Callout", parent=styles["Normal"], fontSize=10, leading=14, spaceAfter=8, borderColor=colors.HexColor("#cccccc"), borderWidth=0.5, borderPadding=8, backColor=colors.HexColor("#f7f7f7")))
@@ -221,6 +221,8 @@ def make_trajectory_chart(
     legend.y = 15
     legend.fontSize = 7.5
     legend.dxTextSpace = 6
+    legend.alignment = "right"  # swatch first, then its label
+    legend.fontName = "Helvetica"
     legend.columnMaximum = 1
     legend.colorNamePairs = [
         (observed_color, "Observed"),
@@ -303,6 +305,8 @@ def make_trajectory_grid(
     legend.y = 16
     legend.fontSize = 7.5
     legend.dxTextSpace = 6
+    legend.alignment = "right"  # swatch first, then its label
+    legend.fontName = "Helvetica"
     legend.columnMaximum = 1
     legend.colorNamePairs = [(observed_color, "Observed"), (expected_color, "Expected trend")]
     drawing.add(legend)
@@ -337,7 +341,12 @@ def make_heterogeneity_chart(het_cause_df: pd.DataFrame) -> Drawing:
     chart.x, chart.y = 50, 30
     chart.width, chart.height = 380, 130
     chart.data = [display_slopes]
-    chart.categoryAxis.categoryNames = [CONTEXT_VAR_LABELS.get(v, v) for v in ordered["variable"]]
+    # Shorter income label than the tables use: the full one overlaps its
+    # neighbor on this chart's angled axis labels.
+    chart.categoryAxis.categoryNames = [
+        CONTEXT_VAR_LABELS.get(v, v).replace("Median household income (per $10k)", "Income (per $10k)")
+        for v in ordered["variable"]
+    ]
     chart.categoryAxis.labels.fontSize = 7
     chart.categoryAxis.labels.angle = 20
     chart.categoryAxis.labels.dy = -12
@@ -378,6 +387,20 @@ def make_county_distribution_chart(county_df: pd.DataFrame, n_bins: int = 14) ->
     return drawing
 
 
+def _number_word(n: int) -> str:
+    words = ["zero", "one", "two", "three", "four", "five", "six"]
+    return words[n] if 0 <= n < len(words) else str(n)
+
+
+def _join_names(causes) -> str:
+    names = [display_cause(c) for c in causes]
+    if len(names) <= 2:
+        return " and ".join(names)
+    return ", ".join(names[:-1]) + ", and " + names[-1]
+
+
+
+
 def build(data: dict) -> list:
     s = data["summary"]
     nc = data["negative_control"]
@@ -391,142 +414,144 @@ def build(data: dict) -> list:
     baseline_fitted = data["baseline_fitted"]
     trend_shape_robust = sens[sens["check"] == "baseline_trend_shape (linear vs quadratic)"].set_index("cause")["agrees"].to_dict()
 
+    # Where each disrupted cause stood in the latest year, so the summary
+    # can't claim more persistence than the data shows (a cause can be
+    # "Persisted" while its latest year is back inside the interval).
+    latest_year = int(deviations["year"].max())
+    latest = deviations[deviations["year"] == latest_year].set_index("cause")
+    latest_pct = latest["deviation"] / latest["expected"] * 100
+    disrupted = list(s.loc[s["persistence_class"] != "No significant disruption", "cause"])
+    n_disrupted = len(disrupted)
+    n_fdr = int(s["fdr_significant"].sum())
+    still_above = [c for c in disrupted if latest.loc[c, "significant"] and latest.loc[c, "deviation"] > 0]
+    back_in_range = [c for c in disrupted if not latest.loc[c, "significant"]]
+    above_bits = [f"{display_cause(c).lower()} ({latest_pct[c]:+.1f}%)" for c in still_above]
+    still_above_text = (" and ".join(above_bits) if len(above_bits) <= 2
+                        else ", ".join(above_bits[:-1]) + ", and " + above_bits[-1])
+
     story = []
 
     # --- Title page ---
     story.append(Spacer(1, 1.2 * inch))
     story.append(Paragraph("COVID Mortality Disruption Lab", styles["ReportTitle"]))
+    story.append(Paragraph("How the pandemic disrupted non-COVID mortality", styles["ReportSubtitle"]))
     story.append(Paragraph(
-        "Did the COVID-19 pandemic disrupt the mortality trend of six other major causes of death "
-        "(heart disease, diabetes, Alzheimer's disease, stroke, drug overdose, and cancer)? Is that "
-        "damage still unresolved, and where in the country did it land hardest?", styles["ReportSubtitle"]
+        "Did COVID-19 bend the trend for six other leading causes of death, has it recovered, and "
+        "where did it hit hardest?", styles["ReportSubtitle"]
     ))
     story.append(Paragraph(f"Aidan Chi &nbsp;&bull;&nbsp; {date.today().strftime('%B %Y')}", styles["Byline"]))
     story.append(HRFlowable(width="100%", color=colors.HexColor("#cccccc")))
     story.append(Spacer(1, 0.3 * inch))
 
-    n_disrupted = int((s["persistence_class"] != "No significant disruption").sum())
-    story.append(Paragraph("Executive summary", styles["H1"]))
+    story.append(Paragraph("Summary", styles["H1"]))
     story.append(Paragraph(
-        f"Of 6 major causes of death tested against real CDC WONDER mortality data (1999-2024), "
-        f"<b>{n_disrupted} show a statistically significant, still-unresolved deviation</b> from "
-        f"their pre-pandemic trend, four years after the pandemic began. Two results directly "
-        f"contradicted this project's own pre-registered priors: cancer, expected to show no "
-        f"disruption within this data window, showed a real (if modest) one; Alzheimer's disease, "
-        f"expected to show a large disruption, showed none. A negative-control validation, a "
-        f"three-axis sensitivity analysis, and full FDR correction across the test family were run "
-        f"before any result was reported, and every methodological deviation encountered along the "
-        f"way is logged rather than silently absorbed.", styles["Body"]
+        f"I tested six causes of death against their own pre-pandemic trends using CDC WONDER "
+        f"mortality data from 1999 to {latest_year}. <b>{_number_word(n_disrupted).capitalize()} of them "
+        f"moved significantly off trend in 2020-21</b>, and {_number_word(n_fdr)} of those results hold up "
+        f"after correcting for testing six "
+        f"causes at once. Most of that damage has since faded. By {latest_year}, only "
+        f"{still_above_text} were still significantly above trend; {_join_names(back_in_range).lower()} "
+        f"were back within their expected range.", styles["Body"]
     ))
     story.append(Paragraph(
-        "This design treats COVID-19 as a system-wide shock to the healthcare and public-health "
-        "system rather than as the disease under study. It asks what changed, how much, and where, "
-        "not why, because mortality data alone cannot cleanly separate direct viral effects from "
-        "deferred care, isolation, and economic stress. All results below are reported as "
-        "associational, never causal, following the project's causal-language policy.",
-        styles["Body"]
+        "Two results went against what I predicted before looking at the data. Cancer was expected "
+        "to show nothing in this time window and showed a small but real increase. Alzheimer's "
+        "disease was expected to show a large increase and showed none in 2020-21, though a "
+        "decline appears in later years. A negative control, three sensitivity checks, and a "
+        "multiple-testing correction were all run before any result was reported.", styles["Body"]
     ))
     story.append(Paragraph(
-        "Excess-mortality analysis is the same basic technique public health agencies use to "
-        "estimate a pandemic's true toll beyond its officially attributed death count, and to "
-        "catch the downstream damage that never shows up in a case count at all: deferred cancer "
-        "screening, disrupted addiction treatment, delayed cardiac care. Running it here across "
-        "six causes at once, rather than one, turns a single case study into something closer to "
-        "a small research program: a stated hypothesis and confidence level per cause, one shared "
-        "statistical pipeline applied identically to all six, and every result reported honestly "
-        "whether or not it matched the prediction. Deciding what would count as evidence before "
-        "seeing the outcome is what separates that kind of finding from a plausible story fitted "
-        "to results already known.", styles["Body"]
+        "COVID-19 itself is not what's being studied here. It's treated as a shock to the health "
+        "system, and the question is what happened to deaths from other causes afterward. Mortality "
+        "data can show what changed, by how much, and where. It can't show why, because direct "
+        "infection, delayed care, isolation, and economic stress all leave the same mark in the "
+        "numbers. Every result below is an association, not a causal claim.", styles["Body"]
+    ))
+    story.append(Paragraph(
+        "This kind of excess-mortality analysis is how public health agencies estimate a pandemic's "
+        "toll beyond deaths officially attributed to the virus: missed cancer screenings, interrupted "
+        "addiction treatment, delayed heart care. Each cause got a written prediction and confidence "
+        "level before any 2020-2024 data was pulled, so the results can be checked against what was "
+        "expected rather than explained after the fact.", styles["Body"]
     ))
     story.append(PageBreak())
 
     # --- 1. Research question ---
     story.append(Paragraph("1. Research question", styles["H1"]))
     story.append(Paragraph(
-        "Which causes of death experienced the greatest and most statistically significant "
-        "disruption during the COVID-19 pandemic (2020-2024), how persistent were those "
-        "disruptions through the most recent available data, and how did disruption severity "
-        "vary across U.S. counties by socioeconomic status, healthcare access, and rurality?",
+        "Which causes of death were most disrupted during the COVID-19 pandemic (2020-2024), how "
+        "long did those disruptions last, and how did their size vary across U.S. counties by income, "
+        "health insurance coverage, and rurality?",
         styles["Callout"]
     ))
     story.append(Paragraph(
-        "Six causes were tested: heart disease, diabetes, Alzheimer's disease, stroke, drug "
-        "overdose, and cancer. A negative control (congenital malformations, a cause with no "
-        "direct COVID mechanism) and a COVID-19 reference series (not a hypothesis test) round "
-        "out the 8-series design. Every cause's confidence level was stated before any "
-        "2020-2024 data was pulled, so results can be checked against stated priors rather than "
-        "narrated after the fact.", styles["Body"]
+        "The six causes tested are heart disease, diabetes, Alzheimer's disease, stroke, drug "
+        "overdose, and cancer. Two more series fill out the design: congenital malformations as a "
+        "negative control (a cause with no direct link to COVID), and COVID-19 deaths as a reference "
+        "that isn't itself tested.", styles["Body"]
     ))
 
     # --- 2. Methods ---
     story.append(Paragraph("2. Methods", styles["H1"]))
-    story.append(Paragraph("<b>Primary method: known-date interrupted time series (\"excess mortality\").</b> "
-        "An expected trend is fit on pre-pandemic age-adjusted mortality rates (1999-2019 for 4 "
-        "of the 6 test causes; 2010-2019 for heart disease and stroke, "
-        "corrected after the full-range fit was found to misdescribe their real trajectory "
-        "(section 4), projected forward through 2020-2024 with a 95% prediction interval, and a "
-        "year is flagged as significantly disrupted if the observed value falls outside that "
-        "interval. The breakpoint (2020) is fixed by the shock's known date, not searched for.",
+    story.append(Paragraph("<b>Excess mortality with a fixed breakpoint.</b> For each cause, I fit a "
+        "straight-line trend to its pre-pandemic age-adjusted death rate and projected it forward "
+        "through 2020-2024 with a 95% prediction interval. A year counts as disrupted when the observed "
+        "rate falls outside that interval. Most causes use a 1999-2019 baseline; heart disease and "
+        "stroke use 2010-2019 for reasons covered in section 4. The breakpoint is 2020 because that's "
+        "when the pandemic started, not because a search found it.",
         styles["Body"]))
-    story.append(Paragraph("<b>Three-way persistence classification.</b> For causes with a significant "
-        "2020-2021 disruption: Persisted (still significant, same direction, through 2024), "
-        "Resolved (shrank back within the interval), or Reversed (flipped sign).", styles["Body"]))
-    story.append(Paragraph("<b>Independent cross-check.</b> Three independent statistical techniques "
-        "for detecting a shift in a trend (PELT, binary segmentation, and segmented regression) are "
-        "run on each series to see whether they land on a breakpoint near 2020 without being told "
-        "to. Disagreement here is not itself evidence against a result: the primary method tests "
-        "one specific pre-registered date, while the cross-check methods search the whole series "
-        "for whichever single breakpoint fits best.", styles["Body"]))
-    story.append(Paragraph("<b>Negative control.</b> The identical pipeline is run on a cause with "
-        "no direct COVID mechanism. A significant result there would mean the method is detecting "
-        "an artifact rather than a real signal. This is treated as a hard gate, not a minor caveat.",
+    story.append(Paragraph("<b>How long it lasted.</b> Causes with a significant 2020-21 disruption "
+        "are sorted into three groups based on the years 2022-2024. <i>Persisted</i> means the later "
+        "years that were still significantly off trend leaned the same way as 2020-21. It doesn't "
+        "require the most recent year to be off trend. <i>Resolved</i> means no later year was "
+        "significantly off trend, and <i>Reversed</i> means the later significant years leaned the "
+        "opposite way.", styles["Body"]))
+    story.append(Paragraph("<b>Cross-check.</b> Three change-point methods (PELT, binary segmentation, "
+        "and segmented regression) were run on each series to see whether they find a break near 2020 "
+        "on their own. They search the whole series for the single best breakpoint, so landing "
+        "somewhere else doesn't count against a result at the fixed 2020 date.", styles["Body"]))
+    story.append(Paragraph("<b>Negative control.</b> The same pipeline was run on a cause with no direct "
+        "COVID link. If it had shown a significant disruption, the method would be picking up an "
+        "artifact, and no other result could be trusted.", styles["Body"]))
+    story.append(Paragraph("<b>Multiple testing.</b> Testing six causes at once makes a chance "
+        "\"significant\" result more likely, so the six p-values are adjusted together with the "
+        "Benjamini-Hochberg false discovery rate (FDR) method. The county analysis gets its own "
+        "correction for each cause.", styles["Body"]))
+    story.append(Paragraph("<b>Full-period check.</b> Each cause also gets a second p-value that pools "
+        "all five post-2020 years instead of just 2020-21. It doesn't replace the main test, since "
+        "averaging more years can hide a reversal as easily as it can reveal a slow effect, but it "
+        "catches disruptions that showed up after 2021 (see Alzheimer's in section 3).", styles["Body"]))
+    story.append(Paragraph("<b>Autocorrelation check.</b> The main test assumes each baseline year's "
+        "deviation from trend is independent of the last. For several causes it isn't, so the same "
+        "test is also run with Newey-West (HAC) standard errors, which allow for that (section 4).",
         styles["Body"]))
-    story.append(Paragraph("<b>Multiple-testing correction.</b> Testing 6 causes at once raises the "
-        "odds that one \"significant\" result appears by chance alone, so Benjamini-Hochberg FDR "
-        "correction, a standard statistical adjustment for exactly this problem, is applied across "
-        "the 6 test causes as one family. The heterogeneity stage gets its own separate correction, "
-        "applied per cause across its context variables.", styles["Body"]))
-    story.append(Paragraph("<b>Full-period secondary check.</b> Alongside the pre-registered acute "
-        "(2020-2021) test, each cause also gets a p-value pooling all five post-2020 years, using "
-        "the identical t-test over a wider window. This never replaces the acute test or gates the "
-        "classification above (averaging more years can hide a real reversal as easily as it can "
-        "reveal a delayed effect), but it catches disruptions the acute window is too narrow to "
-        "see (section 3).", styles["Body"]))
-    story.append(Paragraph("<b>Autocorrelation-robust check (Newey-West/HAC).</b> The acute test's "
-        "prediction-interval math assumes each baseline year is independent noise. Several causes' "
-        "residuals are measurably autocorrelated, so a second version of the same test, with "
-        "Newey-West standard errors instead of the classical formula, is also reported (section 4).",
-        styles["Body"]))
-    story.append(Paragraph("<b>Data.</b> CDC WONDER Underlying Cause of Death, two database vintages "
-        "bridged at the 2018-2019 overlap: \"1999-2020\" (database D76) for the 1999-2019 baseline, "
-        "\"2018-2024, Single Race\" (database D158) for the 2020-2024 post-shock period. County-level "
-        "heterogeneity data (diabetes, drug overdose) covers pre-period 2015-2019 vs. post-period "
-        "2020-2024, regressed against real County Health Rankings &amp; Roadmaps context variables.",
+    story.append(Paragraph("<b>Data.</b> CDC WONDER Underlying Cause of Death, from two databases joined "
+        "at their 2018-2019 overlap: D76 (1999-2020) for the baseline and D158 (2018-2024, Single Race) "
+        "for 2020-2024. County data for diabetes and drug overdose compares 2015-2019 with 2020-2024 "
+        "and is matched to County Health Rankings &amp; Roadmaps measures.",
         styles["Body"]))
 
     # --- 3. Results ---
     story.append(Paragraph("3. Results", styles["H1"]))
     story.append(Paragraph(
-        "Before the summary table, here is what the primary method actually measures, shown for "
-        "drug overdose: the cause with the largest acute disruption and the clearest before-and-"
-        "after pattern. The solid line is the real observed rate. The dashed gray line is what "
-        "the 1999-2019 trend would have predicted for 2020-2024 had nothing changed, with its 95% "
-        "prediction interval shown as the two thin pink lines around it. A year counts as "
-        "significantly disrupted when the solid line steps outside that interval, which is "
-        "exactly what happens starting in 2020 and what pulls back toward it by 2024.",
+        "Figure 1 shows the method on drug overdose, the cause with the largest jump. The solid line "
+        "is the observed death rate. The dashed gray line is where the 1999-2019 trend says the rate "
+        "should have gone, and the two thin pink lines mark its 95% prediction interval. Overdose "
+        f"deaths broke above that interval in 2020 and stayed there through 2023, then fell back in "
+        f"{latest_year}.",
         styles["Body"]
     ))
     story.append(make_trajectory_chart("Drug overdose", national_series, deviations, baseline_fitted))
     story.append(Paragraph(
-        "Figure 1. Drug overdose: observed mortality rate against its pre-pandemic trend, "
-        "1999-2024.", styles["Caption"]
+        f"Figure 1. Drug overdose: observed death rate against its pre-pandemic trend, 1999-{latest_year}.",
+        styles["Caption"]
     ))
     story.append(Paragraph(
-        f"<b>{n_disrupted} of 6</b> test causes show a significant disruption; "
-        f"<b>{int(s['fdr_significant'].sum())} of 6</b> survive FDR correction.", styles["Body"]
+        f"<b>{n_disrupted} of 6</b> causes show a significant 2020-21 disruption, and "
+        f"<b>{n_fdr} of 6</b> hold up after FDR correction.", styles["Body"]
     ))
 
-    table_data = [["Cause", "Result", "p-value", "FDR-sig.", "2020-21 dev.", "2024 dev.", "Robust?"]]
+    table_data = [["Cause", "Result", "p-value", "FDR-sig.", "2020-21 dev.", f"{latest_year} dev.", "Robust?"]]
     for _, r in s.sort_values("p_value").iterrows():
         robust = trend_shape_robust.get(r["cause"], True)
         table_data.append([
@@ -542,152 +567,134 @@ def build(data: dict) -> list:
     result_table.setStyle(TABLE_HEADER_STYLE)
     story.append(result_table)
     story.append(Paragraph(
-        "\"Deviation\" is the effect size: how far the observed rate is from the expected "
-        "pre-pandemic trend, as a percent. Significance and magnitude are different claims. "
-        "\"Robust?\" marks whether the result survives an alternate, curved baseline fit "
-        "instead of the primary straight line; stroke does not, though less "
-        "severely than before its baseline was corrected (see section 4 for why).",
+        "\"Dev.\" is the effect size: how far the observed rate sits from the expected trend, in "
+        "percent. A result can be significant and still small. \"Robust?\" shows whether the result "
+        "survives a curved baseline in place of a straight one; only stroke doesn't (section 4).",
         styles["Caption"]
     ))
     story.append(Spacer(1, 6))
     story.append(make_deviation_chart(s))
-    story.append(Paragraph("Figure 2. Mean 2020-2021 deviation from expected trend, by cause.", styles["Caption"]))
+    story.append(Paragraph("Figure 2. Average 2020-21 deviation from the expected trend, by cause.", styles["Caption"]))
 
     story.append(Paragraph(
-        "Figure 1 walked through one cause in detail; here is the same comparison for all six, "
-        "side by side. Each panel plots the real observed rate against what its own pre-pandemic "
-        "trend would have predicted, with that cause's primary p-value in the title. The point "
-        "isn't to read each panel closely (the table above already has the numbers); it's to see at a "
-        "glance which gaps look large, which look small, and how little that visual impression "
-        "lines up with which ones are actually significant, exactly the puzzle the next two "
-        "sections work through.", styles["Body"]
+        "Figure 3 repeats Figure 1 for all six causes, with each cause's p-value in its panel title. "
+        "It's worth noticing how poorly the size of a gap predicts significance. Cancer's gap is barely "
+        "visible but significant, because its year-to-year noise before 2020 was so small. The next "
+        "two sections explain why some results hold up and others need caution.", styles["Body"]
     ))
     story.append(make_trajectory_grid(
         list(s.sort_values("p_value")["cause"]), s, national_series, deviations, baseline_fitted,
     ))
     story.append(Paragraph(
-        "Figure 3. All six test causes, observed vs. expected trend, 1999-2024.", styles["Caption"]
+        f"Figure 3. All six causes, observed vs. expected trend, 1999-{latest_year}.", styles["Caption"]
     ))
 
-    story.append(Paragraph("The two results that weren't supposed to happen this way", styles["H2"]))
+    story.append(Paragraph("Two results that went against the predictions", styles["H2"]))
     cancer = s[s["cause"] == "Malignant neoplasms"].iloc[0]
     alz = s[s["cause"] == "Alzheimer's disease"].iloc[0]
     story.append(Paragraph(
-        f"<b>Cancer was expected to show nothing, and it didn't.</b> The pre-registered prior was "
-        f"an explicit null result, with low confidence by design. Delayed cancer screening and "
-        f"treatment during the pandemic was expected to take years longer than the 2024 data "
-        f"window to appear as excess mortality. Instead, cancer shows a {cancer['persistence_class'].lower()} "
-        f"disruption (p = {cancer['p_value']:.3g}, survives FDR correction), though its magnitude "
-        f"({cancer['acute_pct_deviation']:+.1f}% in 2020-21) is modest next to the larger disruptions "
-        f"above. The wider literature on this question is unsettled: early 2020 models projected "
-        f"large future increases in cancer deaths from delayed screening, but more recent modeling "
-        f"using actual pandemic-era England data found lung and breast cancer deaths came in lower "
-        f"than pre-pandemic trends predicted, not higher. This project's small, real, persisting "
-        f"effect should be read against that uncertainty.",
+        f"<b>Cancer was expected to show nothing.</b> The prediction was a null result, since missed "
+        f"screenings were thought to take longer than this data window to show up as deaths. Instead "
+        f"cancer shows a significant disruption (p = {cancer['p_value']:.3g}, survives FDR correction), "
+        f"though a small one: {cancer['acute_pct_deviation']:+.1f}% in 2020-21 and "
+        f"{cancer['latest_pct_deviation']:+.1f}% in {latest_year}. Other research doesn't settle "
+        f"this either. Early models predicted large increases in cancer deaths from delayed "
+        f"screening, while later work using English data found lung and breast cancer deaths came in "
+        f"below pre-pandemic trends.",
         styles["Body"]
     ))
     story.append(Paragraph(
-        f"<b>Alzheimer's was expected to show a large effect. It showed none.</b> The pre-registered "
-        f"prior was high confidence of a large disruption, on the theory that pandemic-era isolation "
-        f"and care-facility disruption would show up clearly in dementia mortality. It didn't "
-        f"(p = {alz['p_value']:.2g}). That doesn't mean isolation had no effect on people with "
-        f"Alzheimer's. If there is a real effect, it simply isn't visible in national mortality "
-        f"rates over this window, using this method. Pooling all five post-2020 years instead of "
-        f"just the acute window does turn up a real, later decline (p = {alz['full_period_p_value']:.2g}, "
-        f"averaging {alz['full_period_pct_deviation']:+.1f}% vs. trend), consistent with mortality "
-        f"displacement: patients who would otherwise have died in 2023-2024 may already have died "
-        f"earlier in the pandemic. This project's own primary classification stays scoped to the "
-        f"pre-registered acute window rather than switching after the fact, so the headline result "
-        f"above is correct as reported; this is an additional finding, not a contradiction.",
+        f"<b>Alzheimer's was expected to show a large effect.</b> The reasoning was that isolation and "
+        f"disruption in care facilities would show up clearly in dementia deaths. It didn't "
+        f"(p = {alz['p_value']:.2g} for 2020-21). That doesn't rule out an effect, only one visible in "
+        f"national death rates with this method. Pooling all five post-2020 years does find a later "
+        f"decline (p = {alz['full_period_p_value']:.2g}, averaging {alz['full_period_pct_deviation']:+.1f}% "
+        f"vs. trend). One likely explanation is mortality displacement: people who would have died in "
+        f"2023-2024 may have died earlier in the pandemic. The main classification still uses the "
+        f"pre-registered 2020-21 window, so this is reported as an additional finding.",
         styles["Body"]
     ))
 
     story.append(Paragraph("Negative control", styles["H2"]))
     passed = bool(nc["passed"])
+    nc_rate_note = ""
+    if nc["cause"] in latest.index:
+        nc_rate_note = (
+            f" Its age-adjusted <i>rate</i> does drift {latest_pct[nc['cause']]:+.0f}% above trend by "
+            f"{latest_year}, which is why the gate uses raw death counts: WONDER reports this rate to "
+            f"one decimal place at about 3 per 100,000, and the rate-based test is too sensitive to "
+            f"that rounding."
+        )
     story.append(Paragraph(
-        f"{nc['cause']}, a cause concentrated in infancy with no direct COVID mechanism, "
-        f"{'shows no significant disruption, as expected' if passed else 'FAILED the gate'} "
-        f"(p = {nc['p_value_counts']:.3g} on raw death counts, the gating metric. WONDER's 1-decimal "
-        f"age-adjusted-rate rounding made the rate-based test unreliable at this cause's low "
-        f"magnitude). This does not prove every positive result above is real, but a failure here "
-        f"would have been strong evidence the method was detecting an artifact.", styles["Body"]
+        f"Congenital malformations, a cause concentrated in infancy with no direct COVID link, "
+        f"{'shows no significant disruption, as expected' if passed else 'failed the gate'} "
+        f"(p = {nc['p_value_counts']:.3g} on raw death counts).{nc_rate_note} Passing doesn't prove "
+        f"every other result is real, but failing would have been strong evidence of a problem.",
+        styles["Body"]
     ))
     story.append(Paragraph(
-        "Accidental drowning was the original negative control, and it failed: deaths rose in a "
-        "real, statistically robust way starting in 2020, confirmed on raw counts and consistent "
-        "with published CDC reporting on pandemic-era drowning increases (pool and beach closures, "
-        "lifeguard shortages). It was swapped out because it was never actually independent of the "
-        "pandemic, not because the method itself failed. Even the replacement isn't fully "
-        "insulated: prenatal and obstetric care were also disrupted during 2020-2021, a real, if "
-        "smaller and more indirect, pathway compared with the ones behind the 6 test causes.",
+        "The first negative control, accidental drowning, failed. Drowning deaths really did rise from "
+        "2020 on, in line with CDC reports tied to pool and beach closures and lifeguard shortages. It "
+        "was replaced because it turned out to be affected by the pandemic, not because the method "
+        "broke. The replacement isn't perfectly insulated either, since prenatal and obstetric care "
+        "were also disrupted in 2020-21, but that path is smaller and less direct than for the six "
+        "test causes.",
         styles["Caption"]
     ))
 
     # --- 4. Robustness ---
     story.append(Paragraph("4. Robustness", styles["H1"]))
     story.append(Paragraph(
-        "<b>A baseline correction, found through this exact process.</b> Heart disease and "
-        "stroke originally used the same 1999-2019 baseline as the other four test causes, but "
-        "the trend-shape check below found their significance didn't survive a curved baseline. "
-        "Investigating why, using only 1999-2019 data with no reference to 2020+, found an "
-        "F-test comparing linear vs. quadratic fits showed overwhelming curvature for exactly "
-        "these two causes (F=222.7 and F=162.6, both p&lt;0.00001, vs. F&lt;9.5 for every other "
-        "test cause): both declined steeply through the 2000s, then flattened, so a straight "
-        "line across the full period was already 17.7 and 5.8 points below the real 2019 value "
-        "before the pandemic. A quadratic fit tracks history almost perfectly but was rejected "
-        "as the fix: extrapolated to 2020-2024 it predicts <i>rising</i> rates for both causes, "
-        "the standard failure mode of polynomial extrapolation. A shorter, more recent linear "
-        "window (2010-2019) has neither defect and is now this project's baseline for these two "
-        "causes only. Both remain significant, heart disease more confidently than before, but "
-        "the reported deviation drops from an overstated 26-37% to a defensible 8-9%. Full "
-        "investigation: research_protocol.md's 2026-09-01 addendum.",
+        "<b>A baseline correction for heart disease and stroke.</b> Both originally used the same "
+        "1999-2019 baseline as the other causes, and both failed the trend-shape check below. Using "
+        "only 1999-2019 data, an F-test comparing straight-line and curved fits showed strong curvature "
+        "for these two causes (F=222.7 and F=162.6, both p&lt;0.00001) and not for the others "
+        "(F&lt;9.5). Both fell steeply through the 2000s and then leveled off, so a straight line "
+        "across the whole period already sat 17.7 and 5.8 points below the real 2019 rate before the "
+        "pandemic. A curved fit matches history well but predicts <i>rising</i> rates after 2019, a "
+        "common problem when extending a polynomial past its data, so it wasn't used. A straight line "
+        "over 2010-2019 has neither problem and is now the baseline for these two causes. Both stay "
+        "significant, but their estimated 2020-21 deviation drops from 26-37% to 8-9%. Details are in "
+        "research_protocol.md (2026-09-01 addendum).",
         styles["Body"]
     ))
     story.append(Paragraph(
-        "With that correction in place, three independent sensitivity checks re-fit the primary "
-        "method one modeling choice at a time.", styles["Body"]
+        "With that correction in place, three sensitivity checks re-run the main test with one "
+        "modeling choice changed at a time.", styles["Body"]
     ))
     axis_labels = {
-        "baseline_window (1999 vs 2010)": "Baseline window (1999-2019 vs. shorter 2010-2019)",
-        "significance_threshold (0.05 vs 0.01)": "Significance threshold (α=0.05 vs. stricter α=0.01)",
-        "baseline_trend_shape (linear vs quadratic)": "Baseline trend shape (linear vs. curved/quadratic)",
+        "baseline_window (1999 vs 2010)": "Baseline window (1999-2019 vs. 2010-2019)",
+        "significance_threshold (0.05 vs 0.01)": "Significance threshold (α=0.05 vs. α=0.01)",
+        "baseline_trend_shape (linear vs quadratic)": "Baseline shape (straight vs. curved)",
     }
     test_causes = list(s["cause"])
     for check_key, label in axis_labels.items():
         rows = sens[(sens["check"] == check_key) & (sens["cause"].isin(test_causes))]
         n_disagree = int((~rows["agrees"]).sum())
-        cause_word, verb = ("cause", "disagrees") if n_disagree == 1 else ("causes", "disagree")
+        cause_word, verb = ("cause", "changes") if n_disagree == 1 else ("causes", "change")
         verdict = (
-            "All 6 test causes agree."
+            "No result changes."
             if n_disagree == 0
-            else f"{n_disagree} {cause_word} {verb}: {', '.join(display_cause(c) for c in rows.loc[~rows['agrees'], 'cause'])}."
+            else f"{_number_word(n_disagree).capitalize()} {cause_word} {verb}: {', '.join(display_cause(c) for c in rows.loc[~rows['agrees'], 'cause'])}."
         )
         story.append(Paragraph(f"<b>{label}.</b> {verdict}", styles["Body"]))
     story.append(Paragraph(
-        "The trend-shape check, now run against each cause's corrected baseline, is the one that "
-        "matters most. Heart disease is now fully robust: it stays significant whether the "
-        "baseline is a straight line or a curve. Stroke is substantially "
-        "improved but not fully resolved: its quadratic p-value moves from 0.37 under the old, "
-        "uncorrected full-range comparison to a much closer 0.096 under the corrected window, "
-        "better, but still on the wrong side of 0.05. It remains this project's single most "
-        "uncertain \"Persisted\" classification. Diabetes, drug overdose, and cancer were never "
-        "affected by any of this and hold up across every axis tested.", styles["Callout"]
+        "The baseline-shape check matters most. Heart disease now passes it and stays significant "
+        "under either a straight or curved baseline. Stroke improves but doesn't fully pass: its "
+        "p-value under a curved baseline went from 0.37 with the old baseline to 0.096 with the "
+        "corrected one, still above 0.05. That makes stroke the least certain \"Persisted\" result in "
+        "this report. Diabetes, drug overdose, and cancer pass every check.", styles["Callout"]
     ))
     story.append(Paragraph(
-        "Separately, lag-1 autocorrelation, a measure of whether one year's unexpected result "
-        "tends to be followed by another, was calculated for each cause's own pre-pandemic "
-        "residuals. It is large for diabetes, overdose, and Alzheimer's (0.65-0.82); moderate for "
-        "stroke (0.50); and low for heart disease and cancer (0.12-0.19). Heart "
-        "disease's and stroke's dropped sharply after their baseline correction "
-        "(from 0.92 and 0.93 on the old full-range baseline), since a shorter window's residuals "
-        "are far less serially smooth than a 21-year decline. The classical prediction-interval math "
-        "assumes independent year-to-year residuals, which the high-autocorrelation causes' "
-        "baselines don't satisfy, so a Newey-West (HAC) autocorrelation-robust version of the same "
-        "acute-window test was built and is reported alongside the classical p-value: it raises "
-        "diabetes, drug overdose, and stroke's p-values by roughly 1-2 orders of "
-        "magnitude, but all 5 causes previously found significant remain significant under it. This "
-        "is a genuine correction, not just a disclosed caveat, and it is a reassuring result rather "
-        "than a damaging one.", styles["Body"]
+        "Lag-1 autocorrelation measures whether a year that runs above trend tends to be followed by "
+        "another one. In the pre-pandemic baselines it is high for diabetes, overdose, and Alzheimer's "
+        "(0.65-0.82), moderate for stroke (0.50), and low for heart disease and cancer (0.12-0.19). "
+        "Heart disease and stroke had much higher values (0.92 and 0.93) on the old 1999-2019 "
+        "baseline, which is another sign that a straight line was the wrong fit there. Because the "
+        "standard test assumes no autocorrelation, the same test was rerun with Newey-West (HAC) "
+        "standard errors. That raises the p-values for diabetes, overdose, and stroke by one to two "
+        f"orders of magnitude, but all {n_disrupted} significant causes stay significant.",
+        styles["Body"]
     ))
     hac_table_data = [["Cause", "Autocorrelation", "Classical p-value", "HAC p-value"]]
     for _, r in s.sort_values("hac_p_value").iterrows():
@@ -703,9 +710,9 @@ def build(data: dict) -> list:
     n_bridge_unreliable = int((~bridging["reliable"]).sum())
     bridge_cause_word, bridge_verb = ("cause", "exceeds") if n_bridge_unreliable == 1 else ("causes", "exceed")
     story.append(Paragraph(
-        f"Vintage-bridging reliability (D76 vs. D158 database overlap, 2018-2019): "
-        f"{'all causes fall within the 10% reliability threshold' if n_bridge_unreliable == 0 else f'{n_bridge_unreliable} {bridge_cause_word} {bridge_verb} the threshold'}. "
-        f"The median relative offset was 0% for every cause tested.", styles["Body"]
+        "<b>Joining the two databases.</b> In the 2018-2019 years both databases cover, "
+        f"{'every cause matched within the 10% reliability threshold' if n_bridge_unreliable == 0 else f'{n_bridge_unreliable} {bridge_cause_word} {bridge_verb} the 10% threshold'}, "
+        "and the median difference was 0% for every cause.", styles["Body"]
     ))
 
     # --- 5. Heterogeneity ---
@@ -714,16 +721,15 @@ def build(data: dict) -> list:
     n_diabetes_counties = len(county_disruption["Diabetes mellitus"])
     n_overdose_counties = len(county_disruption["Drug overdose"])
     story.append(Paragraph(
-        f"For the two causes with real county-level data, disruption magnitude is regressed "
-        f"against real County Health Rankings &amp; Roadmaps context variables. Of roughly 3,143 "
-        f"U.S. counties, only {n_diabetes_counties} qualify for diabetes and {n_overdose_counties} "
-        f"for drug overdose, pre-period 2015-2019 versus post-period 2020-2024. CDC WONDER "
-        f"suppresses any county-year cell with too few deaths to protect privacy, and a county "
-        f"needs at least 2 non-suppressed years in each period to be included at all. This stage "
-        "also uses crude rate, not age-adjusted rate, for both periods, because WONDER does not "
-        "offer age-adjustment at county granularity for its 2018-2024 database. That means part "
-        "of any county's measured disruption could reflect its own population-aging trajectory "
-        "rather than a COVID-era shift.", styles["Body"]
+        f"County data exists for two causes, diabetes and drug overdose. For each county, disruption "
+        f"is the change in average death rate from 2015-2019 to 2020-2024, which is then compared "
+        f"against County Health Rankings &amp; Roadmaps measures. Only {n_diabetes_counties} of about "
+        f"3,143 U.S. counties qualify for diabetes and {n_overdose_counties} for drug overdose. CDC "
+        f"WONDER hides any county-year with too few deaths to protect privacy, and a county needs at "
+        f"least two reported years in each period to be included. County rates are crude rather "
+        f"than age-adjusted, because WONDER doesn't offer age adjustment at the county level for its "
+        f"2018-2024 database, so some of a county's change could come from its population getting "
+        f"older.", styles["Body"]
     ))
     example_bits = []
     for cause in ["Diabetes mellitus", "Drug overdose"]:
@@ -731,26 +737,22 @@ def build(data: dict) -> list:
         most = cd.loc[cd["disruption"].idxmax()]
         least = cd.loc[cd["disruption"].abs().idxmin()]
         example_bits.append(
-            f"For {display_cause(cause).lower()}, <b>{most['county_name']}</b> saw the largest "
-            f"increase ({most['crude_rate_pre']:.1f} to {most['crude_rate_post']:.1f} per "
-            f"100,000, {most['disruption']:+.1f}), while <b>{least['county_name']}</b> saw "
-            f"almost none ({least['disruption']:+.1f})."
+            f"For {display_cause(cause).lower()}, <b>{most['county_name']}</b> had the largest "
+            f"increase ({most['crude_rate_pre']:.1f} to {most['crude_rate_post']:.1f} per 100,000), "
+            f"while <b>{least['county_name']}</b> barely changed ({least['disruption']:+.1f})."
         )
     story.append(Paragraph(
-        "One real county per extreme, so the regression below isn't just an abstract slope: "
-        + " ".join(example_bits) + " This project has no data on mask mandates, local "
-        "ordinances, or age/race demographics anywhere in its pipeline, so no specific policy "
-        "or demographic story is assigned to any county here; a single county's pre/post "
-        "average is also genuinely noisy (five years of a modest population's raw death counts "
-        "can swing a lot on a handful of extra deaths). See the app's Findings page for how "
-        "each example does and doesn't line up with the context variables below.",
+        " ".join(example_bits) + " This analysis has no data on local policies or on age and race, "
+        "so it doesn't try to explain any single county. A single county's averages are also noisy, "
+        "since a few extra deaths in a small population can move them a lot.",
         styles["Body"]
     ))
+    figure_number = 4
     for cause in ["Diabetes mellitus", "Drug overdose"]:
         cause_het = het[het["cause"] == cause].sort_values("p_value")
         n_fdr_het = int(cause_het["fdr_significant"].sum())
-        story.append(Paragraph(f"{display_cause(cause)}: {n_fdr_het} of {len(cause_het)} context variables survive FDR correction", styles["H2"]))
-        het_table_data = [["Context variable", "Slope", "p-value", "FDR-sig."]]
+        story.append(Paragraph(f"{display_cause(cause)}: {n_fdr_het} of {len(cause_het)} measures hold up after FDR correction", styles["H2"]))
+        het_table_data = [["County measure", "Slope", "p-value", "FDR-sig."]]
         for _, r in cause_het.iterrows():
             var_label = CONTEXT_VAR_LABELS.get(r["variable"], r["variable"])
             display_slope = _scaled_slope(r["variable"], r["slope"])
@@ -763,107 +765,109 @@ def build(data: dict) -> list:
         story.append(Spacer(1, 2))
         story.append(make_county_distribution_chart(county_disruption[cause]))
         story.append(Paragraph(
-            f"Figure: {display_cause(cause)}, context-variable associations (top), and how "
-            f"disruption was actually distributed across the {len(county_disruption[cause])} "
-            "included counties (bottom; x-axis is the disruption value, y-axis is county count).",
+            f"Figure {figure_number}. {display_cause(cause)}: how each county measure relates to "
+            f"disruption (top), and how disruption was spread across the "
+            f"{len(county_disruption[cause])} included counties (bottom; disruption on the x-axis, "
+            "number of counties on the y-axis).",
             styles["Caption"]
         ))
+        figure_number += 1
         story.append(Spacer(1, 6))
+
+    # Summarize directions from the FDR-significant rows only, so a measure
+    # that misses correction for one cause isn't reported as holding for both.
+    rural = het[het["variable"] == "pct_rural"].set_index("cause")
+    rural_sig = [c for c in rural.index if rural.loc[c, "fdr_significant"] and rural.loc[c, "slope"] < 0]
+    rural_not_sig = [c for c in rural.index if not rural.loc[c, "fdr_significant"]]
+    rural_sentence = (
+        f"More rural counties saw smaller disruption for {_join_names(rural_sig).lower()}"
+        + (f"; for {_join_names(rural_not_sig).lower()} the same pattern doesn't survive FDR correction"
+           if rural_not_sig else "")
+        + ". That runs against the common assumption that rural areas were hit hardest, and the "
+        "caveat below matters for reading it."
+    )
     story.append(Paragraph(
-        "Higher uninsured rate, smoking rate, and obesity rate all predict larger disruption for "
-        "both causes. Higher median household income predicts smaller disruption for both. Higher "
-        "rurality predicts smaller disruption for both, the one genuinely counterintuitive result "
-        "here, running against the common assumption that rural areas were hit hardest. These are "
-        "associations, not causal claims.", styles["Body"]
+        "For both causes, counties with higher uninsured, smoking, and obesity rates saw larger "
+        "disruption, and higher-income counties saw smaller disruption. " + rural_sentence +
+        " These are associations, not causes.", styles["Body"]
     ))
-    story.append(Paragraph("Rurality finding: a real caveat, found on self-audit", styles["H2"]))
+    story.append(Paragraph("A caveat on the rurality result", styles["H2"]))
     bias_text = "; ".join(
-        f"{display_cause(r['cause'])}: excluded counties average {r['mean_excluded']*100:.0f}% rural vs. "
-        f"{r['mean_included']*100:.0f}% rural for counties included"
+        f"for {display_cause(r['cause']).lower()}, excluded counties average {r['mean_excluded']*100:.0f}% "
+        f"rural vs. {r['mean_included']*100:.0f}% for included ones"
         for _, r in selection_bias.iterrows()
     )
     story.append(Paragraph(
-        f"Counties excluded from this regression (too few non-suppressed years) are far more rural, "
-        f"on average, than the counties included: {bias_text}. Splitting the included counties at "
-        f"their own median rurality shows the two causes are not equally trustworthy here.",
+        f"The counties left out for having too few reported years are much more rural than the ones "
+        f"included ({bias_text}). So this analysis mostly describes suburban and small-city counties. "
+        f"Splitting the included counties at their median rurality shows how much each result can be "
+        f"trusted:",
         styles["Body"]
     ))
     for cause in ["Diabetes mellitus", "Drug overdose"]:
         r = rurality_robustness[rurality_robustness["cause"] == cause].set_index("half")
         upper, lower = r.loc["upper_half"], r.loc["lower_half"]
         if upper["p_value"] < 0.05:
-            verdict = f"holds up and even strengthens among the more-rural half (p={upper['p_value']:.3g}) vs. the less-rural half (p={lower['p_value']:.3g})."
+            verdict = f"the pattern holds in the more rural half (p={upper['p_value']:.3g}) and is stronger there than in the less rural half (p={lower['p_value']:.3g})."
         else:
-            verdict = f"is driven almost entirely by the less-rural half (p={lower['p_value']:.3g}) and is not significant among the more-rural half (p={upper['p_value']:.3g}). This result should be read with real skepticism."
-        story.append(Paragraph(f"<b>{display_cause(cause)}:</b> the relationship {verdict}", styles["Body"]))
+            verdict = f"the pattern comes almost entirely from the less rural half (p={lower['p_value']:.3g}) and isn't significant in the more rural half (p={upper['p_value']:.3g}), so treat it with real caution."
+        story.append(Paragraph(f"<b>{display_cause(cause)}:</b> {verdict}", styles["Body"]))
     story.append(PageBreak())
 
     # --- 6. Limitations ---
     story.append(Paragraph("6. Limitations", styles["H1"]))
     limitations = [
-        "Observational, ecological design: no individual-level causal inference. The county-level "
-        "heterogeneity stage carries ecological fallacy risk by name, meaning a county-average "
-        "relationship does not necessarily hold at the individual level.",
-        "Selection bias in the county-level heterogeneity sample: counties excluded by the "
-        "suppression filter are disproportionately rural, and the rurality finding is more "
-        "trustworthy for diabetes (holds up among more-rural included counties) than for drug "
-        "overdose (driven by less-rural counties, not significant among more-rural ones). See "
-        "section 5.",
-        "Mortality-vintage discontinuity between the two CDC WONDER databases, mitigated by "
-        "bridging-overlap validation but not eliminated.",
-        "ICD-10 coding practices may have shifted during 2020-2021 due to strain on "
-        "death-certification systems, independent of true mortality changes.",
-        "Cancer's pre-registered prior was an expected null result, and the real result "
-        "contradicts that: cancer shows a significant, still-persisting disruption rather than "
-        "the null originally expected.",
-        "The classical p-value assumes independent baseline residuals, which is empirically false "
-        "for several causes (autocorrelation 0.65-0.82 for diabetes, overdose, and Alzheimer's; "
-        "0.50 for stroke; 0.12-0.19, roughly independent, for heart disease and "
-        "cancer). A Newey-West (HAC) autocorrelation-robust version of the test is now also "
-        "reported (section 4): p-values rise for the high-autocorrelation causes, but all 5 "
-        "previously-significant causes remain significant.",
-        "“Significant” and “large” are different claims: drug overdose and diabetes show the "
-        "largest disruptions (15-41%), while cancer, heart disease, and stroke "
-        "are all real and FDR-significant but modest by comparison (3-9%).",
-        "Heart disease and stroke use a corrected 2010-2019 baseline, not "
-        "1999-2019 like the other four test causes, after finding the longer window was already "
-        "diverging from their real trajectory before 2020 (section 4). Heart disease is now fully "
-        "robust to the choice of linear vs. curved baseline trend shape; stroke "
-        "is substantially improved but remains this project's single most uncertain result.",
-        "County-level heterogeneity uses crude rate, not age-adjusted rate, because WONDER does "
-        "not offer age-adjustment at county granularity for the 2018-2024 database. Measured "
-        "disruption magnitude may partly reflect each county's own population-aging trajectory.",
-        "Small-county suppression and instability at the county-level heterogeneity stage.",
-        "PLACES model-based behavioral estimates (CHR&amp;R smoking/obesity/inactivity).",
-        "Context-variable vintage is post-period, not pre-period. All five heterogeneity-stage "
-        "context variables come from CHR&amp;R's 2024 release, measured during or after the "
-        "2020-2024 disruption window rather than from a pre-pandemic baseline. Income and the "
-        "uninsured rate plausibly moved during the pandemic itself.",
-        "Multiple testing across both the 6-cause family and, separately, the context-variable "
-        "family per cause.",
-        "Spatial non-independence of counties (spatial autocorrelation not modeled).",
-        "All findings remain associational. The mechanism behind any confirmed disruption, "
-        "whether direct viral effect, deferred care, isolation, or economic stress, cannot be "
-        "separated out by mortality data alone.",
+        ("This is an observational study of population averages, so it can't support causal claims "
+        "about individuals. At the county level there's also a risk of ecological fallacy: a pattern "
+        "across counties may not hold for the people living in them."),
+        ("Counties dropped for missing data are mostly rural, which limits what the county results say "
+        "about rural America. The rurality pattern holds up better for diabetes than for drug overdose "
+        "(section 5)."),
+        ("The two CDC WONDER databases may not line up perfectly. The 2018-2019 overlap check reduces "
+        "this risk but can't remove it."),
+        ("Death certificate coding may have shifted in 2020-21 while reporting systems were strained, "
+        "separate from any real change in deaths."),
+        ("Cancer was predicted to show no disruption and showed a small one. The cause isn't clear, "
+        f"and its {cancer['latest_pct_deviation']:+.1f}% deviation in {latest_year} is modest."),
+        ("The standard test assumes baseline years are independent, which isn't true for several causes "
+        "(autocorrelation 0.65-0.82 for diabetes, overdose, and Alzheimer's; 0.50 for stroke; "
+        "0.12-0.19 for heart disease and cancer). The HAC version of the test accounts for this, "
+        f"and all {n_disrupted} significant causes stay significant under it (section 4)."),
+        ("Significant doesn't mean large. Drug overdose and diabetes had the biggest 2020-21 jumps "
+        "(roughly 27-41%), while cancer, heart disease, and stroke were real but much smaller (about 2-9%)."),
+        ("Heart disease and stroke use a 2010-2019 baseline instead of 1999-2019 because the longer "
+        "window didn't fit their pre-pandemic trend (section 4). Heart disease now holds up under "
+        "either baseline shape. Stroke remains the least certain result."),
+        ("County rates are crude, not age-adjusted, so some measured disruption may reflect each "
+        "county's population getting older."),
+        "Small counties are suppressed or unstable in the county data.",
+        "Smoking and obesity rates come from modeled small-area estimates (PLACES), not direct counts.",
+        ("The county measures come from the 2024 County Health Rankings release, so they describe "
+        "counties during or after the pandemic, not before it. Income and insurance rates may have "
+        "changed during the pandemic itself."),
+        ("Many tests were run: across the six causes, and across the county measures for each cause. "
+        "Both sets are corrected separately."),
+        ("Neighboring counties aren't independent of each other, and this analysis doesn't model "
+        "that spatial correlation."),
+        ("Mortality data alone can't separate direct infection, delayed care, isolation, and economic "
+        "stress. Every finding here is an association."),
     ]
     for item in limitations:
         story.append(Paragraph(f"&bull; {item}", styles["Body"]))
 
     # --- 7. Data provenance ---
-    story.append(Paragraph("7. Data provenance and reproducibility", styles["H1"]))
+    story.append(Paragraph("7. Data and reproducibility", styles["H1"]))
     story.append(Paragraph(
-        "All national-level results use 15 real CDC WONDER exports (7 from the 1999-2019 "
-        "database, 8 from the 2018-2024 database). All county-level heterogeneity results use "
-        "4 real CDC WONDER exports (diabetes and drug overdose, pre/post period, county-grouped). "
-        "Nothing in this project is synthetic. Full methodology, pre-registered hypotheses, and "
-        "every deviation logged as it happened: research_protocol.md. Exact manual data-export "
-        "steps: manual_data_acquisition.md. Interactive app and full source: "
+        "National results use 15 CDC WONDER exports (7 from the 1999-2020 database, 8 from the "
+        "2018-2024 database). County results use 4 more (diabetes and drug overdose, before and after "
+        "2020). No synthetic data is used anywhere. The full method, the predictions made before "
+        "seeing the data, and every change made along the way are in research_protocol.md. Export "
+        "steps are in manual_data_acquisition.md. The interactive app and source code are at "
         "github.com/aidanc667/covid-mortality-disruption-lab.", styles["Body"]
     ))
     story.append(Paragraph(
-        "This project uses publicly available aggregate data and is intended for research and "
-        "educational purposes. It does not provide medical advice or individual-level risk "
-        "predictions.", styles["Caption"]
+        "This project uses public aggregate data for research and education. It isn't medical advice "
+        "and doesn't predict risk for any individual.", styles["Caption"]
     ))
 
     return story
