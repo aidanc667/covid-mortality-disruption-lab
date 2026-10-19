@@ -484,7 +484,8 @@ def main():
         print(f"  {cause}: {len(pooled[cause])} counties with a reliable pooled rate in both periods")
     heterogeneity_summary, selection_bias_df, robustness_df = run_county_stage(pooled, chr_df)
     exploratory = {}
-    for cause in EXPLORATORY_COUNTY_CAUSES:
+    # A cause that becomes disrupted joins the main analysis; never run it twice.
+    for cause in [c for c in EXPLORATORY_COUNTY_CAUSES if c not in county_causes]:
         pre, post = load_pooled_county_data(cause)
         exploratory[cause] = compute_pooled_county_disruption(pre, post, value_col=HETEROGENEITY_VALUE_COL)
         print(f"  {cause} (exploratory): {len(exploratory[cause])} counties")

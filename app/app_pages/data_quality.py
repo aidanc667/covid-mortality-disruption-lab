@@ -3,6 +3,7 @@ import streamlit as st
 from app.components.data_loading import (
     TEST_CAUSES,
     data_available,
+    county_cause_label,
     display_cause,
     heterogeneity_synthetic_banner,
     load_bridging_summary,
@@ -105,7 +106,7 @@ with testing_tab:
     for cause in het["cause"].unique():
         cause_het = het[het["cause"] == cause]
         with st.container(horizontal=True):
-            st.write(f"**{display_cause(cause)}**")
+            st.write(f"**{county_cause_label(cause)}**")
             st.caption(f"{int(cause_het['fdr_significant'].sum())} of {len(cause_het)} context variables FDR-significant")
 
 with bridging_tab:

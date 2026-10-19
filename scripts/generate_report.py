@@ -779,7 +779,7 @@ def build(data: dict) -> list:
     story.insert(heading_index, Paragraph(
         "The rurality result changed" if any(notable) else "Comparison with the earlier county method", styles["H2"]
     ))
-    bias = selection_bias.set_index("cause")
+    bias = selection_bias.set_index("cause").loc[COUNTY_CAUSES]  # five main causes only
     story.append(Paragraph(
         "Two caveats still apply. Counties left out are still mostly rural ("
         f"{bias['mean_excluded'].min()*100:.0f}-{bias['mean_excluded'].max()*100:.0f}% rural, vs. "
@@ -797,12 +797,13 @@ def build(data: dict) -> list:
             f"&bull; <b>{county_labels[cause]}:</b> more rural half {upper['slope']:+.1f} (p={upper['p_value']:.2g}), "
             f"less rural half {lower['slope']:+.1f} (p={lower['p_value']:.2g}). {reading}", styles["Body"]
         ))
-    alz_rows = het[het["cause"] == "Alzheimer's disease"] if "exploratory" in het.columns else het.iloc[0:0]
-    if len(alz_rows):
-        n_alz = len(pd.read_parquet(OUTPUTS_MODELS / "county_disruption_alzheimer's_disease.parquet"))
+    exploratory = het[het["exploratory"]] if "exploratory" in het.columns else het.iloc[0:0]
+    for cause in dict.fromkeys(exploratory["cause"]):
+        alz_rows = exploratory[exploratory["cause"] == cause]
+        n_alz = len(pd.read_parquet(OUTPUTS_MODELS / f"county_disruption_{cause.lower().replace(' ', '_')}.parquet"))
         n_sig = int(alz_rows["fdr_significant"].sum())
         story.append(Paragraph(
-            f"<b>Exploratory: Alzheimer's disease.</b> It had no 2020-21 disruption, so it isn't part of the "
+            f"<b>Exploratory: {display_cause(cause)}.</b> It had no 2020-21 disruption, so it isn't part of the "
             f"county analysis above, but it was run the same way for comparison ({n_alz:,} counties). "
             + ("None of the five county measures survives FDR correction for it. "
                if n_sig == 0 else f"{n_sig} of the five county measures survive FDR correction. ")

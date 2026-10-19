@@ -87,7 +87,7 @@ Expect heavier suppression than the national pulls — many counties will show `
 
 ### County-level, pooled five-year totals (added 2026-10-19)
 
-Replaces the year-by-year county pulls above as the primary county data (see `research_protocol.md`'s 2026-10-19 addendum for why). **12 exports: 10 required, 2 for the vintage check.**
+Replaces the year-by-year county pulls above as the primary county data (see `research_protocol.md`'s 2026-10-19 addendum for why). **14 exports: 10 required, 2 for the vintage check, 2 for the exploratory Alzheimer's run.**
 
 | # | Cause | Database | Years | Cause selection | Save as |
 |---|---|---|---|---|---|
@@ -103,6 +103,8 @@ Replaces the year-by-year county pulls above as the primary county data (see `re
 | 10 | Cancer | D158 | 2020–2024 | same | `d158_county_pooled_cancer_2020_2024.csv` |
 | 11 | Heart disease | D76 | **2018–2019** | ICD-10 `I00-I09,I11,I13,I20-I51` | `d76_county_pooled_heart_2018_2019.csv` |
 | 12 | Heart disease | D158 | **2018–2019** | same | `d158_county_pooled_heart_2018_2019.csv` |
+| 13 | Alzheimer's (exploratory) | D76 | 2015–2019 | ICD-10 113 Cause List `#Alzheimer disease (G30)` | `d76_county_pooled_alzheimers_2015_2019.csv` |
+| 14 | Alzheimer's (exploratory) | D158 | 2020–2024 | same | `d158_county_pooled_alzheimers_2020_2024.csv` |
 
 Files 11–12 check the D76/D158 database split county by county (both databases cover 2018–2019, so their rates should match). Heart disease is used because it has the most counties with reliable rates.
 
