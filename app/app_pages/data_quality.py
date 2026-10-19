@@ -2,8 +2,8 @@ import streamlit as st
 
 from app.components.data_loading import (
     TEST_CAUSES,
-    data_available,
     county_cause_label,
+    data_available,
     display_cause,
     heterogeneity_synthetic_banner,
     load_bridging_summary,
