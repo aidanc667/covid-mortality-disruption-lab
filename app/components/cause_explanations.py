@@ -36,9 +36,7 @@ CAUSE_EXPLANATIONS = {
             "One important caution from the research literature itself: some analyses suggest a "
             "meaningful share of the 2020-2021 increase was a continuation of a fentanyl-driven "
             "trend already underway since mid-to-late 2019, not something the pandemic newly "
-            "created. This project's 2010-2019 baseline partly accounts for that rising trend, which "
-            "is why its estimate of the 2020-21 jump (+27%) is smaller than a 1999-2019 line gives "
-            "(+41%). Our finding that overdose deaths fell significantly below the expected trend by "
+            "created. Our own finding that overdose deaths swung to below the expected trend by "
             "2024 is consistent with the broader national decline reported for that period."
         ),
         "sources": [
@@ -79,10 +77,7 @@ CAUSE_EXPLANATIONS = {
             "code without lab confirmation, and research has found evidence that SARS-CoV-2 was "
             "sometimes substituted for competing causes of death on certificates, meaning some of "
             "the reported diabetes-mortality rise could reflect how deaths were coded, not only how "
-            "many actually occurred. Baseline note: diabetes deaths stopped falling around 2010, so "
-            "this project measures against a 2010-2019 trend (a post hoc correction); against the "
-            "older 1999-2019 trend the 2020-21 jump looks larger (+27% vs. +17%) and 2024 still looks "
-            "elevated (+15% vs. about 0%). This doesn't cancel out the finding (excess mortality still "
+            "many actually occurred. This doesn't cancel out the finding (excess mortality still "
             "shows up even in analyses designed to account for this), but it's a genuine source of "
             "uncertainty in the exact magnitude."
         ),

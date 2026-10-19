@@ -24,11 +24,15 @@ def _pct(value: float) -> str:
     return f"{value:+.0f}%".replace("-", "−")
 
 
-def findings_takeaway(summary: pd.DataFrame, deviations: pd.DataFrame, labels: dict[str, str]) -> str:
+def findings_takeaway(
+    summary: pd.DataFrame, deviations: pd.DataFrame, labels: dict[str, str],
+    baseline_sensitive: list[str] | None = None,
+) -> str:
     """`summary` needs cause, persistence_class and acute_pct_deviation;
     `deviations` needs cause, year, deviation, expected and significant.
     `labels` maps each test cause to its display name and fixes the set of
-    causes considered.
+    causes considered. `baseline_sensitive`: causes whose latest-year status
+    differs between the two baseline windows; named in a closing sentence.
 
     Counts a cause as off trend in the latest year in either direction, so a
     cause significantly *below* trend (Alzheimer's in 2024) is reported, not
@@ -70,4 +74,9 @@ def findings_takeaway(summary: pd.DataFrame, deviations: pd.DataFrame, labels: d
         names[0] = names[0][0].upper() + names[0][1:]
         third = f" {_join(names)} {'was' if len(back) == 1 else 'were'} back within {'its' if len(back) == 1 else 'their'} normal range."
 
-    return f"{first} {second}{third}"
+    flag = ""
+    flagged = [c for c in causes if c in (baseline_sensitive or [])]
+    if flagged:
+        flag = (f" The {latest_year} results for {_join([_in_sentence(labels[c]) for c in flagged])} depend on "
+                "which baseline window is used (see Robustness).")
+    return f"{first} {second}{third}{flag}"

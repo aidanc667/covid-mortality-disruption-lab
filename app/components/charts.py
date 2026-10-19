@@ -54,7 +54,7 @@ def then_vs_now_chart(
     latest-year deviation (filled dot), sorted by the 2020-21 deviation.
 
     Distance from 0% alone doesn't say whether a gap is real: cancer's
-    year-to-year noise is ~1% while stroke's is ~7.5%. So each row also
+    year-to-year noise is ~1% while drug overdose's is ~13%. So each row also
     shows the latest year's 95% prediction interval as a gray "normal range"
     band around 0%, and the latest dot is solid only when it falls outside
     that band (significant), faded when it's inside.

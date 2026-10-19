@@ -55,3 +55,16 @@ def test_none_off_trend_in_latest_year():
 def test_mixed_direction_acute_disruptions_use_neutral_verb():
     text = findings_takeaway(_summary(acute=[7.8, -26.9, 1.0, 40.9]), _deviations(), LABELS)
     assert text.startswith("Three of four causes moved significantly off their pre-pandemic trend")
+
+
+def test_baseline_sensitive_causes_are_flagged_after_the_takeaway():
+    text = findings_takeaway(_summary(), _deviations(), LABELS,
+                             baseline_sensitive=["Diabetes mellitus", "Drug overdose"])
+    assert text.endswith(
+        " The 2024 results for diabetes and drug overdose depend on which baseline window is used (see Robustness)."
+    )
+
+
+def test_no_flag_sentence_when_nothing_is_baseline_sensitive():
+    text = findings_takeaway(_summary(), _deviations(), LABELS, baseline_sensitive=[])
+    assert "baseline window" not in text

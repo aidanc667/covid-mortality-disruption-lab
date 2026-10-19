@@ -26,6 +26,7 @@ from app.components.data_loading import (
     load_heterogeneity_selection_bias,
     load_heterogeneity_summary,
     load_heterogeneity_summary_yearly,
+    load_latest_year_window_check,
     load_negative_control,
     load_sensitivity_check,
     scale_context_slope_for_display,
@@ -66,17 +67,15 @@ n_disrupted = len(disrupted)
 n_fdr = int(summary["fdr_significant"].sum())
 faded = [c for c in disrupted if not latest.loc[c, "significant"]]
 below_now = [c for c in faded if latest.loc[c, "deviation"] < 0]
-# Disrupted upward in 2020-21 but significantly BELOW trend in the latest year
-# (still "Persisted": the significant 2022-24 years lean upward on average).
-crossed = [
-    c for c in disrupted
-    if latest.loc[c, "significant"] and (latest.loc[c, "deviation"] > 0) != (summary.set_index("cause").loc[c, "acute_pct_deviation"] > 0)
-]
 
 CAUSE_LABELS = {c: display_cause(c) for c in TEST_CAUSES}
 
 
-st.html(takeaway_html(findings_takeaway(summary, deviations, CAUSE_LABELS)))
+window_check = load_latest_year_window_check()
+st.html(takeaway_html(findings_takeaway(
+    summary, deviations, CAUSE_LABELS,
+    baseline_sensitive=window_check.loc[window_check["baseline_sensitive"], "cause"].tolist(),
+)))
 
 chart_col, side_col = st.columns([2.2, 1], gap="large", vertical_alignment="center")
 with chart_col, st.container(border=True):
@@ -164,18 +163,6 @@ with results_tab:
             )
             definition += f", and {_names(below_now)} had dipped below it ({gaps}, not significant)"
         definition += "."
-    if crossed:
-        for c in crossed:
-            rose = summary.set_index("cause").loc[c, "acute_pct_deviation"] > 0
-            post = deviations[(deviations["cause"] == c) & deviations["year"].between(2022, latest_year - 1)
-                              & deviations["significant"] & ((deviations["deviation"] > 0) == rose)]
-            years = "–".join(str(int(y)) for y in (post["year"].min(), post["year"].max())) if len(post) else "2022–24"
-            pct = latest.loc[c, "deviation"] / latest.loc[c, "expected"] * 100
-            definition += (
-                f" {display_cause(c)} is still classed Persisted because its {years} years ran significantly "
-                f"{'above' if rose else 'below'} trend, but by {latest_year} it had moved significantly "
-                f"{'below' if rose else 'above'} it ({pct:+.1f}%)."
-            )
     st.caption(definition)
     display = summary.sort_values("p_value").copy()
     if sensitivity_check_available():
@@ -249,6 +236,27 @@ with surprises_tab:
         )
 
 with robustness_tab:
+    st.markdown(f"**Does the {latest_year} status depend on the baseline window?**")
+    wc = window_check.copy()
+    wc["cause"] = wc["cause"].map(display_cause)
+    st.dataframe(
+        wc[["cause", "primary_window", "primary_pct", "primary_status", "alt_window", "alt_pct", "alt_status", "baseline_sensitive"]],
+        column_config={
+            "cause": "Cause", "primary_window": "Primary baseline",
+            "primary_pct": st.column_config.NumberColumn(f"{latest_year} gap", format="%+.1f%%"),
+            "primary_status": "Status", "alt_window": "Other window",
+            "alt_pct": st.column_config.NumberColumn(f"{latest_year} gap (other)", format="%+.1f%%"),
+            "alt_status": "Status (other)", "baseline_sensitive": st.column_config.CheckboxColumn("Depends on window"),
+        },
+        hide_index=True, width="stretch",
+    )
+    st.caption(
+        "The 2020–21 test holds under either window for every cause. The latest-year status is more "
+        "sensitive. For heart disease and stroke the other window is the 1999–2019 line already shown to "
+        "misfit them; for diabetes and drug overdose it's a 2010–2019 line that tracks their flattened or "
+        "accelerating pre-2020 rates more closely. Primary results stay on the pre-registered windows "
+        "(research_protocol.md, 2026-10-19 reversal addendum)."
+    )
     passed = bool(neg_control["passed"])
     with st.container(horizontal=True):
         with st.container(border=True):
@@ -328,19 +336,18 @@ with robustness_tab:
                         icon=":material/warning:",
                     )
             st.caption(
-                "The trend-shape check originally flagged heart disease and stroke, whose declines had "
-                "flattened after 2010; both now use a 2010–2019 baseline, and heart disease is fully "
-                "robust while stroke still depends partly on the straight-line assumption "
-                "(research_protocol.md, 2026-09-01). Diabetes and drug overdose were later moved to "
-                "2010–2019 too, because their 1999–2019 lines ran 5–9% below the actual 2017–19 rates "
-                "(post hoc, 2026-10-19). Both, and cancer, hold up across every axis."
+                "The trend-shape check originally flagged both heart disease and stroke. Heart "
+                "disease's baseline was since corrected to a shorter, more recent window and is now "
+                "fully robust; stroke's significance still depends partly on the straight-line "
+                "assumption (research_protocol.md's 2026-09-01 addendum). Diabetes, drug overdose, and "
+                "cancer hold up across every axis without correction."
             )
             if not hac_disagree:
                 st.success(
                     "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant "
                     "causes stay significant. The classical test assumes independent baseline years, "
-                    "which is measurably false for several causes; the HAC version moves p-values by up "
-                    "to about an order of magnitude in either direction, but none cross 0.05.",
+                    "which is measurably false for several causes; HAC correction raises those p-values "
+                    "1-2 orders of magnitude, but none cross back over 0.05.",
                     icon=":material/check_circle:",
                 )
             else:

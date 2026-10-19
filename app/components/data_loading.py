@@ -197,6 +197,11 @@ def load_heterogeneity_summary_yearly() -> pd.DataFrame:
 
 
 @st.cache_data(ttl="1h")
+def load_latest_year_window_check() -> pd.DataFrame:
+    return pd.read_parquet(OUTPUTS_MODELS / "latest_year_window_check.parquet")
+
+
+@st.cache_data(ttl="1h")
 def load_county_bridging_check() -> pd.DataFrame:
     return pd.read_parquet(OUTPUTS_MODELS / "county_bridging_check.parquet")
 

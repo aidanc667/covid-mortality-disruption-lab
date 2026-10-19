@@ -23,6 +23,7 @@ from src.analysis.heterogeneity import (
     compute_county_disruption, compute_pooled_county_disruption, regress_disruption_on_context,
     compute_selection_bias, check_within_sample_robustness,
 )
+from src.analysis.baseline_sensitivity import latest_year_window_check
 from src.cleaning.bridging import estimate_vintage_offset, is_bridging_reliable
 from src.ingestion.cdc_wonder import load_manual_export
 from src.ingestion.county_health_rankings import load_year as load_chr_year
@@ -59,9 +60,9 @@ POST_ACUTE_YEARS = (2022, 2024)
 # p=0.0019 full-period, driven by a decline that only became individually
 # significant in 2023-2024) -- but it is NOT used to replace ACUTE_YEARS as
 # the classification gate or the FDR family, because averaging 5 years can
-# just as easily hide a real reversal (drug overdose spikes +26.6% acutely
-# then falls to -18.0% by 2024; pooled into one number it still reads
-# "significant, +16%," erasing the fact that the direction flipped, which is
+# just as easily hide a real reversal (drug overdose spikes +40.9% acutely
+# then swings to -4.3% by 2024; pooled into one number it still reads
+# "significant, +31%," erasing the fact that the direction flipped, which is
 # exactly what classify_persistence's 3-way scheme exists to preserve). This
 # is reported alongside the primary acute p-value, never instead of it.
 FULL_PERIOD_YEARS = (2020, 2024)
@@ -92,17 +93,12 @@ NEGATIVE_CONTROL = "Congenital malformations, deformations and chromosomal abnor
 # NOT make either result go away -- both remain significant, heart
 # disease more so (p=3.86e-5 vs the original 6.33e-4) -- but the acute
 # deviation drops from an overstated +26.1%/+37.0% to a defensible
-# +7.8%/+8.8%. The F-test found no comparable curvature for the other 4;
-# diabetes and overdose were later moved to 2010-2019 for a different misfit
-# (see the entries below). Alzheimer's and cancer keep 1999-2019.
+# +7.8%/+8.8%. This override applies ONLY to these two causes; the other
+# 4 test causes' F-test found no comparable curvature, so their original
+# 1999-2019 baseline is unchanged.
 BASELINE_START_YEAR_OVERRIDES = {
     "Diseases of heart": 2010,
     "Cerebrovascular disease": 2010,
-    # 2026-10-19 (post hoc, research_protocol.md addendum): the 1999-2019
-    # line ran 5.2% (diabetes) and 8.7% (overdose) below the actual 2017-2019
-    # rates, overstating every later gap. Same 2010-2019 window as above.
-    "Diabetes mellitus": 2010,
-    "Drug overdose": 2010,
 }
 
 CDC_WONDER_DIR = DATA_RAW / "cdc_wonder"
@@ -275,7 +271,7 @@ def analyze_cause(
     # Autocorrelation-robust version of the same acute-window test
     # (research_protocol.md #12/2026-09-02 addendum): the classical
     # p_value above assumes independent year-to-year residuals, which
-    # measured autocorrelation (0.44-0.65 for overdose, stroke, Alzheimer's) shows
+    # measured autocorrelation (0.50-0.82 for half the test causes) shows
     # is false. hac_p_value re-derives the same test with a Newey-West
     # sandwich covariance for the fitted line's uncertainty and an exact
     # (for this project's 2-year acute window) autocovariance-based
@@ -528,6 +524,13 @@ def main():
         print(f"  {cause}: {len(yearly[cause])} counties (year-by-year rule)")
     yearly_summary, _, _ = run_county_stage(yearly, chr_df)
     yearly_summary.to_parquet(OUTPUTS_MODELS / "heterogeneity_summary_yearly.parquet", index=False)
+
+    # Latest-year status under the other baseline window (research_protocol.md,
+    # 2026-10-19 reversal addendum): reported, never used to change a result.
+    window_check = latest_year_window_check(national_df, TEST_CAUSES, BASELINE_START_YEAR_OVERRIDES)
+    window_check.to_parquet(OUTPUTS_MODELS / "latest_year_window_check.parquet", index=False)
+    print("Latest-year status by baseline window:")
+    print(window_check[["cause", "primary_pct", "primary_status", "alt_pct", "alt_status", "baseline_sensitive"]].to_string(index=False))
 
     county_bridging = check_county_bridging()
     county_bridging.to_parquet(OUTPUTS_MODELS / "county_bridging_check.parquet", index=False)

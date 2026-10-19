@@ -303,20 +303,16 @@ with trend_tab:
         )
 
 with robustness_tab:
-    autocorr = r["residual_autocorrelation"]
     st.caption(
-        "Same acute 2020–21 test, with a different uncertainty calculation: the primary p-value above "
-        "assumes each baseline year is independent noise. "
-        + (f"For this cause that's questionable (lag-1 autocorrelation {autocorr:.2f}). "
-           if autocorr >= 0.3 else
-           f"For this cause it roughly holds (lag-1 autocorrelation {autocorr:.2f}), so this is a confirmation. ")
-        + "Does the result survive an autocorrelation-robust standard error?"
+        "Same acute 2020–21 test, corrected for a real limitation: the primary p-value above assumes "
+        "each baseline year is independent noise, which measured autocorrelation shows isn't true for "
+        "this cause. Does the result survive an autocorrelation-robust standard error instead?"
     )
     st.metric(
         "HAC p-value", f"{r['hac_p_value']:.2g}",
         help="Newey-West (HAC) standard errors instead of the classical formula, which assumes "
-             "independent year-to-year residuals -- measured autocorrelation is 0.44-0.65 for drug "
-             "overdose, stroke, and Alzheimer's, so that assumption is often false here. Keeps the same trend line and "
+             "independent year-to-year residuals -- measured autocorrelation is 0.50-0.82 for half "
+             "the test causes, so that assumption is often false here. Keeps the same trend line and "
              "acute 2020–21 window; only the uncertainty calculation changes. See Methods for why "
              "this matters and how it's computed.",
     )

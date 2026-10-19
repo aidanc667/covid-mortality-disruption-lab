@@ -105,20 +105,20 @@ def test_findings_tabs_and_data_driven_takeaway():
     # 5 = every test cause except Alzheimer's (the only "No significant disruption"), pinned by hand.
     assert len(disrupted) == 5
     # Expected names and gaps written out by hand from the 2024 deviations table:
-    # cancer +4.6% above; Alzheimer's -19.1% and drug overdose -18.0% below (2010-2019
-    # baseline for overdose); heart disease, diabetes (+0.2%), and stroke not significant.
-    assert set(still_above) == {"Malignant neoplasms"}
+    # diabetes +15.0% and cancer +4.6% above, Alzheimer's -19.1% below; heart disease,
+    # stroke, and overdose not significant.
+    assert set(still_above) == {"Diabetes mellitus", "Malignant neoplasms"}
     assert (
         "Five of six causes rose significantly above their pre-pandemic trend in 2020–21. "
-        "By 2024, three were significantly off trend: cancer (+5%) above it, and "
-        "Alzheimer&#x27;s disease (−19%) and drug overdose (−18%) below it. "
-        "Heart disease, diabetes, and stroke were back within their normal range."
+        "By 2024, three were significantly off trend: diabetes (+15%) and cancer (+5%) above it, "
+        "and Alzheimer&#x27;s disease (−19%) below it. "
+        "Heart disease, stroke, and drug overdose were back within their normal range."
     ) in html
 
 
 @pytest.mark.parametrize("page", PAGES)
 def test_no_page_claims_effects_persisted_through_2024(page):
-    # In 2024 only cancer is significantly above trend, so copy
+    # In 2024 only diabetes and cancer are significantly above trend, so copy
     # implying every disrupted cause was still off trend in 2024 is false.
     text = _page_text(_app_on(page))
     for phrase in ("still-unresolved", "none have reversed", "None of the disrupted causes have resolved",
@@ -128,11 +128,8 @@ def test_no_page_claims_effects_persisted_through_2024(page):
 
 def test_findings_overdose_dip_is_stated():
     text = _page_text(_app_on("findings"))
-    # Overdose is "Persisted" (2022-23 significantly above) yet significantly below trend in 2024;
-    # the caption says so rather than hiding it behind the label.
-    # disruption_deviations: overdose 2022 and 2023 significantly above, 2024 -18.0% significant.
-    assert "Drug overdose is still classed Persisted because its 2022–2023 years ran significantly above trend" in text
-    assert "had moved significantly below it (-18.0%)" in text
+    # The overdose dip below trend in 2024 is stated, not hidden behind "Persisted".
+    assert "Drug overdose -4.3%" in text
 
 
 def test_findings_keeps_every_caveat_section():
@@ -152,9 +149,8 @@ def test_causes_page_tabs_and_takeaway():
     assert [t.label for t in at.tabs] == ["Trend", "Robustness", "Sources"]
     assert "What could explain this?" in [s.value for s in at.subheader]
     html = " ".join(e.proto.body for e in at.get("html"))
-    # From disruption_summary (2010-2019 baselines): overdose +26.6% and diabetes +16.7% are
-    # the two largest; Alzheimer's is not disrupted.
-    assert "drug overdose (+27%) and diabetes (+17%)" in html
+    # From disruption_summary: overdose +40.9% and diabetes +26.9% are the two largest; Alzheimer's is not disrupted.
+    assert "drug overdose (+41%) and diabetes (+27%)" in html
     assert "Alzheimer&#x27;s disease showed no significant 2020–21 disruption" in html
 
 

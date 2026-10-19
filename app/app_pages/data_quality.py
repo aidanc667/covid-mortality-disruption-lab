@@ -192,7 +192,7 @@ with sensitivity_tab:
             )
         for check_name, check_label, description in [
             ("baseline_window (1999 vs 2010)", "1. Baseline window (1999–2019 vs. 2010–2019)",
-             "Does the choice of baseline window (1999–2019 vs. 2010–2019) change the result?"),
+             "Does a shorter, more recent baseline change the result?"),
             ("significance_threshold (0.05 vs 0.01)", "2. Significance threshold (α=0.05 vs. α=0.01)",
              "Does a stricter significance bar change the result?"),
             ("baseline_trend_shape (linear vs quadratic)", "3. Baseline trend shape (linear vs. quadratic)",
