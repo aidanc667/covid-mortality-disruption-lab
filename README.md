@@ -27,7 +27,7 @@ Excess-mortality analysis is the real technique public health agencies use to es
 - **Independent cross-check.** Three unrelated change-point detection methods (PELT, binary segmentation, segmented regression) are run on each series to see whether they land on a 2020 breakpoint without being told to.
 - **A three-axis sensitivity analysis.** The primary method is re-fit with a different baseline window, a stricter significance threshold, and a curved instead of linear trend, to see whether any result depends on a modeling choice rather than the data.
 - **An autocorrelation-robust check.** The classical significance test assumes each year's deviation from trend is independent noise, which is measurably false for several causes. A Newey-West (HAC) version of the same test is reported alongside the classical one: it widens the uncertainty for the affected causes but doesn't overturn any result.
-- **166 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
+- **169 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
 
 All of this is visible directly in the app's Data Quality page, not summarized away.
 

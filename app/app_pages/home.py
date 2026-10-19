@@ -35,7 +35,10 @@ CHART_LABELS = {c: display_cause(c) for c in TEST_CAUSES} | {"Alzheimer's diseas
 AGE_ADJUSTED_HELP = (
     "Age-adjusted: each year's rate is reweighted as if the U.S. had the same age mix every "
     "year, so a real change in risk isn't confused with the population getting older. "
-    "0% is where the cause's own pre-pandemic trend, projected forward, says it should be."
+    "0% is where the cause's own pre-pandemic trend, projected forward, says it should be. "
+    "Significant means outside the range that cause's own pre-2020 year-to-year variation "
+    "would explain, so a steady cause like cancer can be significant at +5% while a volatile "
+    "one like drug overdose isn't at -4%."
 )
 
 synthetic_banner()
@@ -68,7 +71,11 @@ with left:
     st.html(cause_chips_html([(display_cause(c), CAUSE_COLORS[c]) for c in TEST_CAUSES]))
 with right, st.container(border=True):
     st.markdown("**How far each cause ran from its pre-pandemic trend**", help=AGE_ADJUSTED_HELP)
-    st.caption(f"Age-adjusted death rate vs. expected, {int(dev['year'].min())}–{int(dev['year'].max())}")
+    last_year = int(dev["year"].max())
+    st.caption(
+        f"Age-adjusted death rate vs. expected, {int(dev['year'].min())}–{last_year}. "
+        f"Solid end dot: still significantly off trend in {last_year}; faded: within normal range."
+    )
     st.altair_chart(
         gap_from_trend_chart(dev, CAUSE_COLORS, CHART_LABELS, HIGHLIGHT),
         width="stretch",

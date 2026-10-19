@@ -77,6 +77,7 @@ def test_gap_chart_full_color_for_highlight_tint_for_rest():
         "cause": ["Diabetes mellitus", "Diabetes mellitus", "Diseases of heart", "Diseases of heart"],
         "year": [2020, 2021, 2020, 2021],
         "pct": [24.6, 29.3, 5.5, 10.1],
+        "significant": [True, True, True, False],
     })
     chart = gap_from_trend_chart(
         dev,
@@ -90,7 +91,7 @@ def test_gap_chart_full_color_for_highlight_tint_for_rest():
 
 
 def test_gap_chart_rejects_data_with_none_of_the_labelled_causes():
-    dev = pd.DataFrame({"cause": ["Other"], "year": [2020], "pct": [1.0]})
+    dev = pd.DataFrame({"cause": ["Other"], "year": [2020], "pct": [1.0], "significant": [False]})
     with pytest.raises(ValueError, match="labelled causes"):
         gap_from_trend_chart(dev, colors={}, labels={"Diabetes mellitus": "Diabetes"}, highlight=set())
 
@@ -124,6 +125,7 @@ def test_gap_chart_keeps_crowded_low_labels_inside_the_y_domain():
         "cause": [c for c in causes for _ in (2020, 2021)],
         "year": [2020, 2021] * 3,
         "pct": [30.0, -19.1, 20.0, -19.5, 10.0, -20.0],
+        "significant": [True, False] * 3,
     })
     spec = gap_from_trend_chart(
         dev, colors=dict.fromkeys(causes, "#B3261E"), labels={c: c for c in causes}, highlight=set(),
@@ -214,3 +216,51 @@ def test_then_vs_now_rejects_deviations_missing_the_latest_year_for_a_cause():
     devs = _deviations()
     with pytest.raises(ValueError, match="no 2024 row"):
         then_vs_now_chart(_summary(), devs[devs["cause"] != "Drug overdose"], COLORS, LABELS)
+
+
+def _end_layers(spec):
+    """(mark type, filled, causes) for each layer drawn at the latest year."""
+    out = []
+    for layer in spec["layer"]:
+        rows = spec["datasets"].get(layer.get("data", {}).get("name"), [])
+        if rows and "status" in rows[0] and layer["mark"]["type"] in ("circle", "point"):
+            out.append((layer["mark"]["type"], layer["mark"].get("filled", True), sorted(r["cause"] for r in rows)))
+    return out
+
+
+def test_gap_chart_end_point_is_solid_only_when_latest_year_is_significant():
+    # Cancer-like case: small gap but significant; heart-like case: similar gap, not significant.
+    dev = pd.DataFrame({
+        "cause": ["Malignant neoplasms", "Malignant neoplasms", "Diseases of heart", "Diseases of heart"],
+        "year": [2023, 2024, 2023, 2024],
+        "pct": [4.2, 4.6, 4.8, 3.0],
+        "significant": [True, True, True, False],
+    })
+    spec = gap_from_trend_chart(
+        dev, colors={"Malignant neoplasms": "#2F6F4E", "Diseases of heart": "#C26A2E"},
+        labels={"Malignant neoplasms": "Cancer", "Diseases of heart": "Heart disease"}, highlight=set(),
+    ).to_dict()
+    assert sorted(_end_layers(spec)) == [
+        ("circle", True, ["Malignant neoplasms"]),
+        ("point", False, ["Diseases of heart"]),
+    ]
+
+
+def test_gap_chart_requires_significance_column():
+    dev = pd.DataFrame({"cause": ["Diabetes mellitus"], "year": [2024], "pct": [15.0]})
+    with pytest.raises(ValueError, match="significant"):
+        gap_from_trend_chart(dev, colors={"Diabetes mellitus": "#B3261E"}, labels={"Diabetes mellitus": "Diabetes"},
+                             highlight=set())
+
+
+def test_gap_chart_end_points_keep_full_color_for_tinted_lines():
+    # Regression: layered charts share one color scale unless resolved
+    # independently, so a non-highlighted (tinted) cause's significant end
+    # point rendered in the pale tint instead of its full color.
+    dev = pd.DataFrame({
+        "cause": ["Malignant neoplasms", "Malignant neoplasms"], "year": [2023, 2024],
+        "pct": [4.2, 4.6], "significant": [True, True],
+    })
+    spec = gap_from_trend_chart(dev, colors={"Malignant neoplasms": "#2F6F4E"},
+                                labels={"Malignant neoplasms": "Cancer"}, highlight=set()).to_dict()
+    assert spec["resolve"]["scale"]["color"] == "independent"

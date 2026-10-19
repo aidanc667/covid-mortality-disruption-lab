@@ -128,7 +128,15 @@ def gap_from_trend_chart(
     """Home chart A: each cause's percent gap from its projected pre-pandemic
     trend, one line per cause. Highlighted causes are drawn in full color; the
     rest in a light tint of their own color, so the Home cause chips (full
-    color) still match their lines."""
+    color) still match their lines.
+
+    `dev` needs cause, year, pct and significant. The latest year's end point
+    uses the same rule as Findings chart B: a solid dot and colored label when
+    that year is outside the cause's 95% prediction interval, a faded hollow
+    dot and gray label when it's within normal year-to-year noise. Without
+    this, a +5% cancer gap and a +3% heart disease gap look equivalent."""
+    if "significant" not in dev.columns:
+        raise ValueError("dev needs a 'significant' column to mark the latest-year end points")
     present = set(dev["cause"])
     causes = [c for c in labels if c in present]
     if not causes:
@@ -158,6 +166,8 @@ def gap_from_trend_chart(
     min_gap = (y_domain[1] - y_domain[0]) * LABEL_GAP_PX / height
     ends["label_y"] = spread_labels(ends["pct"].tolist(), min_gap)
     ends["end_text"] = ends.apply(lambda r: f"{r['label']} {r['pct']:+.0f}%", axis=1)
+    ends["status"] = ends["significant"].map(
+        {True: "Outside normal range (significant)", False: "Within normal range"})
     y_domain[0] = min(y_domain[0], float(ends["label_y"].min()) - min_gap / 2)
     y_scale = alt.Scale(domain=y_domain, nice=False)
     # Extend the x domain past the last year so the end-of-line labels have
@@ -175,7 +185,7 @@ def gap_from_trend_chart(
         x=x, y=y, color=color)
     lines_fg = alt.Chart(data[data["highlighted"]]).mark_line(strokeWidth=2.6, strokeJoin="round").encode(
         x=x, y=y, color=color)
-    points = alt.Chart(data).mark_circle(size=34).encode(
+    points = alt.Chart(data[data["year"] < years[-1]]).mark_circle(size=34).encode(
         x=x, y=y, color=color,
         opacity=alt.condition("datum.highlighted", alt.value(1.0), alt.value(0.0)),
         tooltip=[
@@ -185,22 +195,44 @@ def gap_from_trend_chart(
         ],
     )
 
-    zero = pd.DataFrame({"year": [years[0] - 0.2], "pct": [0.0], "text": ["pre-pandemic trend"]})
-    trend_rule = alt.Chart(zero).mark_rule(color=TREND_LINE, strokeDash=[4, 3]).encode(y=alt.Y("pct:Q", scale=y_scale))
+    zero = pd.DataFrame({"year": [years[0] - 0.2], "year_end": [years[-1]], "pct": [0.0], "text": ["pre-pandemic trend"]})
+    # Stops at the last year so it doesn't strike through the end labels.
+    trend_rule = alt.Chart(zero).mark_rule(color=TREND_LINE, strokeDash=[4, 3]).encode(
+        x=x, x2="year_end:Q", y=alt.Y("pct:Q", scale=y_scale))
     trend_label = alt.Chart(zero).mark_text(
         align="left", dx=4, dy=11, fontStyle="italic", fontSize=11, color=MUTED,
     ).encode(x=x, y=y, text="text:N")
 
+    # End points and labels use each cause's full color whether or not its
+    # line is highlighted: significance, not the highlight, decides emphasis.
+    full_color = alt.Color(
+        "cause:N", scale=alt.Scale(domain=causes, range=[colors[c] for c in causes]), legend=None,
+    )
+    end_tooltip = [
+        alt.Tooltip("label:N", title="Cause"),
+        alt.Tooltip("pct:Q", title=f"{years[-1]} vs. trend", format="+.1f"),
+        alt.Tooltip("status:N", title=f"{years[-1]}"),
+    ]
+    sig_ends, normal_ends = ends[ends["significant"]], ends[~ends["significant"]]
+    end_dots = [
+        alt.Chart(sig_ends).mark_circle(size=70, opacity=1).encode(
+            x=x, y=y, color=full_color, tooltip=end_tooltip),
+        alt.Chart(normal_ends).mark_point(size=60, filled=False, strokeWidth=1.8, opacity=0.45).encode(
+            x=x, y=y, color=full_color, tooltip=end_tooltip),
+    ]
     end_y = alt.Y("label_y:Q", scale=y_scale)
     end_labels = [
-        alt.Chart(ends[ends["highlighted"]]).mark_text(align="left", dx=8, fontSize=11.5, fontWeight=600)
-        .encode(x=x, y=end_y, text="end_text:N", color=color),
-        alt.Chart(ends[~ends["highlighted"]]).mark_text(align="left", dx=8, fontSize=11, color=MUTED)
+        alt.Chart(sig_ends).mark_text(align="left", dx=8, fontSize=11.5, fontWeight=600)
+        .encode(x=x, y=end_y, text="end_text:N", color=full_color),
+        alt.Chart(normal_ends).mark_text(align="left", dx=8, fontSize=11, color=MUTED)
         .encode(x=x, y=end_y, text="end_text:N"),
     ]
 
     return (
-        alt.layer(trend_rule, trend_label, lines_bg, lines_fg, points, *end_labels)
+        alt.layer(trend_rule, trend_label, lines_bg, lines_fg, points, *end_dots, *end_labels)
+        # Layers share one color scale by default, which would let the lines'
+        # tinted range override the end points' full colors.
+        .resolve_scale(color="independent")
         .properties(height=height)
         .configure_view(stroke=None)
     )
