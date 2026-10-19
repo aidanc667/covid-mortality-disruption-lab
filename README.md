@@ -27,7 +27,7 @@ Excess-mortality analysis is the real technique public health agencies use to es
 - **Independent cross-check.** Three unrelated change-point detection methods (PELT, binary segmentation, segmented regression) are run on each series to see whether they land on a 2020 breakpoint without being told to.
 - **A three-axis sensitivity analysis.** The primary method is re-fit with a different baseline window, a stricter significance threshold, and a curved instead of linear trend, to see whether any result depends on a modeling choice rather than the data.
 - **An autocorrelation-robust check.** The classical significance test assumes each year's deviation from trend is independent noise, which is measurably false for several causes. A Newey-West (HAC) version of the same test is reported alongside the classical one: it widens the uncertainty for the affected causes but doesn't overturn any result.
-- **188 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
+- **190 automated tests**, run on every change, including tests that encode real findings (like the Alzheimer's delayed-decline result) as regression checks rather than just asserting they hold.
 
 All of this is visible directly in the app's Data Quality page, not summarized away.
 
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 pytest
 ```
 
-The 19 CDC WONDER exports underlying this analysis aren't checked into the repo (see `docs/manual_data_acquisition.md` for why, and the exact steps to re-pull them). With them in place:
+The 31 CDC WONDER exports underlying this analysis (15 national, 16 county) aren't checked into the repo (see `docs/manual_data_acquisition.md` for why, and the exact steps to re-pull them). With them in place:
 
 ```bash
 python -m scripts.run_covid_disruption_pipeline   # national + county disruption/persistence/heterogeneity analysis

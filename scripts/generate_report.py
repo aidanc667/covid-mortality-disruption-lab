@@ -31,6 +31,7 @@ from reportlab.platypus import (
 from app.components.county_text import (
     county_pattern_sentences,
     rurality_change,
+    rurality_change_is_notable,
     rurality_split_reading,
 )
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
@@ -752,10 +753,10 @@ def build(data: dict) -> list:
 
     yearly = data["heterogeneity_yearly"]
     yearly_counts = {c: len(df) for c, df in data["county_disruption_yearly"].items()}
-    story.append(Paragraph("The rurality result changed", styles["H2"]))
+    heading_index = len(story)  # heading inserted below once we know whether the result changed
     yearly_rows = yearly.set_index(["cause", "variable"])
     pooled_rows = het.set_index(["cause", "variable"])
-    earlier_bits, outcome_bits = [], []
+    earlier_bits, outcome_bits, notable = [], [], []
     for cause in data["county_disruption_yearly"]:
         before, now = yearly_rows.loc[(cause, "pct_rural")], pooled_rows.loc[(cause, "pct_rural")]
         earlier_bits.append(
@@ -764,6 +765,7 @@ def build(data: dict) -> list:
         )
         change = rurality_change(before["slope"], before["fdr_significant"], now["slope"], now["fdr_significant"])
         outcome_bits.append(f"{change if change != 'no earlier pattern' else 'was never there'} for {county_labels[cause].lower()}")
+        notable.append(rurality_change_is_notable(change, before["fdr_significant"]))
     story.append(Paragraph(
         f"An earlier version of this analysis needed a reliable rate in at least two individual years of "
         f"each period. That kept only {yearly_counts['Diabetes mellitus']:,} counties for diabetes and "
@@ -773,6 +775,9 @@ def build(data: dict) -> list:
         f"The switch was made after the earlier results were known, so it's logged in "
         f"research_protocol.md (2026-10-19 addendum) and both versions are shown in the app.",
         styles["Body"]
+    ))
+    story.insert(heading_index, Paragraph(
+        "The rurality result changed" if any(notable) else "Comparison with the earlier county method", styles["H2"]
     ))
     bias = selection_bias.set_index("cause")
     story.append(Paragraph(
