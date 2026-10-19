@@ -392,6 +392,12 @@ def _number_word(n: int) -> str:
     return words[n] if 0 <= n < len(words) else str(n)
 
 
+def _join_text(items: list[str]) -> str:
+    if len(items) <= 2:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + ", and " + items[-1]
+
+
 def _join_names(causes) -> str:
     names = [display_cause(c) for c in causes]
     if len(names) <= 2:
@@ -423,11 +429,20 @@ def build(data: dict) -> list:
     disrupted = list(s.loc[s["persistence_class"] != "No significant disruption", "cause"])
     n_disrupted = len(disrupted)
     n_fdr = int(s["fdr_significant"].sum())
-    still_above = [c for c in disrupted if latest.loc[c, "significant"] and latest.loc[c, "deviation"] > 0]
+    # Off trend in the latest year in either direction, across all six test
+    # causes: a cause significantly *below* trend (Alzheimer's) is a finding too.
+    off_now = [c for c in s["cause"] if latest.loc[c, "significant"]]
     back_in_range = [c for c in disrupted if not latest.loc[c, "significant"]]
-    above_bits = [f"{display_cause(c).lower()} ({latest_pct[c]:+.1f}%)" for c in still_above]
-    still_above_text = (" and ".join(above_bits) if len(above_bits) <= 2
-                        else ", ".join(above_bits[:-1]) + ", and " + above_bits[-1])
+
+    def _gaps(causes):
+        return [f"{display_cause(c) if c.startswith('Alzheimer') else display_cause(c).lower()} "
+                f"({latest_pct[c]:+.1f}%)" for c in causes]
+
+    above_text = _join_text(_gaps([c for c in off_now if latest_pct[c] > 0]))
+    below_text = _join_text(_gaps([c for c in off_now if latest_pct[c] < 0]))
+    off_parts = [t for t in (f"{above_text} above it" if above_text else "",
+                             f"{below_text} below it" if below_text else "") if t]
+    band = (latest["pi_high"] - latest["expected"]) / latest["expected"] * 100
 
     story = []
 
@@ -449,9 +464,16 @@ def build(data: dict) -> list:
         f"mortality data from 1999 to {latest_year}. <b>{_number_word(n_disrupted).capitalize()} of them "
         f"moved significantly off trend in 2020-21</b>, and {_number_word(n_fdr)} of those results hold up "
         f"after correcting for testing six "
-        f"causes at once. Most of that damage has since faded. By {latest_year}, only "
-        f"{still_above_text} were still significantly above trend; {_join_names(back_in_range).lower()} "
-        f"were back within their expected range.", styles["Body"]
+        f"causes at once. Much of that has since faded. By {latest_year}, {_number_word(len(off_now))} "
+        f"causes were significantly off trend: {', and '.join(off_parts)}. "
+        f"{_join_names(back_in_range).capitalize()} were back within their normal range.", styles["Body"]
+    ))
+    story.append(Paragraph(
+        "\"Significant\" here doesn't mean far from zero. It means outside the range that a cause's own "
+        "year-to-year variation before 2020 would explain. That range is narrow for steady causes and "
+        f"wide for volatile ones: about ±{band['Malignant neoplasms']:.0f}% for cancer in {latest_year}, but "
+        f"about ±{band['Drug overdose']:.0f}% for drug overdose. So cancer's {latest_pct['Malignant neoplasms']:+.1f}% "
+        f"counts, while drug overdose's {latest_pct['Drug overdose']:+.1f}% doesn't.", styles["Body"]
     ))
     story.append(Paragraph(
         "Two results went against what I predicted before looking at the data. Cancer was expected "

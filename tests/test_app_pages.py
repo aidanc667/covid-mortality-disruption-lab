@@ -103,10 +103,16 @@ def test_findings_tabs_and_data_driven_takeaway():
     html = " ".join(e.proto.body for e in at.get("html"))
     # 5 = every test cause except Alzheimer's (the only "No significant disruption"), pinned by hand.
     assert len(disrupted) == 5
-    assert "5 of 6 causes departed" in html
-    # Expected names written out by hand from the 2024 deviations table.
+    # Expected names and gaps written out by hand from the 2024 deviations table:
+    # diabetes +15.0% and cancer +4.6% above, Alzheimer's -19.1% below; heart disease,
+    # stroke, and overdose not significant.
     assert set(still_above) == {"Diabetes mellitus", "Malignant neoplasms"}
-    assert "only Diabetes and Cancer were still significantly above it" in html
+    assert (
+        "Five of six causes rose significantly above their pre-pandemic trend in 2020–21. "
+        "By 2024, three were significantly off trend: diabetes (+15%) and cancer (+5%) above it, "
+        "and Alzheimer&#x27;s disease (−19%) below it. "
+        "Heart disease, stroke, and drug overdose were back within their normal range."
+    ) in html
 
 
 @pytest.mark.parametrize("page", PAGES)

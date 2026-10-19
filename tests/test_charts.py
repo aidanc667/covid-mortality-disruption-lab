@@ -140,7 +140,20 @@ def _summary():
     return pd.DataFrame({
         "cause": ["Diabetes mellitus", "Drug overdose", "Diseases of heart"],
         "acute_pct_deviation": [26.9, 40.9, 7.8],
-        "latest_pct_deviation": [15.0, -4.3, 3.0],
+    })
+
+
+def _deviations():
+    # 2024 rows. pct = deviation/expected; band = (pi_high - expected)/expected.
+    # Diabetes: +15% with a ±12% band -> significant. Overdose: -4% with ±13% -> not.
+    # Heart: +3% with ±4% -> not.
+    return pd.DataFrame({
+        "cause": ["Diabetes mellitus", "Drug overdose", "Diseases of heart", "Diabetes mellitus"],
+        "year": [2024, 2024, 2024, 2023],
+        "expected": [20.0, 25.0, 100.0, 20.0],
+        "deviation": [3.0, -1.0, 3.0, 3.4],
+        "pi_high": [22.4, 28.25, 104.0, 22.3],
+        "significant": [True, False, False, True],
     })
 
 
@@ -148,8 +161,14 @@ LABELS = {"Diseases of heart": "Heart disease", "Diabetes mellitus": "Diabetes",
 COLORS = {"Diseases of heart": "#C26A2E", "Diabetes mellitus": "#B3261E", "Drug overdose": "#2C5D86"}
 
 
+def _chart_rows():
+    spec = then_vs_now_chart(_summary(), _deviations(), COLORS, LABELS).to_dict()
+    rows = [r for values in spec["datasets"].values() for r in values]
+    return spec, {r["label"]: r for r in rows if "band_pct" in r}
+
+
 def test_then_vs_now_rows_are_sorted_by_2020_21_deviation():
-    spec = then_vs_now_chart(_summary(), COLORS, LABELS, latest_year=2024).to_dict()
+    spec, _ = _chart_rows()
     sorts = []
 
     def walk(node):
@@ -168,15 +187,30 @@ def test_then_vs_now_rows_are_sorted_by_2020_21_deviation():
     assert sorts and all(s == ["Drug overdose", "Diabetes", "Heart disease"] for s in sorts)
 
 
-def test_then_vs_now_plots_both_periods_per_cause():
-    spec = then_vs_now_chart(_summary(), COLORS, LABELS, latest_year=2024).to_dict()
-    rows = [r for values in spec["datasets"].values() for r in values if "period" in r]
-    points = {(r["label"], r["period"]): r["pct"] for r in rows}
-    assert points[("Drug overdose", "2020–21")] == pytest.approx(40.9)
-    assert points[("Drug overdose", "2024")] == pytest.approx(-4.3)
-    assert len(points) == 6
+def test_then_vs_now_uses_the_latest_year_and_its_normal_range():
+    _, rows = _chart_rows()
+    # Hand-computed from _deviations()' 2024 rows (the 2023 row must be ignored).
+    assert rows["Diabetes"]["latest_pct"] == pytest.approx(15.0)
+    assert rows["Diabetes"]["band_pct"] == pytest.approx(12.0)
+    assert rows["Drug overdose"]["latest_pct"] == pytest.approx(-4.0)
+    assert rows["Drug overdose"]["band_pct"] == pytest.approx(13.0)
+    assert rows["Heart disease"]["band_low"] == pytest.approx(-4.0)
+    assert rows["Heart disease"]["band_high"] == pytest.approx(4.0)
+
+
+def test_then_vs_now_marks_which_latest_dots_are_significant():
+    _, rows = _chart_rows()
+    assert rows["Diabetes"]["status"] == "Outside normal range"
+    assert rows["Drug overdose"]["status"] == "Within normal range"
+    assert rows["Heart disease"]["status"] == "Within normal range"
 
 
 def test_then_vs_now_rejects_summary_missing_a_labelled_cause():
-    with pytest.raises(ValueError, match="missing"):
-        then_vs_now_chart(_summary().iloc[:2], COLORS, LABELS, latest_year=2024)
+    with pytest.raises(ValueError, match="summary is missing"):
+        then_vs_now_chart(_summary().iloc[:2], _deviations(), COLORS, LABELS)
+
+
+def test_then_vs_now_rejects_deviations_missing_the_latest_year_for_a_cause():
+    devs = _deviations()
+    with pytest.raises(ValueError, match="no 2024 row"):
+        then_vs_now_chart(_summary(), devs[devs["cause"] != "Drug overdose"], COLORS, LABELS)

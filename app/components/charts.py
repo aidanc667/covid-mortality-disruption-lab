@@ -47,18 +47,39 @@ def spread_labels(values: list[float], min_gap: float) -> list[float]:
 
 
 def then_vs_now_chart(
-    summary: pd.DataFrame, colors: dict[str, str], labels: dict[str, str], latest_year: int, height: int = 260,
+    summary: pd.DataFrame, deviations: pd.DataFrame, colors: dict[str, str], labels: dict[str, str],
+    height: int = 270,
 ) -> alt.LayerChart:
     """Findings chart B: per cause, the 2020-21 deviation (hollow dot) and the
-    latest-year deviation (filled dot), joined by a line, sorted by the size
-    of the 2020-21 deviation. `summary` needs cause, acute_pct_deviation and
-    latest_pct_deviation; `labels` fixes which causes are drawn."""
-    rows = summary[summary["cause"].isin(labels)].copy()
+    latest-year deviation (filled dot), sorted by the 2020-21 deviation.
+
+    Distance from 0% alone doesn't say whether a gap is real: cancer's
+    year-to-year noise is ~1% while drug overdose's is ~13%. So each row also
+    shows the latest year's 95% prediction interval as a gray "normal range"
+    band around 0%, and the latest dot is solid only when it falls outside
+    that band (significant), faded when it's inside.
+
+    `summary` needs cause and acute_pct_deviation; `deviations` needs cause,
+    year, deviation, expected, pi_high and significant. `labels` fixes which
+    causes are drawn."""
+    rows = summary[summary["cause"].isin(labels)][["cause", "acute_pct_deviation"]].copy()
     missing = set(labels) - set(rows["cause"])
     if missing:
         raise ValueError(f"summary is missing labelled causes: {sorted(missing)}")
+    latest_year = int(deviations["year"].max())
+    latest = deviations[(deviations["year"] == latest_year) & deviations["cause"].isin(labels)].copy()
+    missing = set(labels) - set(latest["cause"])
+    if missing:
+        raise ValueError(f"deviations has no {latest_year} row for: {sorted(missing)}")
+    latest["latest_pct"] = latest["deviation"] / latest["expected"] * 100
+    # Half-width of the prediction interval, as a percent of the expected rate.
+    latest["band_pct"] = (latest["pi_high"] - latest["expected"]) / latest["expected"] * 100
+    rows = rows.merge(latest[["cause", "latest_pct", "band_pct", "significant"]], on="cause")
     rows["label"] = rows["cause"].map(labels)
+    rows["band_low"], rows["band_high"] = -rows["band_pct"], rows["band_pct"]
+    rows["status"] = rows["significant"].map({True: "Outside normal range", False: "Within normal range"})
     order = rows.sort_values("acute_pct_deviation", ascending=False)["label"].tolist()
+
     color = alt.Color(
         "cause:N", scale=alt.Scale(domain=list(labels), range=[colors[c] for c in labels]), legend=None,
     )
@@ -66,32 +87,32 @@ def then_vs_now_chart(
         ticks=False, domain=False, labelFontSize=12, labelLimit=0))
     # Kept short: under Streamlit's container-width fit a long axis title
     # squeezes the plot to nothing at phone width. The page caption explains
-    # hollow (2020-21) vs. filled (latest year).
-    x_title = "% vs. pre-pandemic trend"
-    x = alt.X("pct:Q", title=x_title, axis=alt.Axis(
+    # the dots and the band.
+    x = alt.X("pct:Q", title="% vs. pre-pandemic trend", axis=alt.Axis(
         labelFont=MONO, labelColor=MUTED, gridColor=GRID, ticks=False, domain=False, titleColor=MUTED,
         titleFontWeight=400, labelExpr="(datum.value > 0 ? '+' : '') + datum.value + '%'"))
 
-    long = rows.melt(
-        id_vars=["cause", "label"], value_vars=["acute_pct_deviation", "latest_pct_deviation"],
-        var_name="period", value_name="pct",
-    )
-    long["period"] = long["period"].map(
-        {"acute_pct_deviation": "2020–21", "latest_pct_deviation": str(latest_year)})
-    tooltip = [alt.Tooltip("label:N", title="Cause"), alt.Tooltip("period:N", title="Period"),
-               alt.Tooltip("pct:Q", title="vs. trend", format="+.1f")]
-
+    band = alt.Chart(rows).mark_bar(height=14, color="#D5DCE3", opacity=0.75, cornerRadius=2).encode(
+        x=alt.X("band_low:Q"), x2="band_high:Q", y=y,
+        tooltip=[alt.Tooltip("label:N", title="Cause"),
+                 alt.Tooltip("band_pct:Q", title=f"{latest_year} normal range (±%)", format=".1f")])
     zero = alt.Chart(pd.DataFrame({"pct": [0.0]})).mark_rule(color=TREND_LINE, strokeDash=[4, 3]).encode(x="pct:Q")
-    connector = alt.Chart(rows).mark_rule(strokeWidth=2.5, opacity=0.35).encode(
-        x=alt.X("acute_pct_deviation:Q"), x2="latest_pct_deviation:Q", y=y, color=color)
-    acute = alt.Chart(long[long["period"] == "2020–21"]).mark_point(size=110, filled=False, strokeWidth=2.2).encode(
-        x=x, y=y, color=color, tooltip=tooltip)
-    latest = alt.Chart(long[long["period"] != "2020–21"]).mark_circle(size=120, opacity=1).encode(
-        x=x, y=y, color=color, tooltip=tooltip)
+    connector = alt.Chart(rows).mark_rule(strokeWidth=2.5, opacity=0.3).encode(
+        x=alt.X("acute_pct_deviation:Q"), x2="latest_pct:Q", y=y, color=color)
+    acute = alt.Chart(rows.assign(pct=rows["acute_pct_deviation"])).mark_point(
+        size=110, filled=False, strokeWidth=2.2).encode(
+        x=x, y=y, color=color,
+        tooltip=[alt.Tooltip("label:N", title="Cause"), alt.Tooltip("pct:Q", title="2020–21 vs. trend", format="+.1f")])
+    now = alt.Chart(rows.assign(pct=rows["latest_pct"])).mark_circle(size=130).encode(
+        x=x, y=y, color=color,
+        opacity=alt.condition("datum.significant", alt.value(1.0), alt.value(0.3)),
+        tooltip=[alt.Tooltip("label:N", title="Cause"),
+                 alt.Tooltip("pct:Q", title=f"{latest_year} vs. trend", format="+.1f"),
+                 alt.Tooltip("status:N", title=f"{latest_year}")])
     # Left padding: Vega-Lite's auto margin falls a few px short of the
     # longest label and the canvas edge clips its first letter.
     return (
-        alt.layer(zero, connector, acute, latest)
+        alt.layer(band, zero, connector, acute, now)
         .properties(height=height, padding={"left": 24, "top": 4, "right": 8, "bottom": 4})
         .configure_view(stroke=None)
     )
