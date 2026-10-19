@@ -157,11 +157,11 @@ def test_geographic_patterns_tabs_and_takeaway():
 def test_geographic_takeaway_leaves_out_associations_that_fail_fdr():
     at = _app_on("geographic_heterogeneity")
     at.button_group[0].set_value("Drug overdose").run()
-    html = " ".join(e.proto.body for e in at.get("html"))
+    (takeaway,) = [e.proto.body for e in at.get("html") if 'class="cmd-takeaway"' in e.proto.body]
     # heterogeneity_summary, overdose: rurality p=0.069, not FDR-significant; the other four are.
     assert ("Drug overdose disruption was larger where smoking, the uninsured rate and obesity were higher, "
-            "and smaller where household income was higher.") in html
-    assert "rurality" not in html
+            "and smaller where household income was higher.") in takeaway
+    assert "rurality" not in takeaway
 
 
 def test_county_lookup_shows_pre_post_chart():
