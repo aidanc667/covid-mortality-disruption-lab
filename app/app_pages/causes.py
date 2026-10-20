@@ -56,6 +56,11 @@ def _trend_shape_robust(cause: str) -> bool:
     return not _trend_shape_failures(cause)
 
 
+def _signed(pct: float) -> str:
+    """+1.0% / −8.7%, with a true minus sign to match the rest of the app."""
+    return f"{pct:+.1f}%".replace("-", "−")
+
+
 def _delayed_disruption(r: pd.Series) -> bool:
     """True when the acute-only (2020-2021) test misses a disruption that
     the full-period (2020-2024) test catches -- currently only Alzheimer's
@@ -290,9 +295,9 @@ with trend_tab:
     if _delayed_disruption(r):
         st.info(
             f"**{display_cause(cause)}** shows no significant disruption in the pre-registered 2020–21 window "
-            f"(p = {r['p_value']:.2g}), but pooling all five post-2020 years finds a real, later "
+            f"(p = {r['p_value']:.2g}), but pooling all five post-2020 years finds a significant later "
             f"decline (p = {r['full_period_p_value']:.2g}, averaging "
-            f"{r['full_period_pct_deviation']:+.1f}% vs. trend), visible as the widening blue gap after "
+            f"{_signed(r['full_period_pct_deviation'])} vs. trend), visible as the widening blue gap after "
             f"2021. The headline result stays on the pre-registered 2020–21 window.",
             icon=":material/schedule:",
         )
@@ -319,7 +324,7 @@ with robustness_tab:
         + (f"That isn't true for this cause (lag-1 autocorrelation {autocorr:.2f}), so this is the "
            "more reliable p-value." if autocorr >= 0.5 else
            f"That roughly holds for this cause (lag-1 autocorrelation {autocorr:.2f}), so the two "
-           "p-values should be close.")
+           "p-values agree on significance.")
     )
     st.metric(
         "HAC p-value", f"{r['hac_p_value']:.2g}",

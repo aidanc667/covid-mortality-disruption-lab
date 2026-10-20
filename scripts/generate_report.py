@@ -465,9 +465,9 @@ def build(data: dict) -> list:
     story.append(Paragraph(
         "Two results went against what I predicted before looking at the data. Cancer was expected "
         "to show nothing in this time window and showed a small increase, though that result depends on the shape of the trend. Alzheimer's "
-        "disease was expected to show a large increase and showed none in 2020-21, though a "
-        "decline appears in later years. A negative control, four sensitivity checks, and a "
-        "multiple-testing correction were all run before any result was reported.", styles["Body"]
+        "disease was expected to show a large increase; this project's annual test found none in 2020-21, though "
+        "outside studies did find excess dementia deaths in 2020, and a decline appears in later years. A negative control, four sensitivity checks, and a "
+        "multiple-testing correction test how much each result can be trusted.", styles["Body"]
     ))
     story.append(Paragraph(
         "COVID-19 itself is not what's being studied here. It's treated as a shock to the health "
@@ -613,8 +613,7 @@ def build(data: dict) -> list:
         f"{cancer['latest_pct_deviation']:+.1f}% in {latest_year}. It's also fragile: with a trend that "
         f"falls by a steady percentage each year, the 2020-21 gap is no longer significant. Other research doesn't settle "
         f"this either. Early models predicted large increases in cancer deaths from delayed "
-        f"screening, while later work using English data found lung and breast cancer deaths came in "
-        f"below pre-pandemic trends.",
+        f"screening, while later modeling with England's actual 2020-22 deaths found breast and lung cancer deaths close to their pre-pandemic trends, far below those early projections.",
         styles["Body"]
     ))
     story.append(Paragraph(
@@ -696,8 +695,8 @@ def build(data: dict) -> list:
         story.append(Paragraph(f"<b>{label}.</b> {verdict}", styles["Body"]))
     story.append(Paragraph(
         "The trend-shape checks matter most. Heart disease passes both. Stroke doesn't survive a "
-        "curved baseline (p = 0.18) and also changes at the stricter significance level, which makes it "
-        "the least certain \"Persisted\" result in this report. Cancer's small 2020-21 gap isn't "
+        "curved baseline (p = 0.18) and also changes at the stricter significance level, which makes it, "
+        "with cancer, one of the two least certain results in this report. Cancer's small 2020-21 gap isn't "
         "significant with a steady-percentage trend (p = 0.43), though cancer is still above trend in "
         "2024 under it. Diabetes and drug overdose pass every check.", styles["Callout"]
     ))

@@ -130,7 +130,7 @@ def test_findings_overdose_dip_is_stated():
     text = _page_text(_app_on("findings"))
     # The overdose dip in 2024 is stated, not hidden behind "Persisted", and not called significant
     # (-4.3% is inside its prediction interval).
-    assert "drug overdose -4.3%, slightly below trend but not significant" in text
+    assert "drug overdose −4.3%, slightly below trend but not significant" in text
 
 
 def test_findings_keeps_every_caveat_section():

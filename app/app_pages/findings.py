@@ -165,7 +165,7 @@ with results_tab:
         )
         if below_now:
             gaps = ", ".join(
-                f"{_in_sentence(display_cause(c))} {latest.loc[c, 'deviation'] / latest.loc[c, 'expected'] * 100:+.1f}%"
+                f"{_in_sentence(display_cause(c))} " + f"{latest.loc[c, 'deviation'] / latest.loc[c, 'expected'] * 100:+.1f}%".replace("-", "−")
                 for c in below_now
             )
             definition += f" ({gaps}, slightly below trend but not significant)"

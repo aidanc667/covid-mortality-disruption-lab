@@ -59,7 +59,7 @@ with neg_tab:
             f"{neg_control['cause']} mortality, a cause concentrated in infancy with no "
             "direct COVID mechanism, shows no significant disruption on raw death counts, "
             "as expected. This does not prove the methodology is artifact-free, but a failure "
-            "here would have been strong evidence that it is.",
+            "here would have been strong evidence of one.",
             icon=":material/check_circle:",
         )
     else:
@@ -179,7 +179,7 @@ with sensitivity_tab:
         }
         shape_rows = test_cause_checks[test_cause_checks["check"].isin(shape_checks) & ~test_cause_checks["agrees"]]
         if len(shape_rows):
-            parts = [f"{display_cause(r['cause'])} when the pre-pandemic trend is {shape_checks[r['check']]}"
+            parts = [f"{display_cause(r['cause']).lower()} when the pre-pandemic trend is {shape_checks[r['check']]}"
                      for _, r in shape_rows.iterrows()]
             n = shape_rows["cause"].nunique()
             st.error(

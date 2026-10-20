@@ -30,11 +30,15 @@ CAUSE_EXPLANATIONS = {
         "mechanisms": [
             ("Using alone, with no one to intervene", "Isolation meant more people used drugs without anyone present who could call for help or administer naloxone if an overdose occurred, widely cited as a leading factor in the 2020-2021 spike."),
             ("A more dangerous drug supply", "Illicitly manufactured fentanyl, far more potent and unpredictable than heroin, was already driving a rising trend before 2020 and was involved in 64% of all U.S. overdose deaths in the year spanning May 2020 to April 2021, the first 12-month period to top 100,000 deaths."),
-            ("Disrupted treatment access", "In-clinic methadone treatment dropped by about two-thirds and counseling by about 38% early in the pandemic, as many treatment programs required in-person visits that became harder to access."),
+            ("Disrupted treatment access", "Many treatment programs depended on in-person visits. In a national survey of methadone patients, the share attending counseling in person fell from 83% before the pandemic to 19% in its first months, as most counseling moved to telehealth."),
             ("Economic and psychological stress", "Job loss, disrupted routines, and increased mental health distress are commonly cited as amplifying substance use during the pandemic, though this is harder to measure directly than the supply and access factors above."),
         ],
         "note": "Caution: some studies find a meaningful share of the 2020–21 rise continued a fentanyl-driven trend already underway in late 2019, rather than something the pandemic newly created.",
         "sources": [
+            {
+                "citation": "Brothers S, Palayew A, Simon C, Coulter A, Strichartz K, Voyles N, Vincent L. Patient experiences of methadone treatment changes during the first wave of COVID-19: a national community-driven survey. Harm Reduct J. 2023;20:31.",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9996563/",
+            },
             {
                 "citation": "Centers for Disease Control and Prevention. Increase in Fatal Drug Overdoses Across the United States Driven by Synthetic Opioids Before and During the COVID-19 Pandemic. CDC Health Advisory CDCHAN-00438. December 17, 2020.",
                 "url": "https://cdc.gov/overdose-prevention/media/pdfs/2024/03/Increase-in-fatal-drug-overdoses-across-us-driven-by-synthetic-opioids-before-and-during-COVID-19.pdf",
@@ -113,7 +117,7 @@ CAUSE_EXPLANATIONS = {
             ("Blood pressure effects", "The way SARS-CoV-2 interacts with the ACE2 receptor can disrupt normal blood pressure regulation, potentially elevating hemorrhagic stroke risk."),
             ("Cytokine storm", "The severe inflammatory immune response some COVID-19 patients experience is itself associated with increased acute stroke risk."),
         ],
-        "note": "Caution: a CDC data brief found stroke death rates for adults 45–64 rose through 2021 and then fell, a partial reversal consistent with this project's smaller 2024 gap. Stroke is also this project's least certain \"Persisted\" result (see Robustness).",
+        "note": "Caution: a CDC data brief found stroke death rates for adults 45–64 rose through 2021 and then fell, a partial reversal consistent with this project's smaller 2024 gap. Stroke is also one of this project's two least certain results (see Robustness).",
         "sources": [
             {
                 "citation": "Wang Z, Yang Y, Liang X, Gao B, Liu M, Li W, Chen Z, Wang Z. COVID-19 Associated Ischemic Stroke and Hemorrhagic Stroke: Incidence, Potential Pathological Mechanism, and Management. Front Neurol. 2020;11:571996. doi:10.3389/fneur.2020.571996",
@@ -145,7 +149,7 @@ CAUSE_EXPLANATIONS = {
             ("Later-stage diagnosis", "Delays in cancer diagnosis were significantly associated with more advanced disease stage at detection. One study found mortality risk increased measurably with just a four-week diagnostic delay."),
             ("Delayed or modified treatment", "Chemotherapy, surgery, and other time-sensitive treatments were postponed or altered for many patients during periods of hospital capacity strain."),
         ],
-        "note": "Caution: early 2020 models projected large increases from delayed screening, but newer modeling from England found lung and breast cancer deaths came in lower than predicted. How large any screening-delay effect is remains unsettled.",
+        "note": "Caution: early 2020 models projected large increases from delayed screening, but later modeling with England's actual 2020–22 deaths found breast and lung cancer deaths close to their pre-pandemic trends. How large any screening-delay effect is remains unsettled.",
         "sources": [
             {
                 "citation": "Maringe C, Spicer J, Morris M, Purushotham A, Nolte E, Sullivan R, Rachet B, Aggarwal A. The impact of the COVID-19 pandemic on cancer deaths due to delays in diagnosis in England, UK: a national, population-based, modelling study. Lancet Oncol. 2020;21(8):1023-1034. doi:10.1016/S1470-2045(20)30388-0",

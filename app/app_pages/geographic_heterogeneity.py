@@ -95,8 +95,7 @@ with map_tab:
         f"{n_counties:,} of {total_us_counties:,} U.S. counties ({1 - excluded_pct:.0%}) had enough deaths "
         f"over 2015–19 and 2020–24 for CDC to report a reliable rate in both periods; the other "
         f"{excluded_pct:.0%}, shown in gray, are excluded, not zero. Blue = rate fell from 2015–19 to 2020–24; orange = rate rose "
-        "(a colorblind-safe scale, since red/green or red/blue are hard to distinguish for the ~8% of "
-        "men with red-green color vision deficiency). Hover a county for exact pre/post rates. Rates "
+        "(a colorblind-safe scale). Hover a county for exact pre/post rates. Rates "
         "are **crude**, not age-adjusted: CDC WONDER doesn't offer age-adjustment at county "
         "granularity (research_protocol.md's 2026-09-01 addendum)."
     )
@@ -107,15 +106,15 @@ with map_tab:
     with st.container(horizontal=True):
         with st.container(border=True):
             st.metric(
-                "Counties included", f"{n_counties} of {total_us_counties}",
+                "Counties included", f"{n_counties:,} of {total_us_counties:,}",
                 delta=f"{1 - excluded_pct:.0%} of all U.S. counties", delta_color="off",
                 help="The rest had too few deaths for CDC to report a reliable rate (fewer than about "
                      "20 over five years). They're mostly small, rural counties: see What predicts it.",
             )
         with st.container(border=True):
-            st.metric("Rate rose (worse)", f"{worsened} ({worsened / n_counties:.0%})")
+            st.metric("Rate rose (worse)", f"{worsened:,} ({worsened / n_counties:.0%})")
         with st.container(border=True):
-            st.metric("Rate fell (better)", f"{improved} ({improved / n_counties:.0%})")
+            st.metric("Rate fell (better)", f"{improved:,} ({improved / n_counties:.0%})")
 
 with predicts_tab:
     cause_het_display = cause_het.copy()

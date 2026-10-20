@@ -53,7 +53,7 @@ with overview:
             (":material/edit_note:", "Locked before looking",
              "Hypotheses and confidence levels for each cause were written down before any 2020–2024 data was analyzed."),
             (":material/verified:", "Tested, not assumed",
-             "A negative control, 4 independent sensitivity checks, and FDR correction: a passing grade wasn't assumed."),
+             "A negative control, four sensitivity checks, and a correction for testing six causes at once."),
             (":material/travel_explore:", "Mapped and explained",
              "Results broken down by cause and by county, with research-grounded reasoning for what could explain each one."),
         ]:
@@ -126,7 +126,7 @@ with data_tab:
     st.write(
         "Baseline: 1999–2019, CDC WONDER \"Underlying Cause of Death, 1999-2020\" (database D76) "
         "for 4 of the 6 test causes. Heart disease and stroke use a shorter, "
-        "corrected 2010–2019 baseline. See Known limitations for why."
+        "corrected 2010–2019 baseline, because a check using only pre-2020 data showed the longer straight line no longer fit them (research_protocol.md, 2026-09-01 addendum)."
     )
     st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158).")
     st.write(
@@ -213,7 +213,7 @@ with limits_tab:
         "modeled.\n"
         "- **Death-certificate coding** may have shifted in 2020–21, when some deaths could be recorded as "
         "either COVID-19 or another cause.\n"
-        "- **Two different CDC databases** cover the years before and after 2018. They match exactly in "
+        "- **Two different CDC databases** are combined: 1999–2019 from one and 2020–2024 from the other. They match exactly in "
         "the overlap years (Data quality → Vintage bridging).\n"
         "- **Stroke and cancer are the least certain results.** Stroke's baseline was corrected to "
         "2010–2019, and its 2020–21 result doesn't survive a curved trend (p = 0.18). Cancer's small "
@@ -234,4 +234,4 @@ with limits_tab:
         ":violet-badge[Real CDC WONDER data] :orange-badge[4-axis sensitivity analysis]"
     )
 
-st.caption("See docs/research_protocol.md and docs/superpowers/specs/2026-08-31-covid-mortality-disruption-design.md for full detail.")
+st.caption("Full detail, including every dated change: docs/research_protocol.md.")
