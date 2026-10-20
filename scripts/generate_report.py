@@ -440,7 +440,7 @@ def build(data: dict) -> list:
         f"causes at once. Much of that has since faded. By {latest_year}, {_number_word(len(off_now))} "
         f"causes were significantly off trend: {', and '.join(off_parts)}. "
         f"{_join_names(back_in_range).capitalize()} were back within their normal range."
-        + (f" The {latest_year} results for {_join_names(sensitive).lower()} depend on which baseline window "
+        + (f" The {latest_year} results for {_join_text([display_cause(c) if c.startswith('Alzheimer') else display_cause(c).lower() for c in sensitive])} depend on which baseline window "
            "is used (section 4)." if sensitive else ""), styles["Body"]
     ))
     story.append(Paragraph(

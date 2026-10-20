@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.analysis.baseline_sensitivity import latest_year_window_check
 
@@ -43,3 +44,15 @@ def test_straight_line_series_is_not_baseline_sensitive():
     row = latest_year_window_check(_series("Y", v), ["Y"], primary_start={}).iloc[0]
     assert row["primary_status"] == row["alt_status"] == "within"
     assert bool(row["baseline_sensitive"]) is False
+
+
+def test_missing_latest_value_is_reported_as_missing_not_within():
+    v = _flattening(20.0)
+    v[2024] = float("nan")
+    row = latest_year_window_check(_series("X", v), ["X"], primary_start={}).iloc[0]
+    assert row["primary_status"] == row["alt_status"] == "missing"
+
+
+def test_primary_start_outside_the_two_windows_raises():
+    with pytest.raises(ValueError, match="2005"):
+        latest_year_window_check(_series("X", _flattening(20.0)), ["X"], primary_start={"X": 2005})

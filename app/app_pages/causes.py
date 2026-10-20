@@ -12,6 +12,7 @@ from app.components.data_loading import (
     load_baseline_fitted_trend,
     load_disruption_deviations,
     load_disruption_summary,
+    load_latest_year_window_check,
     load_national_series,
     load_sensitivity_check,
     sensitivity_check_available,
@@ -31,6 +32,7 @@ national = load_national_series()
 deviations = load_disruption_deviations()
 baseline_fitted = load_baseline_fitted_trend()
 sens = load_sensitivity_check() if sensitivity_check_available() else None
+window_check = load_latest_year_window_check().set_index("cause")
 
 TREND_SHAPE_CHECK = "baseline_trend_shape (linear vs quadratic)"
 
@@ -110,6 +112,13 @@ with st.container(horizontal=True):
             st.badge("Not robust to trend shape", icon=":material/warning:", color="gray")
         if _delayed_disruption(r):
             st.badge("Delayed disruption (see below)", icon=":material/schedule:", color="gray")
+        if window_check.loc[cause, "baseline_sensitive"]:
+            w = window_check.loc[cause]
+            st.badge(
+                f"Baseline-sensitive in {int(w['latest_year'])}", icon=":material/warning:", color="gray",
+                help=(f"{w['primary_window']} baseline (primary): {w['primary_pct']:+.1f}%, {w['primary_status']}. "
+                      f"{w['alt_window']} baseline: {w['alt_pct']:+.1f}%, {w['alt_status']}. See Findings → Robustness."),
+            )
     with st.container(border=True):
         st.metric("2020–21 deviation", f"{r['acute_pct_deviation']:+.1f}%")
     with st.container(border=True):

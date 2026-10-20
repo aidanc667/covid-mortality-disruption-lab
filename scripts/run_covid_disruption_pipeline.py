@@ -528,6 +528,11 @@ def main():
     # Latest-year status under the other baseline window (research_protocol.md,
     # 2026-10-19 reversal addendum): reported, never used to change a result.
     window_check = latest_year_window_check(national_df, TEST_CAUSES, BASELINE_START_YEAR_OVERRIDES)
+    # The check refits each primary line itself, so confirm it reproduces the main analysis.
+    drift = (window_check.set_index("cause")["primary_pct"]
+             - summary_df.set_index("cause").loc[TEST_CAUSES, "latest_pct_deviation"]).abs()
+    if (drift > 1e-6).any():
+        raise RuntimeError(f"latest_year_window_check disagrees with disruption_summary:\n{drift}")
     window_check.to_parquet(OUTPUTS_MODELS / "latest_year_window_check.parquet", index=False)
     print("Latest-year status by baseline window:")
     print(window_check[["cause", "primary_pct", "primary_status", "alt_pct", "alt_status", "baseline_sensitive"]].to_string(index=False))

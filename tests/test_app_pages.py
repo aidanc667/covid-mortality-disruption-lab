@@ -238,3 +238,13 @@ def test_causes_page_explains_each_cause_at_the_bottom(cause):
     at.button_group[0].set_value(cause).run()
     assert not at.exception
     assert at.subheader[-1].value == "What could explain this?"
+
+
+@pytest.mark.parametrize("cause,flagged", [("Diabetes mellitus", True), ("Malignant neoplasms", False)])
+def test_causes_page_flags_baseline_sensitive_2024_status(cause, flagged):
+    # Real window-check results: diabetes 2024 is +15.0% (above) on 1999-2019 but +0.2% (within)
+    # on 2010-2019, so it's flagged; cancer is above under both windows, so it isn't.
+    at = _app_on("causes")
+    at.button_group[0].set_value(cause).run()
+    text = " ".join(m.value for m in at.markdown)
+    assert ("Baseline-sensitive in 2024" in text) is flagged

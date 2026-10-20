@@ -15,6 +15,8 @@ from src.analysis.excess_mortality import compute_deviations, fit_baseline_trend
 
 
 def _status(dev) -> str:
+    if pd.isna(dev.observed) or pd.isna(dev.deviation):
+        return "missing"
     if not dev.significant:
         return "within"
     return "above" if dev.deviation > 0 else "below"
@@ -37,6 +39,8 @@ def latest_year_window_check(
     for cause in causes:
         s = series[series["cause"] == cause].sort_values("year")
         primary = primary_start.get(cause, windows[0])
+        if primary not in windows:
+            raise ValueError(f"{cause}: primary baseline start {primary} is not one of {windows}")
         alternate = windows[1] if primary == windows[0] else windows[0]
         result = {"cause": cause, "latest_year": latest_year}
         for label, start in (("primary", primary), ("alt", alternate)):

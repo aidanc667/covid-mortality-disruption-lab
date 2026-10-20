@@ -294,7 +294,7 @@ with limits_tab:
     # would be slow and fragile). Update by hand when tests/ changes;
     # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
     st.caption(
-        ":green-badge[199 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[208 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 
