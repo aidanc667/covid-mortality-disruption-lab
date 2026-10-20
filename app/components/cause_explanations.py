@@ -163,16 +163,22 @@ CAUSE_EXPLANATIONS = {
     },
     "Alzheimer's disease": {
         "summary": (
-            "Our result, no significant disruption, is genuinely surprising given the "
-            "pre-registered high-confidence prior, and it may partly reflect a real limitation of "
-            "how this specific analysis counts Alzheimer's deaths, not necessarily an absence of "
-            "any real pandemic effect."
+            "Finding no 2020–21 disruption was a surprise, given the prediction of a large effect. "
+            "It may say more about how these deaths are counted than about whether the pandemic "
+            "affected people with dementia."
         ),
         "mechanisms": [
-            ("A definitional gap in our own method", "This project counts a death only when Alzheimer's is coded as the sole *underlying* cause. Published research that instead counts Alzheimer's and related dementias as an underlying OR contributing cause found a large excess: an estimated 94,688 excess ADRD deaths in the pandemic's first year alone. Many dementia patients who died of COVID-19 likely had COVID-19, not Alzheimer's, recorded as the underlying cause, with dementia only a contributing condition, invisible to this narrower query."),
-            ("Isolation and care-facility disruption (the original hypothesis)", "The pre-registered reasoning was that pandemic isolation and disrupted nursing-home/care-facility routines would show up as excess Alzheimer's mortality, and broader published research confirms this was real, particularly in the pandemic's first year and especially in long-term care settings."),
-            ("A pattern that faded fast", "Published research also found the excess ADRD mortality reported using the broader (underlying-or-contributing) definition declined sharply from the first pandemic year to the second, consistent with a real but short-lived effect that a 2020-2024 analysis using only 2020-2021 as its 'acute' window might partially miss if it faded unusually quickly for this specific cause."),
-            ("A later decline this project did find", "Pooling all five post-2020 years instead of just the acute window turns up a real signal the acute-only test misses: Alzheimer's mortality ran increasingly below trend by 2023-2024. One plausible explanation is mortality displacement (sometimes called 'harvesting'): patients who would otherwise have died in these later years may already have died earlier in the pandemic. This project's own data can't confirm that mechanism, only the later decline itself. See the Trend and Robustness tabs for the numbers."),
+            ("Many dementia deaths were recorded as COVID-19", (
+                "This project counts a death only when Alzheimer's is the underlying cause. When someone "
+                "with dementia died of COVID-19, COVID-19 was usually recorded as the underlying cause, "
+                "with dementia listed as contributing. Studies counting both found about 94,700 excess "
+                "dementia-related deaths in the pandemic's first year, in nursing homes and at home alike, "
+                "and far fewer (about 21,600) in the second.")),
+            ("A later decline this project did find", (
+                "From 2022 on, Alzheimer's deaths ran further and further below trend (−19% by 2024). One "
+                "possible explanation is mortality displacement: some people who would have died in these "
+                "years died earlier in the pandemic. This project's data shows the decline but can't "
+                "confirm why.")),
         ],
         "note": "Caution: \"no significant disruption\" reflects this project's method (underlying cause only, 2020–21 window). Studies that also count dementia as a contributing cause found substantial excess deaths, and this project's 2020–24 check finds a later effect.",
         "sources": [

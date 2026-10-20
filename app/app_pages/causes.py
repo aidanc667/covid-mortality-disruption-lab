@@ -287,10 +287,8 @@ with trend_tab:
             f"**{display_cause(cause)}** shows no significant disruption in the pre-registered 2020–21 window "
             f"(p = {r['p_value']:.2g}), but pooling all five post-2020 years finds a real, later "
             f"decline (p = {r['full_period_p_value']:.2g}, averaging "
-            f"{r['full_period_pct_deviation']:+.1f}% vs. trend); watch the gap widen and turn blue "
-            f"after 2021. The headline result above still stands: this project doesn't switch its "
-            f"primary test window after seeing what's significant. This is an additional finding, not "
-            f"a contradiction.",
+            f"{r['full_period_pct_deviation']:+.1f}% vs. trend), visible as the widening blue gap after "
+            f"2021. The headline result stays on the pre-registered 2020–21 window.",
             icon=":material/schedule:",
         )
     if not r["cross_check_confirms_2020"]:

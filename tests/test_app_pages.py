@@ -134,15 +134,18 @@ def test_findings_overdose_dip_is_stated():
 
 
 def test_findings_keeps_every_caveat_section():
-    labels = _expander_labels(_app_on("findings"))
-    for caveat in (
-        "This wasn't the first choice: a real methodological correction",
-        "See the full robustness breakdown",
-        "Full regression results, by cause",
-        "Why might these specific counties differ? Read this before assuming a cause",
-        "The rurality result: caveats",
-    ):
-        assert caveat in labels
+    # Shortened 2026-10-19: the long robustness and example-county expanders became one line each,
+    # but every caveat they carried is still stated.
+    at = _app_on("findings")
+    labels = _expander_labels(at)
+    assert "Full regression results, by cause" in labels
+    assert "The rurality result: caveats" in labels
+    text = _page_text(at)
+    assert "accidental drowning, was dropped" in text
+    assert "**Curved instead of straight trend:** Stroke changes; the rest hold." in text
+    assert "**Stricter significance level (α = 0.01):** Stroke changes; the rest hold." in text
+    assert "**Autocorrelation-robust p-values:** all five significant causes stay significant." in text
+    assert "Single counties are noisy" in text
 
 
 def test_causes_page_tabs_and_takeaway():
@@ -200,8 +203,8 @@ def test_findings_states_that_the_rurality_result_changed():
     # Pooled: diabetes not significant, overdose significantly positive.
     assert "This changed the rurality result." in text
     assert "that pattern disappears for diabetes and reverses for drug overdose" in text
-    # Export counts in the Limits caption: 10 pooled + 4 year-by-year + 2 bridging.
-    assert "County results use 10 pooled exports" in text
+    # Export counts in the Limits caption: county = 10 pooled + 2 Alzheimer's + 4 year-by-year + 2 bridging.
+    assert "15 national and 18 county" in text
     assert "For all five causes, higher smoking rates went with larger disruption." in text
 
 

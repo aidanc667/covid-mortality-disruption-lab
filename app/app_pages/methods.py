@@ -39,11 +39,10 @@ with overview:
     else:
         span = "decades of"
     st.write(
-        f"Using {span} CDC mortality data, we establish each cause's pre-pandemic trajectory, "
-        "estimate what 2020–2024 mortality would have looked like without a pandemic, and test whether "
-        "observed mortality significantly departed from that baseline, then whether any disruption was "
-        "temporary or persisted through 2024, both nationally and, for the five disrupted causes, across U.S. counties "
-        "by socioeconomic status, healthcare access, and rurality."
+        f"Using {span} CDC mortality data, each cause's pre-pandemic trend is projected forward to "
+        "estimate 2020–2024 without a pandemic. The project then tests whether actual deaths departed "
+        "from that, whether the gap lasted through 2024, and, for the five disrupted causes, how it "
+        "varied across U.S. counties."
     )
 
     st.subheader("What we did")
@@ -64,9 +63,8 @@ with overview:
 
     st.subheader("The breaking point")
     st.caption(
-        "COVID-19 itself is not one of the causes tested. It's the fixed, known-date shock the whole "
-        "analysis is built around. Every cause is compared against the trend it was already on before "
-        "this date, not searched for after the fact."
+        "COVID-19 itself isn't one of the causes tested. It's the shock the analysis is built around, "
+        "and its start date is fixed in advance rather than searched for."
     )
     if data_available():
         covid_series = load_covid_reference_series()
@@ -92,9 +90,7 @@ with overview:
             peak = covid_series.loc[covid_series["age_adjusted_rate"].idxmax()]
             st.caption(
                 f"COVID-19's own age-adjusted mortality rate peaked at {peak['age_adjusted_rate']:.1f} per "
-                f"100,000 in {int(peak['year'])}, then declined sharply through 2024. It has no "
-                "pre-pandemic baseline to test against (the cause didn't exist before 2020), so it's shown "
-                "only as the event this analysis is built around, not one of the 6 causes tested."
+                f"100,000 in {int(peak['year'])}, then declined sharply through 2024."
             )
 
 with hypotheses_tab:
@@ -141,79 +137,36 @@ with data_tab:
     )
 
 with stats_tab:
-    st.write(
-        "**Outcome: age-adjusted mortality rate.** Every national-level test below uses this, "
-        "not the raw \"crude\" rate. Age-adjustment reweights each year's real, observed "
-        "age-specific death rates onto a fixed reference population's age distribution (the 2000 "
-        "U.S. standard population), so a change in the rate over time reflects a real change in "
-        "risk, not just the U.S. population aging in the background. County-level heterogeneity "
-        "is the one exception: it uses crude rate, since CDC WONDER doesn't offer age-adjustment "
-        "at county granularity (see Known limitations)."
-    )
-    st.write(
-        "**Known-date interrupted time series (\"excess mortality\").** Fit an expected trend "
-        "on the pre-pandemic baseline (1999–2019 for 4 of the 6 test causes, 2010–2019 for the "
-        "2 causes with a corrected window), project it forward with a 95% prediction interval, "
-        "and flag a year as significantly disrupted if the observed value falls outside that "
-        "interval. The breakpoint (2020) is fixed by the shock's known date, not searched for."
-    )
-    st.write(
-        "**Three-way persistence classification.** For causes with a significant acute-phase "
-        "(2020–2021) disruption: *Persisted* (the 2022–2024 years that are still significantly "
-        "off trend lean the same direction as 2020–21; it does not require 2024 itself to be "
-        "significant), *Resolved* (no 2022–2024 year significantly off trend), or *Reversed* "
-        "(those significant later years lean the opposite way). A binary scheme would flatten a "
-        "reversal into a false \"resolved.\""
-    )
-    st.write(
-        "**Independent cross-check.** Three methods (PELT, binary segmentation, segmented "
-        "regression) run on each bridged series, checking whether they land on a breakpoint "
-        "near March 2020 without being told to. Disagreement here is **not** itself evidence "
-        "against a significant result: the primary method tests one specific, pre-registered "
-        "date, while the cross-check methods search the whole series for whichever breakpoint "
-        "fits best, which can legitimately land elsewhere without the 2020 date being wrong. On "
-        "the real data, all 6 test causes have at least one cross-check method confirm a "
-        "breakpoint near 2020, though heart disease and stroke only after their baseline "
-        "correction (see Known limitations)."
-    )
-    st.write(
-        "**Negative control.** The identical pipeline run on congenital-malformations "
-        "mortality, concentrated in infancy with no *direct* COVID mechanism (prenatal/"
-        "obstetric care was also disrupted, so \"no plausible mechanism at all\" would overstate "
-        "this, but it's still far more insulated from adult pandemic-era behavior than any of "
-        "the 6 test causes). A significant \"disruption\" there would mean the method is "
-        "detecting an artifact, not a real signal, and is a hard gate on trusting the other 6. "
-        "Its gate decision uses raw death counts, not age-adjusted rate: CDC WONDER reports the "
-        "rate to only 1 decimal, which at this cause's low magnitude made the rate-based test "
-        "oversensitive to rounding noise (see Data Quality)."
-    )
-    st.write(
-        "**Multiple-testing correction.** Benjamini-Hochberg FDR correction applied across "
-        "the 6 substantive test causes as one family, separately from the heterogeneity-stage "
-        "correction applied per cause across its context variables."
-    )
-    st.write(
-        "**Full-period p-value (secondary, not primary).** Alongside the pre-registered acute "
-        "(2020-2021) test, each cause also gets a p-value pooling all five post-2020 years, using "
-        "the identical t-test just over a wider window. This isn't used to replace the acute test or "
-        "gate classification: averaging more years can hide a real reversal (drug overdose spikes, "
-        "then falls back to its trend by 2024) as easily as it can reveal a delayed effect. It exists "
-        "to catch disruptions the acute window is too narrow to see, which is exactly what it finds "
-        "for Alzheimer's disease (not significant at 2020-2021, but significant once 2022-2024 are "
-        "included, see Causes of death)."
-    )
-    st.write(
-        "**Autocorrelation-robust p-value (Newey-West/HAC).** The primary p-value assumes each "
-        "baseline year's deviation from trend is independent noise. Measured lag-1 autocorrelation "
-        "is 0.50-0.82 for diabetes, drug overdose, Alzheimer's, and stroke, meaning a rough year "
-        "really does tend to follow another rough year for these causes, which the classical "
-        "formula can't account for. This produces a second p-value for the identical window and "
-        "trend line, replacing only the uncertainty calculation (a Newey-West sandwich covariance, "
-        "derived from the baseline's own lag-0 and lag-1 autocovariances, not assumed independent). "
-        "On the real data this raises the p-values most for diabetes (about 80 times) and drug overdose (about 400 times, "
-        "from 6.0e-8 to 2.5e-5) without changing which causes clear significance; all 5 "
-        "remain significant. See research_protocol.md's 2026-09-02 addendum for the full derivation."
-    )
+    for title, body in [
+        ("Outcome", ("Age-adjusted death rate (2000 U.S. standard population), so an aging population "
+         "isn't mistaken for rising risk. County results are the one exception and use crude rates, "
+         "because CDC WONDER doesn't offer age adjustment by county for 2018–2024.")),
+        ("Excess-mortality test", ("Fit a straight-line trend to the pre-pandemic years (1999–2019, or "
+         "2010–2019 for heart disease and stroke), project it forward with a 95% prediction interval, "
+         "and flag a year as disrupted when the actual rate falls outside it. The breakpoint is fixed at "
+         "2020, not searched for. The primary test pools 2020 and 2021.")),
+        ("Persistence", ("For causes disrupted in 2020–21: *Persisted* if any 2022–2024 year is still "
+         "significantly off trend in the same direction, *Reversed* if the opposite direction, and "
+         "*Resolved* if none are. Persisted doesn't require 2024 itself to be off trend.")),
+        ("Multiple testing", ("Benjamini-Hochberg FDR correction across the six causes, and separately "
+         "across the five county measures within each cause.")),
+        ("Negative control", ("The same pipeline run on congenital malformations, which have no direct "
+         "COVID link. It's tested on death counts because its rate is reported to one decimal at about "
+         "3 per 100,000, too coarse for a reliable trend fit (see Data quality).")),
+        ("Cross-check", ("Three change-point methods (PELT, binary segmentation, segmented regression) "
+         "search each series for a break without being told about 2020. At least one finds a break near "
+         "2020 for every cause. They search for the best-fitting break anywhere, so disagreement isn't "
+         "evidence against the 2020 result.")),
+        ("Full-period p-value", ("A secondary test pooling all five post-2020 years. It isn't the "
+         "headline result, because averaging can hide a spike that later fades, but it catches delayed "
+         "effects such as Alzheimer's later decline.")),
+        ("Autocorrelation-robust p-value", ("The main test assumes each pre-pandemic year's gap from "
+         "trend is independent. That's false for diabetes, drug overdose, Alzheimer's, and stroke "
+         "(autocorrelation 0.50–0.82), so a Newey-West (HAC) version is also reported. It raises "
+         "diabetes's p-value about 80 times and drug overdose's about 400 times, and every significant "
+         "cause stays significant (research_protocol.md, 2026-09-02 addendum).")),
+    ]:
+        st.markdown(f"**{title}.** {body}")
 
 with counties_tab:
     st.write(
@@ -240,49 +193,24 @@ with language_tab:
 
 with limits_tab:
     st.subheader("Known limitations")
-    st.write(
-        "- Observational, ecological design: no individual-level causal inference. The "
-        "county-level heterogeneity stage carries **ecological fallacy** risk by name: a "
-        "county-average relationship doesn't necessarily hold at the individual level\n"
-        "- **Selection bias in the county sample**: counties with too few deaths for a reliable rate "
-        "are left out, and they're mostly rural (83-94% rural excluded vs. 45-63% included, depending "
-        "on the cause). The pooled five-year rates cut this bias sharply, but the most rural places are "
-        "still under-represented, and the rurality result varies by cause. See Geographic patterns for "
-        "each cause's check\n"
-        "- Mortality-vintage discontinuity between the two CDC WONDER databases\n"
-        "- ICD-10 coding practices may have shifted during 2020–2021 due to strain on death-certification systems\n"
-        "- Cancer's pre-registered prior was an expected null result (measurement-lag reasoning); the real result contradicts that. Cancer shows a significant disruption that was still above trend in 2024, not the null originally expected\n"
-        "- Small-county suppression at the county-level heterogeneity stage\n"
-        "- CHR&R behavioral measures (smoking, obesity) are PLACES model-based small-area estimates, not raw counts\n"
-        "- **Context-variable vintage is post-period, not pre-period**: all five heterogeneity-stage "
-        "context variables come from CHR&R's 2024 release, measured during or after the 2020–2024 "
-        "disruption window they're being regressed against, not a pre-pandemic baseline. Rurality is "
-        "effectively static, but income and the uninsured rate plausibly moved during the pandemic "
-        "itself, so this stage can't rule out some feedback from the disruption's own economic "
-        "aftermath into the context variable\n"
-        "- Multiple testing across both the 6-cause family and the per-cause context-variable family\n"
-        "- Counties are not geographically independent (spatial autocorrelation not yet modeled)\n"
-        "- The primary p-value's prediction-interval math assumes independent baseline residuals, "
-        "which is measurably false for four of the six test causes (lag-1 autocorrelation 0.65–0.82 for "
-        "diabetes, overdose, and Alzheimer's; 0.50 for stroke; 0.12–0.19 for heart "
-        "disease and cancer, where the assumption roughly holds). This was a disclosed-but-unmodeled "
-        "gap; a Newey-West (HAC) autocorrelation-robust version of the test is now also reported "
-        "(see the Statistics tab and Causes of death). It raises the classical p-value for "
-        "the high-autocorrelation causes by up to about 400 times, but all 5 causes "
-        "previously found significant remain significant under it\n"
-        "- **Heart disease and stroke use a corrected 2010–2019 baseline, not "
-        "1999–2019 like the other four test causes**, after finding the longer window was already "
-        "diverging from their real trajectory before 2020. See research_protocol.md's 2026-09-01 "
-        "addendum. Heart disease is now fully robust across every check; stroke is "
-        "substantially improved but remains this project's single most uncertain \"Persisted\" "
-        "result (its significance doesn't fully survive an alternate curved-trend check, p=0.096)\n"
-        "- \"Significant\" and \"large\" are different claims: diabetes (+26.9%) and drug overdose "
-        "(+40.9%) show the largest 2020-21 deviations; cancer (+1.7%), heart disease (+7.8%), and "
-        "stroke (+8.8%) are all real and FDR-significant but modest by comparison. "
-        "See the Findings page for effect sizes\n"
-        "- All findings remain associational. The mechanism behind any confirmed disruption "
-        "(direct viral effect vs. deferred care vs. isolation vs. economic stress) cannot be "
-        "separated by mortality data alone"
+    st.markdown(
+        "- **Associations only.** Mortality data can't separate direct viral harm from delayed care, "
+        "isolation, or economic stress, and county patterns may not hold for individuals (ecological "
+        "fallacy).\n"
+        "- **Rural counties are under-represented.** Counties with too few deaths for a reliable rate are "
+        "left out, and they're mostly rural (83–94% rural vs. 45–63% for included counties).\n"
+        "- **County rates aren't age-adjusted,** so part of a county's change may reflect its population "
+        "aging. This matters most for rurality.\n"
+        "- **County measures are from 2024,** during the pandemic period rather than before it, and smoking "
+        "and obesity are model-based estimates. Counties near each other aren't independent, which isn't "
+        "modeled.\n"
+        "- **Death-certificate coding** may have shifted in 2020–21, when some deaths could be recorded as "
+        "either COVID-19 or another cause.\n"
+        "- **Two different CDC databases** cover the years before and after 2018. They match exactly in "
+        "the overlap years (Data quality → Vintage bridging).\n"
+        "- **Stroke is the least certain result.** Its baseline was corrected to 2010–2019, and its "
+        "significance doesn't fully survive a curved-trend check (p = 0.096).\n"
+        "- **Some 2024 results depend on the baseline window** (Findings → Robustness)."
     )
 
     st.subheader("Ethics and project checks")
