@@ -631,7 +631,7 @@ def build(data: dict) -> list:
     story.append(_para(
         "Did COVID-19 disrupt the trend for six other leading causes of death, has it recovered, and where "
         "did it hit hardest?", styles["ReportSubtitle"]))
-    story.append(_para("Aidan Chi &nbsp;&middot;&nbsp; October 2026", styles["Byline"]))
+    story.append(_para("Aidan Chi", styles["Byline"]))
     story.append(HRFlowable(width="100%", thickness=0.6, color=colors.HexColor("#B8C2CC"), spaceAfter=10))
 
     abstract = [
