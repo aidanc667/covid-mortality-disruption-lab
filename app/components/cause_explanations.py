@@ -7,7 +7,8 @@ mechanisms elsewhere -- background context for interpreting our results,
 not something this analysis itself established. Never state these as
 proven causes of this project's specific findings.
 
-Each cause's "note" field deliberately includes real countervailing
+Each cause's "note" field is a one- or two-sentence caution shown under
+the explanation; it deliberately includes real countervailing
 evidence, not just supportive citations -- found on a self-audit
 (2026-09-01) that the initial research pass only searched for literature
 explaining results already in hand, never for skepticism, contested
@@ -32,13 +33,7 @@ CAUSE_EXPLANATIONS = {
             ("Disrupted treatment access", "In-clinic methadone treatment dropped by about two-thirds and counseling by about 38% early in the pandemic, as many treatment programs required in-person visits that became harder to access."),
             ("Economic and psychological stress", "Job loss, disrupted routines, and increased mental health distress are commonly cited as amplifying substance use during the pandemic, though this is harder to measure directly than the supply and access factors above."),
         ],
-        "note": (
-            "One important caution from the research literature itself: some analyses suggest a "
-            "meaningful share of the 2020-2021 increase was a continuation of a fentanyl-driven "
-            "trend already underway since mid-to-late 2019, not something the pandemic newly "
-            "created. Our own finding that overdose deaths swung to below the expected trend by "
-            "2024 is consistent with the broader national decline reported for that period."
-        ),
+        "note": "Caution: some studies find a meaningful share of the 2020–21 rise continued a fentanyl-driven trend already underway in late 2019, rather than something the pandemic newly created.",
         "sources": [
             {
                 "citation": "Centers for Disease Control and Prevention. Increase in Fatal Drug Overdoses Across the United States Driven by Synthetic Opioids Before and During the COVID-19 Pandemic. CDC Health Advisory CDCHAN-00438. December 17, 2020.",
@@ -70,17 +65,7 @@ CAUSE_EXPLANATIONS = {
             ("Fear of infection at healthcare facilities", "Many people with diabetes delayed seeking care specifically because they were afraid of contracting COVID-19 in a hospital or clinic, leading to missed diagnoses and delayed treatment of complications."),
             ("Disrupted medication and supply access", "Insulin and other medication access, along with routine complication screening (eyes, kidneys, feet), was harder to maintain during periods of restricted in-person care."),
         ],
-        "note": (
-            "A real counterpoint worth including, not just the supportive case above: some of this "
-            "excess may be a coding/attribution artifact rather than a true increase in diabetes "
-            "deaths. CDC guidance during the pandemic allowed a presumptive COVID-19 underlying-cause "
-            "code without lab confirmation, and research has found evidence that SARS-CoV-2 was "
-            "sometimes substituted for competing causes of death on certificates, meaning some of "
-            "the reported diabetes-mortality rise could reflect how deaths were coded, not only how "
-            "many actually occurred. This doesn't cancel out the finding (excess mortality still "
-            "shows up even in analyses designed to account for this), but it's a genuine source of "
-            "uncertainty in the exact magnitude."
-        ),
+        "note": "Caution: part of this rise may reflect how deaths were coded, since pandemic guidance let COVID-19 be recorded as the underlying cause without lab confirmation. Excess deaths still appear in studies designed to account for this, but the exact size is uncertain.",
         "sources": [
             {
                 "citation": "Lv F, Gao X, Huang AH, et al. Excess diabetes mellitus-related deaths during the COVID-19 pandemic in the United States. eClinicalMedicine. 2022;54:101671. doi:10.1016/j.eclinm.2022.101671",
@@ -104,21 +89,7 @@ CAUSE_EXPLANATIONS = {
             ("Deferred emergency and routine care", "Fear of hospitals during pandemic surges, plus reduced capacity for elective cardiac procedures, plausibly delayed treatment for both acute cardiac events and routine management of hypertension and cholesterol."),
             ("Compounding for existing heart disease", "People with pre-existing cardiovascular disease who contracted COVID-19 faced substantially higher in-hospital mortality risk than those without it."),
         ],
-        "note": (
-            "One methodological correction and one real caveat. First: a sensitivity check found "
-            "heart disease's significant disruption originally depended on assuming a straight-line "
-            "pre-pandemic trend, which was already diverging from its real (steep-decline-then-"
-            "plateau) trajectory before 2020. Corrected by fitting the baseline to the most recent "
-            "decade (2010-2019) instead of the full 1999-2019 range. This made the result *more* "
-            "confidently significant (p=3.9e-5) while cutting the reported effect size from an "
-            "overstated +26% to a defensible +7.8% (see Robustness, and research_protocol.md's "
-            "2026-09-01 addendum).\n\nSecond, an unresolved caveat from the literature itself: "
-            "attribution is a genuine confound here. A cardiac death triggered by COVID-19 could "
-            "reasonably be coded as either heart disease or COVID-19 depending on documentation "
-            "practices, and at least one review described the underlying studies as \"generally "
-            "poorly conducted,\" calling for better designs before separating genuinely "
-            "cardiovascular deaths from miscoded COVID."
-        ),
+        "note": "Caution: a cardiac death triggered by COVID-19 could be coded as either heart disease or COVID-19, and at least one review called the studies that try to separate the two generally poorly conducted.",
         "sources": [
             {
                 "citation": "Lee CCE, Ali K, Connell D, Mordi IR, George J, Lang EMSL, Lang CC. COVID-19-Associated Cardiovascular Complications. Diseases. 2021;9(3):47. doi:10.3390/diseases9030047",
@@ -142,19 +113,7 @@ CAUSE_EXPLANATIONS = {
             ("Blood pressure effects", "The way SARS-CoV-2 interacts with the ACE2 receptor can disrupt normal blood pressure regulation, potentially elevating hemorrhagic stroke risk."),
             ("Cytokine storm", "The severe inflammatory immune response some COVID-19 patients experience is itself associated with increased acute stroke risk."),
         ],
-        "note": (
-            "Like heart disease, this cause's baseline was corrected from the full 1999-2019 range "
-            "to a shorter 2010-2019 window, after the longer straight-line fit was found diverging "
-            "from the real pre-pandemic trajectory before 2020 (research_protocol.md's 2026-09-01 "
-            "addendum). That cut the reported effect size from an overstated +37% to a more "
-            "defensible +8.8%. Unlike heart disease, this one isn't fully resolved: stroke remains "
-            "this project's single most uncertain \"Persisted\" result, significant under the "
-            "corrected baseline but not quite surviving an alternate curved-trend check (p=0.096, "
-            "close to but not under 0.05; see Robustness).\n\nOne thing the correction did resolve: "
-            "a CDC data brief found the U.S. stroke death rate for adults 45-64 rose through 2021 "
-            "then declined through 2022, a partial reversal this project's corrected numbers now "
-            "match rather than conflict with (+6.1% by 2024, down from +8.8% in 2020-21)."
-        ),
+        "note": "Caution: a CDC data brief found stroke death rates for adults 45–64 rose through 2021 and then fell, a partial reversal consistent with this project's smaller 2024 gap. Stroke is also this project's least certain \"Persisted\" result (see Robustness).",
         "sources": [
             {
                 "citation": "Wang Z, Yang Y, Liang X, Gao B, Liu M, Li W, Chen Z, Wang Z. COVID-19 Associated Ischemic Stroke and Hemorrhagic Stroke: Incidence, Potential Pathological Mechanism, and Management. Front Neurol. 2020;11:571996. doi:10.3389/fneur.2020.571996",
@@ -187,19 +146,7 @@ CAUSE_EXPLANATIONS = {
             ("Later-stage diagnosis", "Delays in cancer diagnosis were significantly associated with more advanced disease stage at detection. One study found mortality risk increased measurably with just a four-week diagnostic delay."),
             ("Delayed or modified treatment", "Chemotherapy, surgery, and other time-sensitive treatments were postponed or altered for many patients during periods of hospital capacity strain."),
         ],
-        "note": (
-            "This project's pre-registered prior expected NO disruption within the 2024 window, "
-            "reasoning that deferred-care effects would take longer to appear. A small, real, "
-            "FDR-significant effect showed up anyway, modest next to heart disease or overdose, but "
-            "real. Early 2020 modeling projected large future mortality increases from screening "
-            "delays, but more recent modeling using actual pandemic-era England data found lung and "
-            "breast cancer deaths came in *lower* than pre-pandemic trends predicted, not higher, a "
-            "genuinely important update. The honest reading isn't that this project's window caught "
-            "only the start of a larger effect; it's that the size and timing of any true "
-            "screening-delay impact is still unsettled in the wider literature, and this small, "
-            "real, persisting signal should be read against that uncertainty, not as confirmation "
-            "of the largest early projections."
-        ),
+        "note": "Caution: early 2020 models projected large increases from delayed screening, but newer modeling from England found lung and breast cancer deaths came in lower than predicted. How large any screening-delay effect is remains unsettled.",
         "sources": [
             {
                 "citation": "Maringe C, Spicer J, Morris M, Purushotham A, Nolte E, Sullivan R, Rachet B, Aggarwal A. The impact of the COVID-19 pandemic on cancer deaths due to delays in diagnosis in England, UK: a national, population-based, modelling study. Lancet Oncol. 2020;21(8):1023-1034. doi:10.1016/S1470-2045(20)30388-0",
@@ -228,15 +175,7 @@ CAUSE_EXPLANATIONS = {
             ("A pattern that faded fast", "Published research also found the excess ADRD mortality reported using the broader (underlying-or-contributing) definition declined sharply from the first pandemic year to the second, consistent with a real but short-lived effect that a 2020-2024 analysis using only 2020-2021 as its 'acute' window might partially miss if it faded unusually quickly for this specific cause."),
             ("A later decline this project did find", "Pooling all five post-2020 years instead of just the acute window turns up a real signal the acute-only test misses: Alzheimer's mortality ran increasingly below trend by 2023-2024. One plausible explanation is mortality displacement (sometimes called 'harvesting'): patients who would otherwise have died in these later years may already have died earlier in the pandemic. This project's own data can't confirm that mechanism, only the later decline itself. See the Deep dive tab for the numbers."),
         ],
-        "note": (
-            "This is one of this project's most important nuances: 'no significant disruption' "
-            "describes what our specific method (underlying-cause-only, national rate) found for "
-            "the pre-registered 2020-2021 window. It does not mean isolation and care-facility "
-            "disruption had no real effect on people with Alzheimer's. Broader research using a "
-            "different, more inclusive definition of how a dementia death is counted found a "
-            "substantial one, and this project's own full-period check (2020-2024) finds a real, "
-            "later effect too, just not the immediate one originally hypothesized."
-        ),
+        "note": "Caution: \"no significant disruption\" reflects this project's method (underlying cause only, 2020–21 window). Studies that also count dementia as a contributing cause found substantial excess deaths, and this project's 2020–24 check finds a later effect.",
         "sources": [
             {
                 "citation": "Chen R, Charpignon ML, Raquib RV, Wang J, Meza E, Aschmann HE, DeVost MA, Mooney A, Bibbins-Domingo K, Riley AR, Kiang MV, Chen YH, Stokes AC, Glymour MM. Excess Mortality With Alzheimer Disease and Related Dementias as an Underlying or Contributing Cause During the COVID-19 Pandemic in the US. JAMA Neurol. 2023;80(9):919-928. doi:10.1001/jamaneurol.2023.2226",

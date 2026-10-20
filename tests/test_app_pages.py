@@ -248,3 +248,23 @@ def test_causes_page_flags_baseline_sensitive_2024_status(cause, flagged):
     at.button_group[0].set_value(cause).run()
     text = " ".join(m.value for m in at.markdown)
     assert ("Baseline-sensitive in 2024" in text) is flagged
+
+
+@pytest.mark.parametrize("cause", [
+    "Diseases of heart", "Diabetes mellitus", "Alzheimer's disease",
+    "Cerebrovascular disease", "Drug overdose", "Malignant neoplasms",
+])
+def test_causes_page_caveat_is_a_short_caption_not_an_info_box(cause):
+    from app.components.cause_explanations import CAUSE_EXPLANATIONS
+    note = CAUSE_EXPLANATIONS[cause]["note"]
+    assert note.startswith("Caution:") and len(note) <= 330
+    at = _app_on("causes")
+    at.button_group[0].set_value(cause).run()
+    assert note not in [i.body for i in at.info]
+    assert note in [c.value for c in at.main.caption]
+
+
+def test_overdose_caveat_does_not_call_2024_below_trend():
+    # Primary 2024 overdose gap is -4.3%, within the prediction interval (not significant).
+    from app.components.cause_explanations import CAUSE_EXPLANATIONS
+    assert "below" not in CAUSE_EXPLANATIONS["Drug overdose"]["note"]

@@ -350,5 +350,4 @@ for title, desc in explanation["mechanisms"]:
     with st.container(border=True):
         st.markdown(f"**{title}**")
         st.write(desc)
-if explanation["note"]:
-    st.info(explanation["note"], icon=":material/info:")
+st.caption(explanation["note"])
