@@ -6,6 +6,8 @@
 
 Of the 6 major causes of death tested, **5 departed significantly from their pre-pandemic trend in 2020-21, and each stayed significantly off trend in the same direction for at least one later year.** By 2024 three causes were significantly off trend: diabetes (+15.0%) and cancer (+4.6%) above it, and Alzheimer's disease (-19.1%) below it. Heart disease, stroke, and drug overdose were back inside their expected range, with drug overdose slightly below it (-4.3%, not significant). Alzheimer's is the one cause with no significant 2020-21 disruption; its decline only became significant in 2023-2024.
 
+The 2024 statuses depend more on the baseline window than the 2020-21 results do. Recomputing each cause's 2024 status under the other window: diabetes would be within its range (+0.2%) against a 2010-2019 trend; drug overdose would be significantly below trend (-18.0%); and heart disease and stroke, whose primary is 2010-2019, would read as above trend against the 1999-2019 line already shown to misfit them. Cancer (+4.6% vs. +5.4%) and Alzheimer's (-19.1% vs. -23.9%) hold under either window. The 2020-21 results hold for every cause. Primary results stay on the pre-registered windows; see `research_protocol.md`'s 2026-10-19 reversal addendum.
+
 "Disrupted" and "significant" mean statistically distinguishable from a cause's normal pre-2020 year-to-year variation, not simply far from zero. That normal range is about ±1% for cancer but about ±13% for drug overdose, which is why cancer's +4.6% counts and drug overdose's -4.3% doesn't. Being within the normal range doesn't mean no effect, only that the gap can't be told apart from ordinary year-to-year swings.
 
 | Cause | Result | p-value | Survives FDR | 2020-21 deviation | 2024 deviation |

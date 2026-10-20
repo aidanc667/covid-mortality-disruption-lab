@@ -92,8 +92,8 @@ with side_col:
     )
     st.caption(
         "**What \"disrupted\" means here:** statistically distinguishable from that cause of death's "
-        "normal year-to-year variation before 2020. It's not about the distance from 0%, but about "
-        "falling outside its projected range (gray band)."
+        "normal year-to-year variation before 2020. Not looking at the distance from 0% line, but instead "
+        "looking at if it falls outside its projected range (gray band)."
     )
     report_path = OUTPUTS_REPORTS / "covid_mortality_disruption_report.pdf"
     if report_path.exists():

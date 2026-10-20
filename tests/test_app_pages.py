@@ -224,7 +224,8 @@ def test_findings_mentions_alzheimers_county_run_as_exploratory():
 def test_findings_defines_disrupted_as_statistically_distinguishable():
     text = _page_text(_app_on("findings"))
     assert "statistically distinguishable from that cause of death's normal year-to-year variation" in text
-    assert "falling outside its projected range (gray band)" in text
+    assert ("Not looking at the distance from 0% line, but instead looking at if it falls outside "
+            "its projected range (gray band).") in text
     assert "Distance from 0% alone" not in text
 
 

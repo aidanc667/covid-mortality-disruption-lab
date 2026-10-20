@@ -119,6 +119,7 @@ TABLE_HEADER_STYLE = TableStyle([
 def load_data() -> dict:
     return {
         "summary": pd.read_parquet(OUTPUTS_MODELS / "disruption_summary.parquet"),
+        "window_check": pd.read_parquet(OUTPUTS_MODELS / "latest_year_window_check.parquet"),
         "negative_control": pd.read_parquet(OUTPUTS_MODELS / "negative_control.parquet").iloc[0],
         "heterogeneity": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_summary.parquet"),
         "selection_bias": pd.read_parquet(OUTPUTS_MODELS / "heterogeneity_selection_bias.parquet"),
@@ -402,6 +403,8 @@ def build(data: dict) -> list:
     # causes: a cause significantly *below* trend (Alzheimer's) is a finding too.
     off_now = [c for c in s["cause"] if latest.loc[c, "significant"]]
     back_in_range = [c for c in disrupted if not latest.loc[c, "significant"]]
+    window_check = data["window_check"]
+    sensitive = window_check.loc[window_check["baseline_sensitive"], "cause"].tolist()
 
     def _gaps(causes):
         return [f"{display_cause(c) if c.startswith('Alzheimer') else display_cause(c).lower()} "
@@ -436,7 +439,9 @@ def build(data: dict) -> list:
         f"after correcting for testing six "
         f"causes at once. Much of that has since faded. By {latest_year}, {_number_word(len(off_now))} "
         f"causes were significantly off trend: {', and '.join(off_parts)}. "
-        f"{_join_names(back_in_range).capitalize()} were back within their normal range.", styles["Body"]
+        f"{_join_names(back_in_range).capitalize()} were back within their normal range."
+        + (f" The {latest_year} results for {_join_names(sensitive).lower()} depend on which baseline window "
+           "is used (section 4)." if sensitive else ""), styles["Body"]
     ))
     story.append(Paragraph(
         "\"Disrupted\" here means statistically distinguishable from a cause's normal year-to-year "
@@ -680,6 +685,23 @@ def build(data: dict) -> list:
         "corrected one, still above 0.05. That makes stroke the least certain \"Persisted\" result in "
         "this report. Diabetes, drug overdose, and cancer pass every check.", styles["Callout"]
     ))
+    story.append(Paragraph(
+        f"<b>The {latest_year} status depends more on the baseline window.</b> The checks above test the "
+        f"2020-21 result, which holds under either window for every cause. Each cause's {latest_year} "
+        "status was also recomputed under the other window. Primary results stay on the pre-registered "
+        "windows (research_protocol.md, 2026-10-19 reversal addendum); for heart disease and stroke the "
+        "other window is the 1999-2019 line already shown to misfit them.", styles["Body"]
+    ))
+    wc_table = [["Cause", "Primary window", f"{latest_year} gap", "Other window", f"{latest_year} gap"]]
+    for _, r in window_check.iterrows():
+        wc_table.append([
+            display_cause(r["cause"]), r["primary_window"], f"{r['primary_pct']:+.1f}% ({r['primary_status']})",
+            r["alt_window"], f"{r['alt_pct']:+.1f}% ({r['alt_status']})",
+        ])
+    wc = Table(wc_table, colWidths=[1.5 * inch, 1.1 * inch, 1.3 * inch, 1.1 * inch, 1.3 * inch])
+    wc.setStyle(TABLE_HEADER_STYLE)
+    story.append(wc)
+    story.append(Spacer(1, 8))
     story.append(Paragraph(
         "Lag-1 autocorrelation measures whether a year that runs above trend tends to be followed by "
         "another one. In the pre-pandemic baselines it is high for diabetes, overdose, and Alzheimer's "
