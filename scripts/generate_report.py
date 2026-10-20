@@ -34,6 +34,7 @@ from app.components.county_text import (
     rurality_change_is_notable,
     rurality_split_reading,
 )
+from app.components.findings_text import trend_vs_reference_note
 from src.utils.config import OUTPUTS_MODELS, OUTPUTS_REPORTS
 
 # Duplicated from app/components/data_loading.py's CONTEXT_VAR_LABELS/
@@ -446,6 +447,11 @@ def build(data: dict) -> list:
         + (f" The {latest_year} results for {_join_text([display_cause(c) if c.startswith('Alzheimer') else display_cause(c).lower() for c in sensitive])} depend on which baseline window "
            "is used (section 4)." if sensitive else ""), styles["Body"]
     ))
+    trend_note = trend_vs_reference_note(
+        data["national_series"], data["deviations"], {c: display_cause(c) for c in s["cause"]},
+    )
+    if trend_note:
+        story.append(Paragraph(trend_note, styles["Body"]))
     story.append(Paragraph(
         "\"Disrupted\" here means statistically distinguishable from a cause's normal year-to-year "
         "variation before 2020, not simply far from zero: the gap falls outside the range that variation "
@@ -596,6 +602,9 @@ def build(data: dict) -> list:
     story.append(Paragraph("Two results that went against the predictions", styles["H2"]))
     cancer = s[s["cause"] == "Malignant neoplasms"].iloc[0]
     alz = s[s["cause"] == "Alzheimer's disease"].iloc[0]
+    alz_dev = data["deviations"]
+    alz_dev = alz_dev[(alz_dev["cause"] == "Alzheimer's disease") & (alz_dev["year"] == 2020)].iloc[0]
+    alz_2020 = alz_dev["deviation"] / alz_dev["expected"] * 100
     story.append(Paragraph(
         f"<b>Cancer was expected to show nothing.</b> The prediction was a null result, since missed "
         f"screenings were thought to take longer than this data window to show up as deaths. Instead "
@@ -610,11 +619,12 @@ def build(data: dict) -> list:
     ))
     story.append(Paragraph(
         f"<b>Alzheimer's was expected to show a large effect.</b> The reasoning was that isolation and "
-        f"disruption in care facilities would show up clearly in dementia deaths. It didn't "
-        f"(p = {alz['p_value']:.2g} for 2020-21). That doesn't rule out an effect, only one visible in "
-        f"national death rates with this method. Pooling all five post-2020 years does find a later "
+        f"disruption in care facilities would show up clearly in dementia deaths. This project's "
+        f"annual test didn't find it (p = {alz['p_value']:.2g} for 2020-21). That doesn't rule out an "
+        f"effect: 2020 alone ran {alz_2020:+.0f}% above trend before 2021 fell below it, and studies that "
+        f"also count dementia as a contributing cause found large excess deaths in 2020. Pooling all five post-2020 years does find a later "
         f"decline (p = {alz['full_period_p_value']:.2g}, averaging {alz['full_period_pct_deviation']:+.1f}% "
-        f"vs. trend). One likely explanation is mortality displacement: people who would have died in "
+        f"vs. trend). One possible explanation is mortality displacement: people who would have died in "
         f"2023-2024 may have died earlier in the pandemic. The main classification still uses the "
         f"pre-registered 2020-21 window, so this is reported as an additional finding.",
         styles["Body"]

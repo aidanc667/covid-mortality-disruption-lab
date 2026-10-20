@@ -321,3 +321,13 @@ def test_causes_robustness_flag_names_the_check_each_cause_fails(cause, expected
     warnings = " ".join(w.value for w in at.warning)
     assert expected in warnings
     assert "single most uncertain" not in warnings
+
+
+def test_findings_explains_trend_is_not_the_2019_level():
+    # CDC rates: diabetes 21.6 (2019) vs 21.7 (2024); overdose 21.6 vs 23.1 (+7%);
+    # cancer 146.2 vs 139.4. Alzheimer's 2020 ran +4.2% above trend.
+    text = _page_text(_app_on("findings"))
+    assert "Diabetes's 2024 rate was back at its 2019 level (21.7 vs. 21.6)" in text
+    assert "Drug overdose is back within its normal range but still 7% above its 2019 rate." in text
+    assert "Cancer kept falling (146.2 in 2019, 139.4 in 2024)" in text
+    assert "in 2020 alone the rate ran +4% above trend" in text

@@ -23,13 +23,14 @@ from app.components.data_loading import (
     load_heterogeneity_summary,
     load_heterogeneity_summary_yearly,
     load_latest_year_window_check,
+    load_national_series,
     load_negative_control,
     load_sensitivity_check,
     scale_context_slope_for_display,
     sensitivity_check_available,
     synthetic_banner,
 )
-from app.components.findings_text import findings_takeaway
+from app.components.findings_text import findings_takeaway, trend_vs_reference_note
 from app.components.ui import takeaway_html
 from src.utils.config import OUTPUTS_REPORTS
 
@@ -106,6 +107,10 @@ with side_col:
             icon=":material/description:",
             width="stretch",
         )
+
+trend_note = trend_vs_reference_note(load_national_series(), deviations, CAUSE_LABELS)
+if trend_note:
+    st.caption(trend_note)
 
 results_tab, surprises_tab, robustness_tab, counties_tab, limits_tab = st.tabs(
     ["Results", "Surprises", "Robustness", "Counties", "Limits"]
@@ -210,6 +215,8 @@ with surprises_tab:
 
     cancer = summary[summary["cause"] == "Malignant neoplasms"].iloc[0]
     alz = summary[summary["cause"] == "Alzheimer's disease"].iloc[0]
+    alz_2020 = deviations[(deviations["cause"] == "Alzheimer's disease") & (deviations["year"] == 2020)].iloc[0]
+    alz_2020 = alz_2020["deviation"] / alz_2020["expected"] * 100
 
     with st.container(border=True):
         st.write("**Cancer was expected to show nothing, but it did.**")
@@ -226,14 +233,16 @@ with surprises_tab:
         )
 
     with st.container(border=True):
-        st.write("**Alzheimer's was expected to show a large effect, and it didn't.**")
+        st.write("**Alzheimer's was expected to show a large effect, and the annual test didn't find one.**")
         st.write(
             "The pre-registered prior was \"high confidence\" of a large effect, on the theory that "
             "pandemic-era isolation and care-facility disruption would show up clearly in dementia "
-            f"mortality. It didn't (p = {alz['p_value']:.2g}). That doesn't mean isolation had no "
-            "effect, only that it isn't visible in national mortality *rates* over this window using "
-            "this method. Pooling all five post-2020 years instead finds a real, later decline "
-            f"(p = {alz['full_period_p_value']:.2g}); see Causes of death for the numbers."
+            f"mortality. This project's annual test didn't find one (p = {alz['p_value']:.2g}). That "
+            f"isn't the same as no effect: in 2020 alone the rate ran {alz_2020:+.0f}% above trend, and "
+            "studies that also count dementia as a contributing cause found large excess deaths that "
+            "year. Averaged with a below-trend 2021, the 2020–21 gap isn't significant. Pooling all five "
+            f"post-2020 years finds a significant later decline (p = {alz['full_period_p_value']:.2g}); "
+            "see Causes of death for the numbers."
         )
 
 with robustness_tab:

@@ -80,3 +80,47 @@ def findings_takeaway(
         flag = (f" The {latest_year} results for {_join([_in_sentence(labels[c]) for c in flagged])} depend on "
                 "which baseline window is used (see Robustness).")
     return f"{first} {second}{third}{flag}"
+
+
+def trend_vs_reference_note(
+    series: pd.DataFrame, deviations: pd.DataFrame, labels: dict[str, str],
+    reference_year: int = 2019, same_level_pct: float = 3.0,
+) -> str:
+    """Explains that "off trend" compares against the projected pre-2020
+    trend, not the reference year's actual rate, for the causes where the two
+    readings differ. `series` needs cause, year and age_adjusted_rate;
+    `deviations` needs cause, year, deviation, expected and significant.
+
+    - Significantly above trend, latest rate within `same_level_pct` of the
+      reference year: back at its old level, reads high because the trend fell.
+    - Significantly above trend, latest rate further below the reference
+      year: kept falling, just more slowly than its trend.
+    - Within its normal range, latest rate more than `same_level_pct` above
+      the reference year: back in range but still above its old rate.
+    Returns "" when no cause needs explaining."""
+    latest_year = int(deviations["year"].max())
+    latest = deviations[deviations["year"] == latest_year].set_index("cause")
+    rates = series.pivot_table(index="cause", columns="year", values="age_adjusted_rate")
+    parts = []
+    for cause, name in labels.items():
+        then, now = rates.loc[cause, reference_year], rates.loc[cause, latest_year]
+        change = (now / then - 1) * 100
+        significant, above = bool(latest.loc[cause, "significant"]), latest.loc[cause, "deviation"] > 0
+        if significant and above and abs(change) <= same_level_pct:
+            parts.append(
+                f"{name}'s {latest_year} rate was back at its {reference_year} level ({now:.1f} vs. {then:.1f}); "
+                "it reads as above trend because its trend line was still falling."
+            )
+        elif significant and above and change < -same_level_pct:
+            parts.append(
+                f"{name} kept falling ({then:.1f} in {reference_year}, {now:.1f} in {latest_year}), just more "
+                "slowly than its trend."
+            )
+        elif not significant and change > same_level_pct:
+            parts.append(
+                f"{name} is back within its normal range but still {change:.0f}% above its {reference_year} rate."
+            )
+    if not parts:
+        return ""
+    return (f"\"Trend\" means where each cause's pre-2020 trend line pointed, not its {reference_year} level. "
+            + " ".join(parts))
