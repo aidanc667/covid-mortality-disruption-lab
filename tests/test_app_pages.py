@@ -52,7 +52,7 @@ def test_methods_tabs_hold_all_content_including_what_moved_off_home():
     for card in ("Real data", "Locked before looking", "Tested, not assumed", "Mapped and explained"):
         assert card in card_text
     assert len(overview.get("vega_lite_chart")) == 1  # the COVID-19 reference chart
-    assert [s.value for s in at.tabs[1].subheader] == ["Research question", "Pre-registered hypotheses"]
+    assert [s.value for s in at.tabs[1].subheader] == ["Original pre-registered question", "Pre-registered hypotheses"]
     assert [s.value for s in at.tabs[6].subheader] == ["Known limitations", "Ethics and project checks"]
     # Nothing left collapsed: every section is a tab now.
     assert _expander_labels(at) == []
@@ -128,8 +128,9 @@ def test_no_page_claims_effects_persisted_through_2024(page):
 
 def test_findings_overdose_dip_is_stated():
     text = _page_text(_app_on("findings"))
-    # The overdose dip below trend in 2024 is stated, not hidden behind "Persisted".
-    assert "Drug overdose -4.3%" in text
+    # The overdose dip in 2024 is stated, not hidden behind "Persisted", and not called significant
+    # (-4.3% is inside its prediction interval).
+    assert "drug overdose -4.3%, slightly below trend but not significant" in text
 
 
 def test_findings_keeps_every_caveat_section():
@@ -268,3 +269,33 @@ def test_overdose_caveat_does_not_call_2024_below_trend():
     # Primary 2024 overdose gap is -4.3%, within the prediction interval (not significant).
     from app.components.cause_explanations import CAUSE_EXPLANATIONS
     assert "below" not in CAUSE_EXPLANATIONS["Drug overdose"]["note"]
+
+
+def test_findings_cancer_surprise_heading_says_it_did_show_an_effect():
+    text = _page_text(_app_on("findings"))
+    assert "Cancer was expected to show nothing, but it did." in text
+
+
+@pytest.mark.parametrize("cause,holds", [("Diseases of heart", True), ("Diabetes mellitus", False)])
+def test_causes_robustness_caption_matches_each_causes_autocorrelation(cause, holds):
+    # Lag-1 autocorrelation from disruption_summary: heart 0.12 (assumption roughly holds),
+    # diabetes 0.82 (it doesn't).
+    at = _app_on("causes")
+    at.button_group[0].set_value(cause).run()
+    text = " ".join(c.value for c in at.main.caption)
+    assert ("That roughly holds for this cause" in text) is holds
+    assert ("That isn't true for this cause" in text) is (not holds)
+
+
+def test_alzheimers_text_points_to_tabs_that_exist():
+    at = _app_on("causes")
+    at.button_group[0].set_value("Alzheimer's disease").run()
+    text = " ".join(m.value for m in at.main.markdown)
+    assert "Deep dive tab" not in text
+    assert [t.label for t in at.tabs] == ["Trend", "Robustness", "Sources"]
+
+
+def test_data_quality_window_disagreement_is_labeled_as_the_negative_control():
+    # The only baseline-window disagreement is the negative control's rate-based row.
+    labels = _expander_labels(_app_on("data_quality"))
+    assert "1. Baseline window (1999–2019 vs. 2010–2019): 1 disagreement (negative control only)" in labels

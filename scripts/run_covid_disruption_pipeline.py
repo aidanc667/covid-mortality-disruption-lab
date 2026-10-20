@@ -271,7 +271,7 @@ def analyze_cause(
     # Autocorrelation-robust version of the same acute-window test
     # (research_protocol.md #12/2026-09-02 addendum): the classical
     # p_value above assumes independent year-to-year residuals, which
-    # measured autocorrelation (0.50-0.82 for half the test causes) shows
+    # measured autocorrelation (0.50-0.82 for four of the six test causes) shows
     # is false. hac_p_value re-derives the same test with a Newey-West
     # sandwich covariance for the fitted line's uncertainty and an exact
     # (for this project's 2-year acute window) autocovariance-based

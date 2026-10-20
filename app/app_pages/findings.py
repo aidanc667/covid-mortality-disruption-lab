@@ -43,6 +43,10 @@ def _names_with(items: list[str]) -> str:
     return " and ".join(items) if len(items) <= 2 else ", ".join(items[:-1]) + ", and " + items[-1]
 
 
+def _in_sentence(name: str) -> str:
+    return name if name.startswith("Alzheimer") else name[0].lower() + name[1:]
+
+
 def _names(causes) -> str:
     names = [display_cause(c) for c in causes]
     return " and ".join(names) if len(names) <= 2 else ", ".join(names[:-1]) + ", and " + names[-1]
@@ -152,16 +156,17 @@ with results_tab:
         "significantly off trend in the same direction as 2020–21. It does not mean every year did."
     )
     if faded:
+        lower = [_in_sentence(display_cause(c)) for c in faded]
         definition += (
-            f" By {latest_year}, {_names(faded)} {'was' if len(faded) == 1 else 'were'} no longer "
-            "significantly off trend"
+            f" By {latest_year}, {_names_with(lower)} {'was' if len(faded) == 1 else 'were'} back within "
+            f"{'its' if len(faded) == 1 else 'their'} normal range"
         )
         if below_now:
             gaps = ", ".join(
-                f"{display_cause(c)} {latest.loc[c, 'deviation'] / latest.loc[c, 'expected'] * 100:+.1f}%"
+                f"{_in_sentence(display_cause(c))} {latest.loc[c, 'deviation'] / latest.loc[c, 'expected'] * 100:+.1f}%"
                 for c in below_now
             )
-            definition += f", and {_names(below_now)} had dipped below it ({gaps}, not significant)"
+            definition += f" ({gaps}, slightly below trend but not significant)"
         definition += "."
     st.caption(definition)
     display = summary.sort_values("p_value").copy()
@@ -212,7 +217,7 @@ with surprises_tab:
     alz = summary[summary["cause"] == "Alzheimer's disease"].iloc[0]
 
     with st.container(border=True):
-        st.write("**Cancer was expected to show nothing, and it didn't.**")
+        st.write("**Cancer was expected to show nothing, but it did.**")
         st.write(
             "The pre-registered prior was an explicit null, \"low\" confidence by design: delayed "
             "cancer screening was expected to take years longer than this 2024 data window to show up "
@@ -346,8 +351,9 @@ with robustness_tab:
                 st.success(
                     "**Autocorrelation-robust standard errors (Newey-West/HAC):** all 5 significant "
                     "causes stay significant. The classical test assumes independent baseline years, "
-                    "which is measurably false for several causes; HAC correction raises those p-values "
-                    "1-2 orders of magnitude, but none cross back over 0.05.",
+                    "which is measurably false for several causes. The correction raises the p-values most "
+                    "for diabetes (about 80 times) and drug overdose (about 400 times), but none "
+                    "cross back over 0.05.",
                     icon=":material/check_circle:",
                 )
             else:

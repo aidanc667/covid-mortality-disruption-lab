@@ -19,7 +19,7 @@ AGE_ADJUSTED_EXPLAINER = (
 
 st.title("Methods")
 synthetic_banner()
-st.caption("Every statistical choice below is fixed in docs/research_protocol.md before results are inspected.")
+st.caption("The statistical plan below was written down in docs/research_protocol.md before results were inspected. Every later change, such as the heart disease and stroke baseline, is logged there as a dated addendum.")
 
 overview, hypotheses_tab, data_tab, stats_tab, counties_tab, language_tab, limits_tab = st.tabs(
     ["Overview", "Hypotheses", "Data", "Statistics", "Counties", "Language policy", "Limitations & ethics"]
@@ -98,7 +98,7 @@ with overview:
             )
 
 with hypotheses_tab:
-    st.subheader("Research question")
+    st.subheader("Original pre-registered question")
     st.write(
         "Which causes of death experienced the greatest and most statistically significant "
         "disruption during the COVID-19 pandemic (2020–2024), how persistent were those "
@@ -132,11 +132,11 @@ with data_tab:
         "for 4 of the 6 test causes. Heart disease and stroke use a shorter, "
         "corrected 2010–2019 baseline. See Known limitations for why."
     )
-    st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158). Confirmed live: no 2025 data exists yet.")
+    st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158).")
     st.write(
         "The two databases use different population-estimate methodologies. The pre-trend is "
-        "fit using 1999–2019 only; the entire 2020–2024 comparison uses D158 exclusively (one "
-        "consistent vintage). The 2018–2020 overlap years measure the size of the database "
+        "fit using pre-2020 years only; the entire 2020–2024 comparison uses D158 exclusively (one "
+        "consistent vintage). The 2018–2019 overlap years measure the size of the database "
         "jump itself, so it isn't mistaken for a COVID effect."
     )
 
@@ -197,7 +197,7 @@ with stats_tab:
         "(2020-2021) test, each cause also gets a p-value pooling all five post-2020 years, using "
         "the identical t-test just over a wider window. This isn't used to replace the acute test or "
         "gate classification: averaging more years can hide a real reversal (drug overdose spikes, "
-        "then declines below trend by 2024) as easily as it can reveal a delayed effect. It exists "
+        "then falls back to its trend by 2024) as easily as it can reveal a delayed effect. It exists "
         "to catch disruptions the acute window is too narrow to see, which is exactly what it finds "
         "for Alzheimer's disease (not significant at 2020-2021, but significant once 2022-2024 are "
         "included, see Causes of death)."
@@ -210,8 +210,8 @@ with stats_tab:
         "formula can't account for. This produces a second p-value for the identical window and "
         "trend line, replacing only the uncertainty calculation (a Newey-West sandwich covariance, "
         "derived from the baseline's own lag-0 and lag-1 autocovariances, not assumed independent). "
-        "On the real data this raises several causes' p-values by 1-2 orders of magnitude (e.g. "
-        "drug overdose: 5.98e-8 to 2.5e-5) without changing which causes clear significance; all 5 "
+        "On the real data this raises the p-values most for diabetes (about 80 times) and drug overdose (about 400 times, "
+        "from 6.0e-8 to 2.5e-5) without changing which causes clear significance; all 5 "
         "remain significant. See research_protocol.md's 2026-09-02 addendum for the full derivation."
     )
 
@@ -234,7 +234,7 @@ with counties_tab:
 
 with language_tab:
     st.write(
-        "No result uses \"cause,\" \"led to,\" or \"resulted in.\" Approved language: "
+        "No result claims the pandemic \"caused,\" \"led to,\" or \"resulted in\" a change. Approved language: "
         "associated with, temporally aligned with, consistent with, predictive of, correlated with."
     )
 
@@ -263,12 +263,12 @@ with limits_tab:
         "- Multiple testing across both the 6-cause family and the per-cause context-variable family\n"
         "- Counties are not geographically independent (spatial autocorrelation not yet modeled)\n"
         "- The primary p-value's prediction-interval math assumes independent baseline residuals, "
-        "which is measurably false for half the test causes (lag-1 autocorrelation 0.65–0.82 for "
+        "which is measurably false for four of the six test causes (lag-1 autocorrelation 0.65–0.82 for "
         "diabetes, overdose, and Alzheimer's; 0.50 for stroke; 0.12–0.19 for heart "
         "disease and cancer, where the assumption roughly holds). This was a disclosed-but-unmodeled "
         "gap; a Newey-West (HAC) autocorrelation-robust version of the test is now also reported "
         "(see the Statistics tab and Causes of death). It raises the classical p-value for "
-        "the high-autocorrelation causes by roughly 1-2 orders of magnitude, but all 5 causes "
+        "the high-autocorrelation causes by up to about 400 times, but all 5 causes "
         "previously found significant remain significant under it\n"
         "- **Heart disease and stroke use a corrected 2010–2019 baseline, not "
         "1999–2019 like the other four test causes**, after finding the longer window was already "
@@ -294,7 +294,7 @@ with limits_tab:
     # would be slow and fragile). Update by hand when tests/ changes;
     # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
     st.caption(
-        ":green-badge[215 automated tests] :blue-badge[Pre-registered protocol] "
+        ":green-badge[220 automated tests] :blue-badge[Pre-registered protocol] "
         ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
     )
 

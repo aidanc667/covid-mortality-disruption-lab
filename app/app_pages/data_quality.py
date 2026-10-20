@@ -199,9 +199,12 @@ with sensitivity_tab:
              "Does allowing the pre-pandemic trend to curve, instead of forcing a straight line, change the result?"),
         ]:
             check_rows = sens[sens["check"] == check_name]
-            n_disagree = int((~check_rows["agrees"]).sum())
+            disagree = check_rows.loc[~check_rows["agrees"], "cause"]
+            n_disagree = len(disagree)
             disagree_word = "disagreement" if n_disagree == 1 else "disagreements"
-            with st.expander(f"{check_label}: {n_disagree} {disagree_word}", expanded=(n_disagree > 0)):
+            only_control = n_disagree > 0 and disagree.str.startswith("Congenital").all()
+            label = f"{check_label}: {n_disagree} {disagree_word}" + (" (negative control only)" if only_control else "")
+            with st.expander(label, expanded=(n_disagree > 0)):
                 st.caption(description)
                 check_rows_display = check_rows.copy()
                 check_rows_display["cause"] = check_rows_display["cause"].map(display_cause)

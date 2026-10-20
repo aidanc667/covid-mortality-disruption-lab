@@ -709,8 +709,8 @@ def build(data: dict) -> list:
         "Heart disease and stroke had much higher values (0.92 and 0.93) on the old 1999-2019 "
         "baseline, which is another sign that a straight line was the wrong fit there. Because the "
         "standard test assumes no autocorrelation, the same test was rerun with Newey-West (HAC) "
-        "standard errors. That raises the p-values for diabetes, overdose, and stroke by one to two "
-        f"orders of magnitude, but all {n_disrupted} significant causes stay significant.",
+        "standard errors. That raises the p-values most for diabetes (about 80 times) and drug "
+        f"overdose (about 400 times), but all {n_disrupted} significant causes stay significant.",
         styles["Body"]
     ))
     hac_table_data = [["Cause", "Autocorrelation", "Classical p-value", "HAC p-value"]]

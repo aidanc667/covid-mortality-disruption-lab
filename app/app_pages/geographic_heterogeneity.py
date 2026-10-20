@@ -195,7 +195,7 @@ with predicts_tab:
 
         st.warning(
             f"**Read the rurality result with two caveats.** First, the {int(bias_row['n_excluded']):,} "
-            f"counties left out average **{bias_row['mean_excluded']*100:.0f}% rural**, vs. "
+            f"counties left out of the regression average **{bias_row['mean_excluded']*100:.0f}% rural**, vs. "
             f"**{bias_row['mean_included']*100:.0f}% rural** for the counties included, so the most rural "
             "places are under-represented. Second, these rates are crude, not age-adjusted, and rural "
             "counties tend to be older and aging faster, so part of any link between rurality and rising "

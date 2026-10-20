@@ -262,24 +262,23 @@ with trend_tab:
 
     chart = (band + gap_ribbon + observed_line + expected_line + sig_halo + sig_points + onset_rule).properties(height=320)
     baseline_start = int(fitted["year"].min()) if len(fitted) else 1999
-    total_years = 2024 - baseline_start + 1
     st.altair_chart(chart, width="stretch")
     st.caption(
-        f"Solid line: observed. Dashed gray line: the same trend fit across all {total_years} years, "
-        f"projected forward from {baseline_start}–2019 with a 95% prediction interval (shaded band, "
-        f"the only years actually tested). Outlined circles mark years that landed outside that "
-        f"interval; those circles, not the raw size of the gap, are the actual test. Independent "
-        f"cross-check (PELT, binary segmentation, segmented regression): "
-        f"{r['cross_check_methods_agreeing']} of 3 methods confirm a breakpoint near 2020."
+        f"Solid line: observed. Dashed gray line: the trend fit to {baseline_start}–2019, extended "
+        f"through 2024. Shaded band: its 95% prediction interval for 2020–2024, the years being tested. "
+        f"Ringed dots mark years outside that band; those dots, not the raw size of the gap, are the "
+        f"test. Independent cross-check (PELT, binary segmentation, segmented regression): "
+        f"{r['cross_check_methods_agreeing']} of 3 methods "
+        f"{'confirms' if r['cross_check_methods_agreeing'] == 1 else 'confirm'} a breakpoint near 2020."
     )
     with st.expander("How to read this chart"):
         st.caption(
             "The y-axis does not start at zero: a mortality rate never gets close to it, so zero "
             "isn't a meaningful reference point here (the meaningful reference is the shaded band). "
             "The filled gap is colored red where observed ran above trend and blue where it ran "
-            "below. A thin band can still be significant if this cause's own pre-pandemic noise was "
-            "small, and a thick band can still be non-significant if it wasn't, which is why the "
-            "circles matter more than the gap's raw size. Hover a point on the solid line for that "
+            "below. A small gap can still be significant if this cause's own pre-pandemic noise was "
+            "small, and a large gap can still be non-significant if it wasn't, which is why the "
+            "ringed dots matter more than the gap's raw size. Hover a point on the solid line for that "
             "year's status; the primary p-value pools 2020 and 2021 together, so a single "
             "unremarkable-looking year can still belong to a significant combined result."
         )
@@ -312,16 +311,20 @@ with trend_tab:
         )
 
 with robustness_tab:
+    autocorr = r["residual_autocorrelation"]
     st.caption(
-        "Same acute 2020–21 test, corrected for a real limitation: the primary p-value above assumes "
-        "each baseline year is independent noise, which measured autocorrelation shows isn't true for "
-        "this cause. Does the result survive an autocorrelation-robust standard error instead?"
+        "Same acute 2020–21 test with an autocorrelation-robust standard error. The primary p-value "
+        "assumes each baseline year's deviation from trend is independent noise. "
+        + (f"That isn't true for this cause (lag-1 autocorrelation {autocorr:.2f}), so this is the "
+           "more reliable p-value." if autocorr >= 0.5 else
+           f"That roughly holds for this cause (lag-1 autocorrelation {autocorr:.2f}), so the two "
+           "p-values should be close.")
     )
     st.metric(
         "HAC p-value", f"{r['hac_p_value']:.2g}",
         help="Newey-West (HAC) standard errors instead of the classical formula, which assumes "
-             "independent year-to-year residuals -- measured autocorrelation is 0.50-0.82 for half "
-             "the test causes, so that assumption is often false here. Keeps the same trend line and "
+             "independent year-to-year residuals -- measured autocorrelation is 0.50-0.82 for four "
+             "of the six test causes, so that assumption is often false here. Keeps the same trend line and "
              "acute 2020–21 window; only the uncertainty calculation changes. See Methods for why "
              "this matters and how it's computed.",
     )

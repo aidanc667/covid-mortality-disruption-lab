@@ -25,7 +25,7 @@ The expected direction and confidence for every cause were written down before I
 - A negative control: a cause with no direct link to COVID (birth defects) run through the same pipeline. It came back clean.
 - Sensitivity checks with a different baseline window, a stricter significance level, and a curved trend.
 - Correction for testing six causes at once, and an autocorrelation-robust version of the main test.
-- 215 automated tests.
+- 220 automated tests.
 
 ## Data
 
