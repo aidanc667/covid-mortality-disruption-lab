@@ -43,8 +43,7 @@ BASE_CSS = """<style>
   .cmd-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cmd-kpi-unit { display: block; margin: 4px 0 0; }
 }
-/* Home: a little room between the "Why this matters" paragraph and the button. */
-.st-key-home-cta { margin-top: 10px; }
+.cmd-why { font-size: 1rem; line-height: 1.6; color: var(--cmd-text); margin: 0 0 10px; }
 </style>"""
 
 
@@ -61,6 +60,11 @@ def hero_text_html(subtitle: str, question: str, question_label: str = "Research
         f'<p class="cmd-subtitle">{escape(subtitle)}</p>'
         f'<p class="cmd-question"><b>{escape(question_label)}</b> {escape(question)}</p>'
     )
+
+
+def why_html(text: str) -> str:
+    """Home's "Why this matters" paragraph, with a little room below it for the button."""
+    return f'<p class="cmd-why"><b>Why this matters.</b> {escape(text)}</p>'
 
 
 def takeaway_html(text: str) -> str:

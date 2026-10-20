@@ -20,6 +20,7 @@ from app.components.ui import (
     eyebrow_html,
     hero_text_html,
     metric_strip_html,
+    why_html,
 )
 
 TITLE = "COVID Mortality Disruption Lab"
@@ -94,18 +95,17 @@ st.html(metric_strip_html([
     ("Pre-registered", "", "Hypotheses locked before any 2020+ data"),
 ]))
 
-st.markdown(
-    "**Why this matters.** COVID-19 death counts miss part of the pandemic's toll. Delayed care, "
+st.html(why_html(
+    "COVID-19 death counts miss part of the pandemic's toll. Delayed care, "
     "interrupted addiction treatment, and isolation can also change how many people die of heart "
     "disease, diabetes, overdose, and other causes, and those deaths never show up as COVID deaths. "
     "Knowing which causes moved, whether they've recovered, and where the changes were largest helps "
     "show where follow-up care and public health attention are most needed."
-)
+))
 
-with st.container(key="home-cta"):
-    _, cta = st.columns([3, 1], vertical_alignment="center")
-    with cta:
-        if st.button("Read the findings", type="primary", icon=":material/arrow_forward:",
-                     icon_position="right", width="stretch"):
-            st.switch_page("app_pages/findings.py")
+_, cta = st.columns([3, 1], vertical_alignment="center")
+with cta:
+    if st.button("Read the findings", type="primary", icon=":material/arrow_forward:",
+                 icon_position="right", width="stretch"):
+        st.switch_page("app_pages/findings.py")
 st.divider()
