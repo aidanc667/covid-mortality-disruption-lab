@@ -1,11 +1,10 @@
 import pandas as pd
-import pytest
 
 from src.cleaning.geography import (
+    find_appearing_disappearing_counties,
+    find_duplicate_county_years,
     standardize_fips,
     validate_fips,
-    find_duplicate_county_years,
-    find_appearing_disappearing_counties,
 )
 
 

@@ -17,8 +17,8 @@ from __future__ import annotations
 import pandas as pd
 
 from src.utils.config import (
-    MIN_NONSUPPRESSED_YEARS,
     MIN_COUNTY_POPULATION,
+    MIN_NONSUPPRESSED_YEARS,
     PRIMARY_WINDOW,
 )
 

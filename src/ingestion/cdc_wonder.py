@@ -29,9 +29,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-import requests
 
-from src.utils.config import DATA_RAW, DIABETES_ICD10_CODES
+from src.utils.config import DATA_RAW
 
 CDC_WONDER_RAW_DIR = DATA_RAW / "cdc_wonder"
 

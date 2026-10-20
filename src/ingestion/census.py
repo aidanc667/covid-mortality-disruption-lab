@@ -16,7 +16,7 @@ import os
 import pandas as pd
 import requests
 
-from src.utils.caching import is_cached, load_meta, write_with_provenance
+from src.utils.caching import is_cached, write_with_provenance
 from src.utils.config import DATA_RAW
 
 CENSUS_RAW_DIR = DATA_RAW / "census"

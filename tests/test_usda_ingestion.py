@@ -1,10 +1,9 @@
 import io
 import zipfile
 
-import pandas as pd
 import pytest
 
-from src.ingestion.usda_food_atlas import load_atlas, VARIABLE_CODES
+from src.ingestion.usda_food_atlas import VARIABLE_CODES, load_atlas
 
 
 def _make_fixture_zip(rows: list[tuple]) -> bytes:

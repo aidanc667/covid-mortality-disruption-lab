@@ -18,17 +18,20 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from scripts.run_covid_disruption_pipeline import (
+    ACUTE_YEARS,
+    BASELINE_START_YEAR_OVERRIDES,
+    NEGATIVE_CONTROL,
+    TEST_CAUSES,
+    analyze_cause,
+    load_real_national_data,
+)
 from src.analysis.excess_mortality import (
-    benjamini_hochberg,
     compute_acute_pvalue,
     compute_deviations,
     fit_baseline_trend,
 )
 from src.utils.config import OUTPUTS_MODELS
-from scripts.run_covid_disruption_pipeline import (
-    ACUTE_YEARS, TEST_CAUSES, NEGATIVE_CONTROL, load_real_national_data, analyze_cause,
-    BASELINE_START_YEAR_OVERRIDES,
-)
 
 ALT_BASELINE_START_YEAR = 2010
 ALT_ALPHA = 0.01

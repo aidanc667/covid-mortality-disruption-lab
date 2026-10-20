@@ -4,7 +4,10 @@ import zipfile
 import pandas as pd
 import pytest
 
-from src.ingestion.hrsa import load_primary_care_physicians, AHRF_HP_MEMBER, VARIABLE_COLUMNS
+from src.ingestion.hrsa import (
+    AHRF_HP_MEMBER,
+    load_primary_care_physicians,
+)
 
 
 def _make_fixture_zip(columns: list[str], rows: list[list]) -> bytes:

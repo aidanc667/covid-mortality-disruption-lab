@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from scripts.run_covid_disruption_pipeline import analyze_cause, ACUTE_YEARS, FULL_PERIOD_YEARS
+from scripts.run_covid_disruption_pipeline import (
+    ACUTE_YEARS,
+    FULL_PERIOD_YEARS,
+    analyze_cause,
+)
 
 
 def _make_d76_d158(post_values, cause="Test cause"):

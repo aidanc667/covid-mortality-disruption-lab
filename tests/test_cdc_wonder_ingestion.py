@@ -192,9 +192,9 @@ def test_load_manual_export_state_level_detected(tmp_path):
 
 def test_load_manual_export_raises_on_mixed_geography_across_files(tmp_path):
     national = tmp_path / "national.txt"
-    national.write_text("\n".join([NATIONAL_HEADER, "1999\t100\t1000000\t1.0\t1.0", "---", '"Total"']))
+    national.write_text(f'{NATIONAL_HEADER}\n1999\t100\t1000000\t1.0\t1.0\n---\n"Total"')
     state = tmp_path / "state.txt"
-    state.write_text("\n".join([STATE_HEADER, "Alabama\t01\t1999\t10\t500000\t2.0\t2.0", "---", '"Total"']))
+    state.write_text(f'{STATE_HEADER}\nAlabama\t01\t1999\t10\t500000\t2.0\t2.0\n---\n"Total"')
 
     with pytest.raises(ValueError, match="Mixed geography"):
         load_manual_export(subdir_files=[national, state], cause_label="Diabetes mellitus")

@@ -119,7 +119,7 @@ def check_within_sample_robustness(
                 "slope": float("nan"), "p_value": float("nan"),
             })
             continue
-        slope, intercept, r, p, se = stats.linregress(subset[context_var], subset["disruption"])
+        slope, _intercept, _r, p, _se = stats.linregress(subset[context_var], subset["disruption"])
         rows.append({
             "half": label, "n": len(subset), "mean_context_var": float(subset[context_var].mean()),
             "slope": slope, "p_value": p,
@@ -167,7 +167,7 @@ def regress_disruption_on_context(
         if len(sub) < MIN_SAMPLE_SIZE:
             rows.append({"variable": var, "slope": np.nan, "p_value": np.nan, "n": len(sub)})
             continue
-        slope, intercept, r, p, se = stats.linregress(sub[var], sub["disruption"])
+        slope, _intercept, _r, p, _se = stats.linregress(sub[var], sub["disruption"])
         rows.append({"variable": var, "slope": slope, "p_value": p, "n": len(sub)})
 
     return pd.DataFrame(rows)

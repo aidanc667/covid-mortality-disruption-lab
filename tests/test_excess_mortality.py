@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from src.analysis.excess_mortality import fit_baseline_trend, compute_residual_autocorrelation
+from src.analysis.excess_mortality import (
+    compute_residual_autocorrelation,
+    fit_baseline_trend,
+)
 
 
 def test_fit_baseline_trend_recovers_known_linear_relationship():

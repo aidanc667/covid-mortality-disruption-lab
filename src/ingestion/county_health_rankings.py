@@ -70,7 +70,7 @@ REQUIRED_ATTRIBUTION = (
 )
 
 
-def download_year(year: int) -> "Path":  # noqa: F821 (Path imported lazily below)
+def download_year(year: int) -> Path:  # noqa: F821 (Path imported lazily below)
     from pathlib import Path
 
     if year not in YEAR_URLS:

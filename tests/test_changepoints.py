@@ -1,10 +1,9 @@
 import numpy as np
-import pytest
 
 from src.analysis.changepoints import (
-    fit_segmented_regression,
-    fit_pelt,
     fit_binseg,
+    fit_pelt,
+    fit_segmented_regression,
     summarize_method_agreement,
 )
 

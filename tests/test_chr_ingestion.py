@@ -4,13 +4,10 @@ project's build): two header rows, and national/state aggregate rows mixed
 in with real counties. These two quirks caused a real bug on first run
 against live data — these tests exist so it can't silently regress.
 """
-from unittest.mock import patch, MagicMock
 
-import pandas as pd
 import pytest
 
-from src.ingestion.county_health_rankings import load_year, download_year, YEAR_URLS
-
+from src.ingestion.county_health_rankings import YEAR_URLS, download_year, load_year
 
 FIXTURE_CSV = (
     "State FIPS Code,County FIPS Code,5-digit FIPS Code,State Abbreviation,Name,Release Year,Adult Smoking raw value,Adult Obesity raw value\n"

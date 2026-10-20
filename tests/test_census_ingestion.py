@@ -1,15 +1,13 @@
-import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
 
 from src.ingestion.census import (
+    EARLIEST_ACS5_END_YEAR,
+    CensusAPIKeyMissing,
+    _get_api_key,
     fetch_acs5_variables,
     fetch_pep_population,
-    _get_api_key,
-    CensusAPIKeyMissing,
-    EARLIEST_ACS5_END_YEAR,
 )
 
 

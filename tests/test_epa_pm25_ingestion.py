@@ -4,8 +4,7 @@ import zipfile
 import pandas as pd
 import pytest
 
-from src.ingestion.epa_pm25 import load_county_pm25, PM25_PARAMETER_CODE
-
+from src.ingestion.epa_pm25 import PM25_PARAMETER_CODE, load_county_pm25
 
 COLUMNS = [
     "State Code", "County Code", "Site Num", "Parameter Code", "POC",

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.cleaning.mortality import compute_county_eligibility, build_county_series
+from src.cleaning.mortality import build_county_series, compute_county_eligibility
 from src.utils.config import PRIMARY_WINDOW
 
 

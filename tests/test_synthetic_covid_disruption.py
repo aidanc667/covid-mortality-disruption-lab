@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from src.analysis.heterogeneity import compute_county_disruption, regress_disruption_on_context
+from src.analysis.heterogeneity import (
+    compute_county_disruption,
+    regress_disruption_on_context,
+)
 from src.utils.synthetic_covid_disruption import generate_county_heterogeneity_data
 
 

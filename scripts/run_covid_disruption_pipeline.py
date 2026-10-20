@@ -9,26 +9,37 @@ system (src/utils/synthetic_mortality.py) is kept only so the app can
 detect and warn if someone re-runs an older synthetic-only script against
 these outputs.
 """
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from src.analysis.excess_mortality import (
-    fit_baseline_trend, compute_deviations, classify_persistence,
-    compute_acute_pvalue, compute_hac_pvalue, benjamini_hochberg, compute_residual_autocorrelation,
-)
-from src.analysis.changepoints import fit_pelt, fit_binseg, fit_segmented_regression
-from src.analysis.heterogeneity import (
-    compute_county_disruption, compute_pooled_county_disruption, regress_disruption_on_context,
-    compute_selection_bias, check_within_sample_robustness,
-)
 from src.analysis.baseline_sensitivity import latest_year_window_check
+from src.analysis.changepoints import fit_binseg, fit_pelt, fit_segmented_regression
+from src.analysis.excess_mortality import (
+    benjamini_hochberg,
+    classify_persistence,
+    compute_acute_pvalue,
+    compute_deviations,
+    compute_hac_pvalue,
+    compute_residual_autocorrelation,
+    fit_baseline_trend,
+)
+from src.analysis.heterogeneity import (
+    check_within_sample_robustness,
+    compute_county_disruption,
+    compute_pooled_county_disruption,
+    compute_selection_bias,
+    regress_disruption_on_context,
+)
 from src.cleaning.bridging import estimate_vintage_offset, is_bridging_reliable
 from src.ingestion.cdc_wonder import load_manual_export
 from src.ingestion.county_health_rankings import load_year as load_chr_year
-from src.utils.config import OUTPUTS_MODELS, DATA_RAW
-from src.utils.synthetic_mortality import clear_synthetic_marker, SYNTHETIC_MARKER, SYNTHETIC_HETEROGENEITY_MARKER
+from src.utils.config import DATA_RAW, OUTPUTS_MODELS
+from src.utils.synthetic_mortality import (
+    SYNTHETIC_HETEROGENEITY_MARKER,
+    SYNTHETIC_MARKER,
+    clear_synthetic_marker,
+)
 
 # The original year-by-year county method was run on these two causes only;
 # its results are kept as a comparison for the pooled method.
@@ -427,7 +438,7 @@ def main():
 
     deviations_rows = []
     for cause in TEST_CAUSES + [NEGATIVE_CONTROL]:
-        r = results[cause] if cause in results else negative_control_result
+        r = results.get(cause, negative_control_result)
         for d in r["deviations"]:
             deviations_rows.append({
                 "cause": cause, "year": d.year, "observed": d.observed, "expected": d.expected,
@@ -450,7 +461,7 @@ def main():
     # line itself.
     baseline_fitted_rows = []
     for cause in TEST_CAUSES + [NEGATIVE_CONTROL]:
-        r = results[cause] if cause in results else negative_control_result
+        r = results.get(cause, negative_control_result)
         trend = r["trend"]
         start_year = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
         for year in range(start_year, 2020):
