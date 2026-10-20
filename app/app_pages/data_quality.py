@@ -179,12 +179,15 @@ with sensitivity_tab:
         }
         shape_rows = test_cause_checks[test_cause_checks["check"].isin(shape_checks) & ~test_cause_checks["agrees"]]
         if len(shape_rows):
-            parts = [f"{display_cause(r['cause']).lower()} when the pre-pandemic trend is {shape_checks[r['check']]}"
+            parts = [f"{display_cause(r['cause']).lower()}'s 2020–21 result "
+                     + (f"loses significance (p = {r['alt_p_value']:.2g})" if r["alt_p_value"] >= 0.05
+                        else "changes classification")
+                     + f" when the pre-pandemic trend is {shape_checks[r['check']]}"
                      for _, r in shape_rows.iterrows()]
             n = shape_rows["cause"].nunique()
             st.error(
                 f"**{n} of 6 test causes {'is' if n == 1 else 'are'} not robust to the trend's shape.** "
-                f"The 2020–21 result loses significance for {'; and for '.join(parts)}. Part of what the "
+                f"{'; '.join(parts).capitalize()}. Part of what the "
                 "straight-line method reads as a 2020 disruption could instead come from the shape of the "
                 "pre-existing trend.",
                 icon=":material/warning:",

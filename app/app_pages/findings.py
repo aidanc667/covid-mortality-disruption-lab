@@ -193,7 +193,7 @@ with results_tab:
             "latest_pct_deviation": st.column_config.NumberColumn("2024 deviation", format="%+.1f%%"),
             "agrees": st.column_config.CheckboxColumn(
                 "Robust to trend shape",
-                help="Unchecked means this result loses significance if the pre-pandemic trend is fit "
+                help="Unchecked means this cause's result changes (currently: loses significance) if the pre-pandemic trend is fit "
                      "as a curve or as a steady percentage change instead of a straight line. See Data quality.",
             ),
         },
