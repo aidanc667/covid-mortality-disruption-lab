@@ -43,6 +43,8 @@ BASE_CSS = """<style>
   .cmd-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cmd-kpi-unit { display: block; margin: 4px 0 0; }
 }
+/* Home: a little room between the "Why this matters" paragraph and the button. */
+.st-key-home-cta { margin-top: 10px; }
 </style>"""
 
 
