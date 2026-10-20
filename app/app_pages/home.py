@@ -102,9 +102,10 @@ st.markdown(
     "show where follow-up care and public health attention are most needed."
 )
 
-st.divider()
+st.space("small")
 _, cta = st.columns([3, 1], vertical_alignment="center")
 with cta:
     if st.button("Read the findings", type="primary", icon=":material/arrow_forward:",
                  icon_position="right", width="stretch"):
         st.switch_page("app_pages/findings.py")
+st.divider()
