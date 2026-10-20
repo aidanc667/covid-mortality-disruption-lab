@@ -167,11 +167,12 @@ with stats_tab:
          "(autocorrelation 0.50–0.82), so a Newey-West (HAC) version is also reported. It raises "
          "diabetes's p-value about 25 times and drug overdose's about 120 times, and every significant "
          "cause stays significant (research_protocol.md, 2026-09-02 addendum).")),
-        ("Sensitivity checks", ("The 2020–21 test is rerun four ways, changing one choice at a time: the "
-         "other baseline window, a stricter significance level (α = 0.01), a curved trend, and a trend "
-         "that changes by a steady percentage each year (a straight line in log rate). Stroke fails the "
-         "stricter level and the curved trend; cancer fails the steady-percentage trend. Everything else "
-         "holds (Data quality → Sensitivity).")),
+        ("Sensitivity checks", ("Each cause's classification is recomputed four ways, changing one choice at "
+         "a time: the other baseline window, a stricter significance level (α = 0.01), a curved trend, and a "
+         "trend that changes by a steady percentage each year (a straight line in log rate). Stroke's 2020–21 "
+         "result loses significance with a curved trend and cancer's with a steady-percentage trend. At "
+         "α = 0.01 stroke's 2020–21 result stays significant, but its later years don't, so it would be "
+         "classed Resolved instead of Persisted. Everything else holds (Data quality → Sensitivity).")),
     ]:
         st.markdown(f"**{title}.** {body}")
 

@@ -142,8 +142,10 @@ def test_findings_keeps_every_caveat_section():
     assert "The rurality result: caveats" in labels
     text = _page_text(at)
     assert "accidental drowning, was dropped" in text
-    assert "**Curved instead of straight trend:** Stroke changes; the rest hold." in text
-    assert "**Stricter significance level (α = 0.01):** Stroke changes; the rest hold." in text
+    assert "**Curved instead of straight trend:** Stroke's 2020–21 result is no longer significant (p = 0.18). The rest hold." in text
+    # alpha = 0.01 compares classifications: stroke's 2020-21 p (0.004) still clears 0.01; its later years don't.
+    assert ("**Stricter significance level (α = 0.01):** Stroke's 2020–21 result stays significant (p = 0.004), but "
+            "its later years no longer clear the bar, so it is classed Resolved rather than Persisted. The rest hold.") in text
     assert "**Autocorrelation-robust p-values:** all five significant causes stay significant." in text
     assert "Single counties are noisy" in text
 
@@ -308,7 +310,7 @@ def test_findings_reports_the_steady_percentage_trend_check():
     # sensitivity_check: cancer's 2020-21 result is not significant under a log-linear
     # trend (p=0.43); every other test cause agrees.
     text = _page_text(_app_on("findings"))
-    assert "**Steady-percentage instead of straight trend:** Cancer changes; the rest hold." in text
+    assert "**Steady-percentage instead of straight trend:** Cancer's 2020–21 result is no longer significant (p = 0.43). The rest hold." in text
 
 
 @pytest.mark.parametrize("cause,expected", [

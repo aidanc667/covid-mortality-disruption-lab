@@ -267,7 +267,7 @@ with robustness_tab:
         "accelerating pre-2020 rates more closely. Primary results stay on the pre-registered windows "
         "(research_protocol.md, 2026-10-19 reversal addendum)."
     )
-    st.markdown("**Other checks on the 2020–21 result**")
+    st.markdown("**Other checks**")
     lines = [(
         f"**Negative control:** {'passed' if neg_control['passed'] else 'FAILED'}. Congenital malformations, "
         f"a cause with no direct COVID link, shows no disruption (p = {neg_control['p_value_counts']:.2f} on "
@@ -284,9 +284,21 @@ with robustness_tab:
             ("trend_scale (linear vs log-linear)", "Steady-percentage instead of straight trend"),
         ]:
             rows = test_sens[test_sens["check"] == check_name]
-            off = rows.loc[~rows["agrees"], "cause"].map(display_cause).tolist()
-            lines.append(f"**{label}:** " + ("all six causes give the same result." if not off
-                         else f"{_names_with(off)} {'changes' if len(off) == 1 else 'change'}; the rest hold."))
+            off_rows = rows[~rows["agrees"]]
+            if off_rows.empty:
+                lines.append(f"**{label}:** all six causes give the same result.")
+                continue
+            parts = []
+            for _, r in off_rows.iterrows():
+                name = display_cause(r["cause"])
+                if r["alt_p_value"] >= (0.01 if check_name.startswith("significance") else 0.05):
+                    parts.append(f"{name}'s 2020–21 result is no longer significant (p = {r['alt_p_value']:.2g})")
+                else:
+                    # Still significant in 2020-21: only the later years' classification changed.
+                    parts.append(f"{name}'s 2020–21 result stays significant (p = {r['primary_p_value']:.2g}), but "
+                                 f"its later years no longer clear the bar, so it is classed "
+                                 f"{r['alt_classification']} rather than {r['primary_classification']}")
+            lines.append(f"**{label}:** " + "; ".join(parts) + ". The rest hold.")
         hac_disagree = summary[(summary["p_value"] < 0.05) != (summary["hac_p_value"] < 0.05)]["cause"].map(display_cause).tolist()
         lines.append(
             "**Autocorrelation-robust p-values:** "

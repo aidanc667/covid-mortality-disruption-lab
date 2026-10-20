@@ -527,6 +527,32 @@ def _p_cell(v: float):
     return _para(f"{mantissa}\u00d710<super>{int(exponent)}</super>".replace("-", "\u2212"), styles["Cell"])
 
 
+def _sens_row(cause: str, check: str, sens: pd.DataFrame) -> pd.Series:
+    return sens[(sens["cause"] == cause) & (sens["check"] == check)].iloc[0]
+
+
+def _shape_failure(cause: str, check: str, sens: pd.DataFrame, first: bool) -> str:
+    """How a cause fails a trend-shape check: losing 2020-21 significance, or
+    (if it stays significant) only a change in classification."""
+    row = _sens_row(cause, check, sens)
+    name = display_cause(cause) if first else _lower(cause)
+    shape = "a curved trend" if check.startswith("baseline_trend_shape") else "a steady-percentage trend"
+    if row["alt_p_value"] >= 0.05:
+        return f"{name} loses significance with {shape} (p {_p(row['alt_p_value'])})"
+    return f"{name} changes classification with {shape}"
+
+
+def _alpha_change(cause: str, sens: pd.DataFrame) -> str:
+    """The alpha = 0.01 check compares classifications, which depend on 2022-24
+    as well as 2020-21, so say which part changed."""
+    row = _sens_row(cause, "significance_threshold (0.05 vs 0.01)", sens)
+    if row["primary_p_value"] < 0.01:
+        return (f"At \u03b1 = 0.01, {_lower(cause)}'s 2020-21 result stays significant (p {_p(row['primary_p_value'])}), "
+                f"but its later years no longer clear the stricter bar, so it is classed "
+                f"{row['alt_classification']} rather than {row['primary_classification']}")
+    return f"At \u03b1 = 0.01, {_lower(cause)}'s 2020-21 result is no longer significant"
+
+
 def _county_summary(het: pd.DataFrame) -> str:
     """One sentence naming, for each county measure, how many of the five
     causes it was significantly associated with and in which direction."""
@@ -704,7 +730,7 @@ def build(data: dict) -> list:
         "across the five county measures within each cause [7]."),
         ("<b>Autocorrelation.</b> The primary test assumes independent baseline years; a Newey-West version "
         "allows for correlation between neighboring years [8, 9]."),
-        ("<b>Sensitivity analyses.</b> The 2020-21 test was rerun with the other baseline window, a stricter "
+        ("<b>Sensitivity analyses.</b> Each cause's classification was recomputed with the other baseline window, a stricter "
         "significance level (α = 0.01), a curved (quadratic) trend, and a trend that changes by a steady "
         "percentage each year (linear in log rate)."),
         ("<b>Cross-check and full-period test.</b> Three change-point methods search each series for a break "
@@ -805,14 +831,11 @@ def build(data: dict) -> list:
     story.append(_para(
         "<b>Sensitivity analyses.</b> Table 3 shows each check. "
         + f"{_join_text([display_cause(fully_robust[0])] + [_lower(c) for c in fully_robust[1:]])} hold under all of them. "
-        + "; ".join(f"{display_cause(c) if k == 0 else _lower(c)} {'loses significance with a curved trend' if r == 'baseline_trend_shape (linear vs quadratic)' else 'loses significance with a steady-percentage trend'} "
-                    f"(p {_p(float(sens[(sens['cause'] == c) & (sens['check'] == r)]['alt_p_value'].iloc[0]))})"
+        + "; ".join(_shape_failure(c, r, sens, first=(k == 0))
                     for k, (c, r) in enumerate(zip(shape_fail["cause"], shape_fail["check"])))
-        + (f". {_join_text([display_cause(alpha_fail[0])] + [_lower(c) for c in alpha_fail[1:]])} also "
-           f"{'changes' if len(alpha_fail) == 1 else 'change'} classification at the stricter significance level"
-           if alpha_fail else "")
-        + f", making {_join_text([_lower(c) for c in least_certain])} the "
-        f"{_number_word(len(least_certain))} least certain results. "
+        + "".join(f". {_alpha_change(c, sens)}" for c in alpha_fail)
+        + f". {_join_text([display_cause(least_certain[0])] + [_lower(c) for c in least_certain[1:]])} are "
+        f"therefore the {_number_word(len(least_certain))} least certain results. "
         + ("Every significant cause stays significant with autocorrelation-robust standard errors. "
            if not hac_flip else "")
         + f"The negative control shows no disruption (p {_p(nc['p_value_counts'])} on death counts).",
@@ -835,10 +858,11 @@ def build(data: dict) -> list:
         row.append(_p_cell(r["hac_p_value"]))
         t3.append(row)
     story.append(_table(
-        "Table 3. Does the 2020-21 result hold under each alternative?", t3,
+        "Table 3. Does each cause's classification hold under each alternative?", t3,
         [1.25 * inch, 1.05 * inch, 0.75 * inch, 0.7 * inch, 0.7 * inch, 0.75 * inch, 0.85 * inch], style3,
-        note="Holds: same classification as the primary analysis. Robust p-value: Newey-West "
-             "(autocorrelation-robust) version of the 2020-21 test."))
+        note="Holds: same classification (Persisted, Resolved, or no disruption) as the primary analysis. "
+             + "".join(f"{_alpha_change(c, sens)}. " for c in alpha_fail)
+             + "Robust p-value: Newey-West (autocorrelation-robust) version of the 2020-21 test."))
 
     story.append(_para(
         f"<b>{latest_year} status and the baseline window.</b> The 2020-21 result holds under either baseline "
@@ -915,7 +939,7 @@ def build(data: dict) -> list:
         "The national pattern agrees with published figures. Overdose deaths rose sharply in 2020-21 and fell "
         "by about a quarter from 2023 to 2024 [2]; by 2024 the heart disease death rate was below its 2019 level and "
         "stroke was within 5% of it [1]; and excess deaths among people with dementia were concentrated in the first "
-        "pandemic year [4]. The rates used here match CDC's published 2022-2024 figures exactly [1, 3].",
+        "pandemic year [4]. The rates used here match CDC's published 2022-2024 figures exactly [1-3].",
         styles["Body"]))
     story.append(_para(
         "Two results need careful reading. The first is what \"above trend\" means: diabetes in 2024 was back at "
