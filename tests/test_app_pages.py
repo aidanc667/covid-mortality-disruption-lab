@@ -338,3 +338,9 @@ def test_home_says_why_this_matters_without_adding_a_section():
     text = " ".join(m.value for m in at.markdown)
     assert "**Why this matters.** COVID-19 death counts miss part of the pandemic's toll." in text
     assert [s.value for s in at.subheader] == []  # still one short screen, no section headings
+
+
+def test_home_has_no_page_links_only_the_findings_button():
+    at = _app_on("home")
+    assert len(at.get("page_link")) == 0
+    assert [b.label for b in at.button] == ["Read the findings"]

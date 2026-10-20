@@ -103,12 +103,7 @@ st.markdown(
 )
 
 st.divider()
-path, cta = st.columns([3, 1], vertical_alignment="center")
-with path, st.container(horizontal=True):
-    st.page_link("app_pages/findings.py", label="Findings", icon=":material/insights:")
-    st.page_link("app_pages/causes.py", label="Causes of death", icon=":material/monitor_heart:")
-    st.page_link("app_pages/geographic_heterogeneity.py", label="Geographic patterns", icon=":material/map:")
-    st.page_link("app_pages/methods.py", label="Methods", icon=":material/school:")
+_, cta = st.columns([3, 1], vertical_alignment="center")
 with cta:
     if st.button("Read the findings", type="primary", icon=":material/arrow_forward:",
                  icon_position="right", width="stretch"):
