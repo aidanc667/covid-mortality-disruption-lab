@@ -49,7 +49,7 @@ def test_methods_tabs_hold_all_content_including_what_moved_off_home():
     overview = at.tabs[0]
     assert [s.value for s in overview.subheader] == ["Why this matters", "What we did", "The breaking point"]
     card_text = " ".join(m.value for m in overview.markdown)
-    for card in ("Real data", "Locked before looking", "Tested, not assumed", "Mapped and explained"):
+    for card in ("Data", "Predictions first", "Checks", "By cause and county"):
         assert card in card_text
     assert len(overview.get("vega_lite_chart")) == 1  # the COVID-19 reference chart
     assert [s.value for s in at.tabs[1].subheader] == ["Original pre-registered question", "Pre-registered hypotheses"]

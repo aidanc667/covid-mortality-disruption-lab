@@ -114,10 +114,9 @@ with bridging_tab:
     n_unreliable = int((~bridging["reliable"]).sum())
     if n_unreliable == 0:
         st.success(
-            "All causes' 2018–2019 overlap between the D76 (1999–2020) and D158 (2018–2024) "
-            "database vintages is within the 10% reliability threshold (research_protocol.md §9). "
-            "In fact the median relative offset is 0% for every cause, since the two overlap years "
-            "matched exactly on every metric (deaths, population, crude rate, age-adjusted rate).",
+            "In 2018–2019, the years both CDC databases cover (D76, 1999–2020, and D158, 2018–2024), "
+            "every cause matched exactly on deaths, population, crude rate and age-adjusted rate, well "
+            "within the 10% reliability threshold (research_protocol.md §9).",
             icon=":material/check_circle:",
         )
     else:

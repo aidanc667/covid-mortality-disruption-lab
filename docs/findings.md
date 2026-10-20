@@ -1,89 +1,56 @@
 # Findings
 
-**COVID Mortality Disruption Lab**: real CDC WONDER data, 1999-2024. Full methodology and pre-registered hypotheses: [`research_protocol.md`](research_protocol.md). This document summarizes what the completed analysis found; it does not repeat the methodology, only interprets the results.
+CDC WONDER age-adjusted death rates, 1999–2024. The method and the predictions made beforehand are in [research_protocol.md](research_protocol.md); the full write-up is the [PDF report](../outputs/reports/covid_mortality_disruption_report.pdf).
 
-## The headline
+## Summary
 
-Of the 6 major causes of death tested, **5 departed significantly from their pre-pandemic trend in 2020-21, and each stayed significantly off trend in the same direction for at least one later year.** By 2024 three causes were significantly off trend: diabetes (+15.0%) and cancer (+4.6%) above it, and Alzheimer's disease (-19.1%) below it. Heart disease, stroke, and drug overdose were back inside their expected range, with drug overdose slightly below it (-4.3%, not significant).
+Five of the six causes rose significantly above their pre-pandemic trend in 2020–21, and all five survive correction for testing six causes at once. By 2024, diabetes (+15.0%) and cancer (+4.6%) were still above trend and Alzheimer's disease (−19.1%) had fallen below it. Heart disease, stroke and drug overdose were back within their normal ranges.
 
-"Trend" here means where each cause's pre-2020 trend line pointed, not its 2019 level, and the two readings differ. Diabetes's 2024 rate (21.7) was back at its 2019 level (21.6); it reads +15% above trend because its 1999-2019 trend line was still falling. Cancer kept falling (146.2 in 2019 to 139.4 in 2024), just more slowly than its trend. Drug overdose (23.1) and stroke (38.6) are back within their normal ranges but still about 7% and 4% above their 2019 rates. These 2019 and 2024 rates match CDC's published figures (NCHS Data Briefs 521, 548, and 549). Alzheimer's is the one cause with no significant 2020-21 disruption; its decline only became significant in 2023-2024.
+| Cause | Classification | 2020–21 gap | p-value | 2024 gap |
+|---|---|---|---|---|
+| Drug overdose | Persisted | +40.9% | 2.1 × 10⁻⁷ | −4.3% |
+| Diabetes | Persisted | +26.9% | 2.5 × 10⁻⁶ | +15.0% |
+| Heart disease | Persisted | +7.8% | 1.1 × 10⁻⁴ | +3.0% |
+| Cancer | Persisted | +1.7% | 4.5 × 10⁻⁴ | +4.6% |
+| Stroke | Persisted | +8.8% | 0.004 | +6.1% |
+| Alzheimer's disease | No significant disruption | +1.0% | 0.82 | −19.1% |
 
-The 2024 statuses depend more on the baseline window than the 2020-21 results do. Recomputing each cause's 2024 status under the other window: diabetes would be within its range (+0.2%) against a 2010-2019 trend; drug overdose would be significantly below trend (-18.0%); and heart disease and stroke, whose primary is 2010-2019, would read as above trend against the 1999-2019 line already shown to misfit them. Cancer (+4.6% vs. +5.4%) and Alzheimer's (-19.1% vs. -23.9%) hold under either window. The 2020-21 results hold for every cause. Primary results stay on the pre-registered windows; see `research_protocol.md`'s 2026-10-19 reversal addendum.
+A gap counts as significant when it falls outside the range the cause's own pre-2020 variation would explain. That range is about ±1% for cancer in 2024 but about ±13% for drug overdose, so cancer's +4.6% is significant and overdose's −4.3% is not. "Persisted" means at least one year from 2022 to 2024 stayed significantly off trend in the same direction as 2020–21; it does not require 2024 itself to be off trend.
 
-"Disrupted" and "significant" mean statistically distinguishable from a cause's normal pre-2020 year-to-year variation, not simply far from zero. That normal range is about ±1% for cancer but about ±13% for drug overdose, which is why cancer's +4.6% counts and drug overdose's -4.3% doesn't. Being within the normal range doesn't mean no effect, only that the gap can't be told apart from ordinary year-to-year swings.
+## Trend is not the same as 2019
 
-| Cause | Result | p-value | Survives FDR | 2020-21 deviation | 2024 deviation |
-|---|---|---|---|---|---|
-| Drug overdose | Persisted | 2.07 × 10⁻⁷ | Yes | +40.9% | -4.3% |
-| Diabetes | Persisted | 2.51 × 10⁻⁶ | Yes | +26.9% | +15.0% |
-| Heart disease | Persisted | 1.12 × 10⁻⁴ | Yes | +7.8% | +3.0% |
-| Cancer | Persisted | 4.46 × 10⁻⁴ | Yes | +1.7% | +4.6% |
-| Stroke | Persisted | 4.03 × 10⁻³ | Yes | +8.8% | +6.1% |
-| Alzheimer's disease | No significant disruption | 0.822 | No | +1.0% | -19.1% |
+The gaps compare each year with where the pre-2020 trend pointed, not with 2019. In 2024, diabetes was back at its 2019 rate (21.7 vs. 21.6) and reads +15% only because its trend line was still falling. Cancer kept falling (146.2 to 139.4), just more slowly than its trend. Drug overdose (23.1) and stroke (38.6) are back within their normal ranges but still about 7% and 4% above their 2019 rates. These rates match CDC's published figures (NCHS Data Briefs 521, 548 and 549).
 
-p-values were corrected on 2026-10-19: the original formula understated the standard error of the 2020-21 average, making the five disrupted causes' p-values roughly 2-4 times too small. No classification changed (`research_protocol.md`, p-value correction addendum).
+## Two results that went against the predictions
 
-"Deviation" is the effect size: how far the observed rate is from the expected pre-pandemic trend, as a percent. This matters because significance and magnitude are different claims: diabetes and drug overdose show the largest disruptions (15-41%), while cancer, heart disease, and stroke are FDR-significant but modest by comparison (2-9%). Heart disease and stroke's deviations dropped substantially once their baseline was corrected (see the robustness section below and `research_protocol.md`'s 2026-09-01 baseline-correction addendum). And the picture keeps shifting through 2024: drug overdose has fallen back to about its expected trend (-4.3%, within its normal range, consistent with the documented 2023-2024 decline in overdose deaths), while heart disease and stroke have both drifted slightly *toward* their expected trend by 2024, not away from it (a reversal of what an earlier, uncorrected baseline for these two causes had shown).
+**Cancer.** No disruption was expected this soon. Cancer instead rose 1.7% above trend in 2020–21 (p < 0.001) and was 4.6% above it in 2024. The result is fragile: with a trend that falls by a steady percentage each year, the 2020–21 gap is not significant (p = 0.43). Outside evidence is mixed. Modeling of England's actual 2020–22 deaths found breast and lung cancer deaths close to their pre-pandemic trends, while a review of earlier studies links each four-week delay in starting treatment with higher mortality.
 
-"Persisted" means the cause's death rate moved significantly outside its expected pre-pandemic trend in 2020-21, and the 2022-2024 years that were still significantly off trend leaned the same direction. It does not require 2024 itself to be off trend: drug overdose, heart disease, and stroke are classified Persisted but were back inside their expected range by 2024.
+**Alzheimer's disease.** A large increase was expected. The 2020–21 test found none (p = 0.82): 2020 ran 4.2% above trend, but 2021 fell below it. This project counts Alzheimer's only as the underlying cause of death, and when a person with dementia died of COVID-19, COVID-19 was usually recorded as the underlying cause. Studies that also count dementia as a contributing cause found about 94,700 excess deaths in the first pandemic year (Chen et al., JAMA Neurology 2023). Pooling all five post-2020 years does find a significant later decline (p = 0.016), consistent with mortality displacement, though these data cannot confirm that.
 
-## The two results that weren't supposed to happen this way
+## Robustness
 
-The project pre-registered a confidence level for each cause *before* looking at any 2020-2024 data (`research_protocol.md` §3). Two results contradict those stated priors, and that's exactly what makes them worth highlighting rather than downplaying: a result that confirms what you expected is much easier to have gotten by accident than one that surprises you.
+- **Negative control.** Congenital malformations, which have no direct link to COVID-19, show no disruption (p = 0.71 on death counts). The first choice, accidental drowning, was dropped because pandemic pool and beach closures did change drowning deaths.
+- **Baseline correction.** Using only pre-2020 data, a straight line over 1999–2019 already sat 17.7 and 5.8 points below the actual 2019 rates for heart disease and stroke, which fell steeply and then leveled off. Both now use a 2010–2019 baseline; both stay significant, with 2020–21 gaps of 8–9% rather than 26–37%.
+- **Sensitivity analyses.** Each cause's classification was recomputed with the other baseline window, a stricter significance level (α = 0.01), a curved trend and a steady-percentage trend. Drug overdose, diabetes and heart disease hold under all four. Stroke loses significance with a curved trend (p = 0.18), and at α = 0.01 its 2020–21 result stays significant (p = 0.004) but its later years do not, so it would be classed Resolved. Cancer loses significance with a steady-percentage trend. Stroke and cancer are the two least certain results.
+- **Autocorrelation.** Four causes have correlated baseline years. A Newey-West version of the 2020–21 test raises the p-values most for diabetes (about 25 times) and drug overdose (about 120 times); all five significant causes stay significant.
+- **Baseline window in 2024.** The 2020–21 results hold under either window, but the 2024 status of four causes does not. Against a 2010–2019 trend, diabetes would be within its normal range (+0.2%) and drug overdose significantly below trend (−18.0%). For heart disease and stroke, the other window is the 1999–2019 line already shown to misfit them.
+- **p-value correction.** On 2026-10-19 the 2020–21 p-values were corrected; the original formula made them roughly 2–4 times too small. No classification changed.
 
-**Cancer was expected to show nothing, but it did.** The pre-registered prior for cancer was explicitly a null result, with "low" confidence by design: the reasoning was that delayed cancer screening and treatment during the pandemic would take years longer than the 2024 data window to show up as excess mortality. Instead, cancer shows a significant, FDR-surviving disruption that has persisted through 2024. It is also the most model-dependent result: with a trend that falls by a steady percentage each year instead of a straight line, the 2020-21 gap is no longer significant (p = 0.43), though cancer is still above trend in 2024 under that model too. Worth being upfront about: the wider literature on this specific question is unsettled in a way that cuts against a simple "screening delays are killing more cancer patients" story. Early 2020 models projected large future increases, but more recent modeling using England's actual 2020-22 deaths found breast and lung cancer deaths close to their pre-pandemic trends, far below the early projections. This project's own small, persisting, model-dependent effect should be read against that uncertainty, not as confirmation of the largest early projections.
+## Counties
 
-**Alzheimer's was expected to show a large effect, and the annual test didn't find one.** The pre-registered prior was "high confidence" of a large disruption, on the theory that pandemic-era isolation and care-facility disruption would show up clearly in dementia mortality. This project's annual test didn't find one: p = 0.82. In 2020 alone the rate ran 4% above trend, but 2021 fell below it, and the two-year average isn't significant. Studies that also count dementia as a contributing cause (e.g. Chen et al., JAMA Neurology 2023) did find large excess deaths in 2020. This doesn't mean isolation had no effect on people with Alzheimer's; it means that effect, if real, isn't visible in national mortality *rates* over this window using this method. A secondary check does turn up something real: pooling all five post-2020 years instead of just the acute window finds a significant later decline (p = 0.016, averaging -8.7% vs. trend), possibly reflecting mortality displacement: patients who would otherwise have died in 2023-2024 may already have died earlier in the pandemic. This is an additional finding, not a reason to revise the headline result above, which stays scoped to the pre-registered acute window (see `research_protocol.md`'s 2026-09-02 addendum).
+Each county's change in crude death rate from 2015–19 to 2020–24 was regressed separately on five County Health Rankings measures, with correction for multiple tests within each cause. Counties are included when CDC reports a reliable rate in both periods: 3,066 for heart disease, 3,062 for cancer, 2,651 for stroke, 2,342 for diabetes and 1,564 for drug overdose.
 
-## The negative control (validating the method itself)
+- Higher smoking and uninsured rates went with larger increases for all five causes.
+- Higher household income went with smaller increases for four causes (not stroke).
+- Higher obesity went with larger increases for heart disease, diabetes and drug overdose.
+- Rurality was mixed: larger increases for heart disease, drug overdose and cancer, smaller for stroke, and no link for diabetes.
 
-Before trusting any of the above, the pipeline runs the identical method on a cause with no *direct* COVID mechanism: congenital malformations and chromosomal abnormalities, concentrated in infancy and driven by prenatal/genetic factors. It passed: no significant disruption (p = 0.71 on the gating metric, raw death counts). This doesn't prove every positive result above is real, but a failure here would have been strong evidence the method was just detecting noise or a database artifact, and it didn't fail.
+An earlier method kept only 926 counties for diabetes and 641 for drug overdose, mostly larger and less rural ones, and pointed to smaller increases in rural counties. With five-year totals that pattern disappears for diabetes and reverses for overdose. Counties still left out are mostly rural (83–94% rural against 45–63% for included counties), and county rates are not age-adjusted, so a rural association can partly reflect older populations. Alzheimer's disease, run the same way as an exploratory comparison across 2,426 counties, showed no significant association with any measure.
 
-Two methodological notes worth being upfront about. First: this wasn't the first choice. Accidental drowning was the original negative control, and it failed: it showed a real, statistically robust increase in deaths starting in 2020, confirmed on raw counts (not a rounding artifact). That's consistent with published CDC reporting on pandemic-era increases in drowning deaths (pool/beach closures, lifeguard shortages, more unsupervised time in home pools). Drowning was swapped out for congenital malformations because it was never actually COVID-independent, not because the method failed. Second: "no plausible mechanism at all" would overstate even the replacement control: prenatal and obstetric care (routine visits, anomaly screenings) was also disrupted during the pandemic, a real if smaller and more indirect pathway than the ones behind the 6 test causes. It's meaningfully more insulated than any of them, not hermetically sealed from the pandemic. Full account: `research_protocol.md`'s 2026-09-01 addenda.
+## What the data cannot show
 
-## Robustness check: does this depend on modeling choices?
+Mortality data cannot separate direct infection, delayed or interrupted care, strained hospitals and economic or isolation stress, since all of them change death rates the same way. Every result here is an association between rates and time, or between county averages, not a causal claim.
 
-**A baseline correction, found through this exact process.** Heart disease and stroke originally used the same 1999-2019 baseline window as the other four causes, and under that window the quadratic sensitivity check below found their significance didn't hold up. Investigating why (§12 of `research_protocol.md`, 2026-09-01 addendum) found the straight-line baseline was measurably misdescribing both causes' actual pre-pandemic trajectory: both declined steeply through the 2000s, then flattened out, and a single straight line across the full period sits well below the real, flattened values by 2019 (17.7 points off for heart disease, 5.8 off for stroke, found using only 1999-2019 data, with no reference to what happened after 2020). A curved baseline fits this history far better, but was rejected as the fix: extrapolated forward it predicts *rising* rates through 2024 for both causes, the well-documented failure mode of polynomial extrapolation. A shorter, more recent linear window (2010-2019) does not have that problem, matches the flattened recent trend, and is now this project's baseline for these two causes only; the other four causes are unaffected and still use 1999-2019. This does not make either result disappear: both remain significant, heart disease more so than before, but their reported deviation drops from an overstated 26-37% to a defensible 8-9%.
+## Data
 
-With that correction in place, four sensitivity checks re-fit the primary method one modeling choice at a time (`scripts/run_sensitivity_check.py`, shown on the app's Data Quality page):
-
-1. **Baseline window**: all 6 test causes keep their classification under the other window (for heart disease and stroke the alternate is the original 1999-2019 window).
-2. **Significance threshold** (α=0.05 vs. α=0.01): stroke changes. At the stricter level its individual 2022-2024 years no longer clear a 99% interval, so its classification becomes "Resolved", even though its 2020-21 p-value (0.004) still clears 0.01.
-3. **Curved (quadratic) trend**, on each cause's own baseline window: stroke loses significance (p = 0.18). Heart disease stays significant (p = 0.007).
-4. **Steady-percentage (log-linear) trend**, added 2026-10-19: cancer loses significance (p = 0.43). Its 2020-21 gap is small enough (+1.7%) that it depends on whether the pre-2020 decline is modeled as a steady amount or a steady percentage per year.
-
-Net effect: diabetes, drug overdose, and heart disease pass every check. Stroke is the least certain "Persisted" result, and cancer's 2020-21 disruption is model-dependent. Both are reported as such.
-
-Also worth stating plainly, since it doesn't show up in a p-value: measured lag-1 autocorrelation of each cause's own pre-pandemic residuals is large for most causes (heart disease and stroke's dropped sharply after the baseline correction, from 0.92/0.93 to 0.12/0.50, since the shorter window's residuals are far less serially smooth than the full 21-year decline). The primary method's prediction-interval math assumes independent year-to-year residuals, which the remaining causes' baselines don't fully satisfy, meaning the classical p-values in the table above are more confident than a model that accounted for this would produce. This was a disclosed-but-unmodeled gap until a Newey-West (HAC) autocorrelation-robust version of the same test was added (`research_protocol.md`'s 2026-09-02 addendum): it raises the p-value most for diabetes (about 25 times) and drug overdose (about 120 times), but **all 5 causes previously found significant remain significant under it**, a real correction, not a footnote to bury, and a reassuring rather than damaging one.
-
-## Which counties were hit hardest
-
-All five causes with a 2020-21 disruption have county-level data: each county's pooled 2015-2019 crude death rate compared with its pooled 2020-2024 rate, regressed against five County Health Rankings measures, with FDR correction within each cause. Counties are included when CDC reports a reliable rate in both periods (about 20+ deaths over five years): 3,066 for heart disease, 3,062 for cancer, 2,651 for stroke, 2,342 for diabetes, and 1,564 for drug overdose, out of about 3,140.
-
-- **Higher smoking and uninsured rates go with larger disruption** for all five causes.
-- **Higher household income goes with smaller disruption** for heart disease, diabetes, drug overdose, and cancer (not significant for stroke).
-- **Higher obesity rates go with larger disruption** for heart disease, diabetes, and drug overdose (not significant for stroke or cancer).
-- **Rurality is mixed.** More rural counties saw larger disruption for heart disease, drug overdose, and cancer, smaller for stroke, and no significant difference for diabetes.
-
-**The rurality result changed.** An earlier version required a reliable rate in at least two individual years of each period, which kept only 926 counties for diabetes and 641 for drug overdose, mostly larger and less rural ones (excluded counties averaged 74-78% rural vs. 24-32% included). It found that more rural counties saw *smaller* disruption, significantly for diabetes and just short of significance for overdose. With pooled five-year rates, which keep most rural counties, that pattern disappears for diabetes and reverses for overdose. It was largely a product of which counties were left out. Both versions are shown side by side on the app's Geographic patterns page, and the switch is logged in `research_protocol.md` (2026-10-19 addendum).
-
-**Exploratory: Alzheimer's disease.** It had no significant 2020-21 disruption, so it isn't part of the county analysis, but it was run the same way for comparison (2,426 counties). None of the five county measures survives FDR correction, and the median county's rate barely changed (-0.1 per 100,000). Its national decline came in 2023-2024, so a 2020-2024 average is a blunt measure of it.
-
-Two caveats still apply. Counties left out are still mostly rural (83-94% vs. 45-63% included), though far fewer are left out. And county rates are crude, not age-adjusted, because CDC WONDER doesn't offer age adjustment at county level for its 2018-2024 database; rural counties tend to be older and aging faster, so part of any rural difference could be population aging rather than the pandemic.
-
-These are associations, not causal claims: the analysis can't separate worse direct pandemic impact, worse deferred care, pre-existing vulnerability, or some combination. See `research_protocol.md`'s limitations (§12) for the full list.
-
-## What this data cannot tell you
-
-The project's causal-language policy (`research_protocol.md` §11) exists because mortality data alone cannot separate several very different mechanisms that would all produce the same statistical signature:
-
-- Direct viral harm (someone died with or of COVID, miscoded to another cause)
-- Deferred or interrupted medical care (missed a diagnosis, skipped a treatment, couldn't get a prescription refilled)
-- Healthcare-system strain (hospitals overwhelmed, ambulances delayed)
-- Economic and isolation stress (job loss, disrupted income, social isolation)
-
-A "Persisted" classification for heart disease could be any of these, in any combination, and the mortality data can't distinguish them. That's why every result here is described as "associated with" or "consistent with," never "caused by."
-
-## Data provenance
-
-All national-level results use 15 real CDC WONDER exports (7 from the 1999-2019 database, 8 from the 2018-2024 database). County-level results use 10 pooled CDC WONDER exports (five causes, 2015-2019 and 2020-2024), 2 for the exploratory Alzheimer's county run, plus 4 year-by-year exports kept for the diabetes and overdose comparison and 2 heart disease 2018-2019 exports used to check that the two databases match county by county (they do, exactly). Nothing in this project is synthetic anymore. Full acquisition steps and provenance: `manual_data_acquisition.md`.
+All results use real CDC WONDER exports: 15 national files and 18 county files. Download steps are in [manual_data_acquisition.md](manual_data_acquisition.md).

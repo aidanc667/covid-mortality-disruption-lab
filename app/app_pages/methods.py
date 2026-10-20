@@ -48,14 +48,14 @@ with overview:
     st.subheader("What we did")
     with st.container(horizontal=True):
         for icon, title, body in [
-            (":material/database:", "Real data",
-             "33 CDC WONDER mortality exports (15 national, 18 county), plus real County Health Rankings socioeconomic data."),
-            (":material/edit_note:", "Locked before looking",
+            (":material/database:", "Data",
+             "33 CDC WONDER mortality exports (15 national, 18 county) and County Health Rankings county measures."),
+            (":material/edit_note:", "Predictions first",
              "Hypotheses and confidence levels for each cause were written down before any 2020–2024 data was analyzed."),
-            (":material/verified:", "Tested, not assumed",
+            (":material/verified:", "Checks",
              "A negative control, four sensitivity checks, and a correction for testing six causes at once."),
-            (":material/travel_explore:", "Mapped and explained",
-             "Results broken down by cause and by county, with research-grounded reasoning for what could explain each one."),
+            (":material/travel_explore:", "By cause and county",
+             "Results for each cause and county, with published research on what could explain each one."),
         ]:
             with st.container(border=True, width="stretch"):
                 st.markdown(f"{icon} **{title}**")
