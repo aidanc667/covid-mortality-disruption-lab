@@ -59,17 +59,19 @@ CAUSE_EXPLANATIONS = {
     },
     "Diabetes mellitus": {
         "summary": (
-            "U.S. diabetes-related mortality rose more than 30% in the first two years of the "
-            "pandemic, with roughly two-thirds of that excess attributed directly to COVID-19 "
-            "infection itself and the rest to disrupted routine care."
+            "Deaths with diabetes listed anywhere on the death certificate rose more than 30% in "
+            "2020 and 2021. About two-thirds of that excess also involved COVID-19; the authors "
+            "suggest the rest may reflect indirect effects such as disrupted care. This project counts "
+            "diabetes only as the underlying cause, so many of those COVID-involved deaths aren't in "
+            "its data."
         ),
         "mechanisms": [
-            ("Direct effect of COVID-19 infection", "SARS-CoV-2 infection can worsen glycemic control and was the single largest contributor to excess diabetes-related mortality in published national estimates, accounting for roughly two-thirds of the excess."),
+            ("Direct effect of COVID-19 infection", "SARS-CoV-2 infection can worsen blood sugar control, and COVID-19 was involved in about two-thirds of excess diabetes-related deaths in national estimates, though many of those deaths list COVID-19, not diabetes, as the underlying cause."),
             ("Interrupted routine care", "Stay-at-home orders and clinic disruptions reduced outpatient visits and lab monitoring (like A1C testing), delaying detection of worsening blood sugar control."),
             ("Fear of infection at healthcare facilities", "Many people with diabetes delayed seeking care specifically because they were afraid of contracting COVID-19 in a hospital or clinic, leading to missed diagnoses and delayed treatment of complications."),
             ("Disrupted medication and supply access", "Insulin and other medication access, along with routine complication screening (eyes, kidneys, feet), was harder to maintain during periods of restricted in-person care."),
         ],
-        "note": "Caution: part of this rise may reflect how deaths were coded, since pandemic guidance let COVID-19 be recorded as the underlying cause without lab confirmation. Excess deaths still appear in studies designed to account for this, but the exact size is uncertain.",
+        "note": "Caution: early in the pandemic, when testing was scarce, some people with diabetes who died of undiagnosed COVID-19 may have been recorded with diabetes as the underlying cause, so part of this rise may be miscoded COVID-19 deaths. How large that share is remains uncertain.",
         "sources": [
             {
                 "citation": "Lv F, Gao X, Huang AH, et al. Excess diabetes mellitus-related deaths during the COVID-19 pandemic in the United States. eClinicalMedicine. 2022;54:101671. doi:10.1016/j.eclinm.2022.101671",
@@ -146,11 +148,15 @@ CAUSE_EXPLANATIONS = {
         ),
         "mechanisms": [
             ("Postponed screening", "Screening for colorectal, breast, prostate, cervical, and other cancers was widely postponed as hospitals redirected capacity to COVID-19 care, with studies reporting 30-60% declines in screening rates."),
-            ("Later-stage diagnosis", "Delays in cancer diagnosis were significantly associated with more advanced disease stage at detection. One study found mortality risk increased measurably with just a four-week diagnostic delay."),
-            ("Delayed or modified treatment", "Chemotherapy, surgery, and other time-sensitive treatments were postponed or altered for many patients during periods of hospital capacity strain."),
+            ("Later-stage diagnosis", "Delays in cancer diagnosis were associated with more advanced disease at detection."),
+            ("Delayed or modified treatment", "Chemotherapy, surgery, and other time-sensitive treatments were postponed or altered for many patients during periods of hospital capacity strain. A review of pre-pandemic studies found that each four-week delay in starting treatment was linked to higher mortality, about 6–8% higher for surgery."),
         ],
         "note": "Caution: early 2020 models projected large increases from delayed screening, but later modeling with England's actual 2020–22 deaths found breast and lung cancer deaths close to their pre-pandemic trends. How large any screening-delay effect is remains unsettled.",
         "sources": [
+            {
+                "citation": "Hanna TP, et al. Mortality due to cancer treatment delay: systematic review and meta-analysis. BMJ. 2020;371:m4087. doi:10.1136/bmj.m4087",
+                "url": "https://www.bmj.com/content/371/bmj.m4087",
+            },
             {
                 "citation": "Maringe C, Spicer J, Morris M, Purushotham A, Nolte E, Sullivan R, Rachet B, Aggarwal A. The impact of the COVID-19 pandemic on cancer deaths due to delays in diagnosis in England, UK: a national, population-based, modelling study. Lancet Oncol. 2020;21(8):1023-1034. doi:10.1016/S1470-2045(20)30388-0",
                 "url": "https://www.thelancet.com/journals/lanonc/article/PIIS1470-2045(20)30388-0/fulltext",

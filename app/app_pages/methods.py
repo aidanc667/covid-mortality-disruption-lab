@@ -130,7 +130,7 @@ with data_tab:
     )
     st.write("Post-shock: 2020–2024, CDC WONDER \"Underlying Cause of Death, 2018-2024, Single Race\" (database D158).")
     st.write(
-        "The two databases use different population-estimate methodologies. The pre-trend is "
+        "The two databases use different race categories (bridged vs. single race). The pre-trend is "
         "fit using pre-2020 years only; the entire 2020–2024 comparison uses D158 exclusively (one "
         "consistent vintage). The 2018–2019 overlap years measure the size of the database "
         "jump itself, so it isn't mistaken for a COVID effect."
