@@ -94,6 +94,14 @@ st.html(metric_strip_html([
     ("Pre-registered", "", "Hypotheses locked before any 2020+ data"),
 ]))
 
+st.markdown(
+    "**Why this matters.** COVID-19 death counts miss part of the pandemic's toll. Delayed care, "
+    "interrupted addiction treatment, and isolation can also change how many people die of heart "
+    "disease, diabetes, overdose, and other causes, and those deaths never show up as COVID deaths. "
+    "Knowing which causes moved, whether they've recovered, and where the changes were largest helps "
+    "show where follow-up care and public health attention are most needed."
+)
+
 st.divider()
 path, cta = st.columns([3, 1], vertical_alignment="center")
 with path, st.container(horizontal=True):

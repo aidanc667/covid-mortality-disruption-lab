@@ -25,7 +25,7 @@ The expected direction and confidence for every cause were written down before I
 - A negative control: a cause with no direct link to COVID (birth defects) run through the same pipeline. It came back clean.
 - Sensitivity checks with a different baseline window, a stricter significance level, a curved trend, and a trend that falls by a steady percentage each year. Stroke and cancer are the two results that don't pass every one.
 - Correction for testing six causes at once, and an autocorrelation-robust version of the main test.
-- 231 automated tests.
+- 232 automated tests.
 
 ## Data
 

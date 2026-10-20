@@ -331,3 +331,10 @@ def test_findings_explains_trend_is_not_the_2019_level():
     assert "Drug overdose is back within its normal range but still 7% above its 2019 rate." in text
     assert "Cancer kept falling (146.2 in 2019, 139.4 in 2024)" in text
     assert "in 2020 alone the rate ran +4% above trend" in text
+
+
+def test_home_says_why_this_matters_without_adding_a_section():
+    at = _app_on("home")
+    text = " ".join(m.value for m in at.markdown)
+    assert "**Why this matters.** COVID-19 death counts miss part of the pandemic's toll." in text
+    assert [s.value for s in at.subheader] == []  # still one short screen, no section headings
