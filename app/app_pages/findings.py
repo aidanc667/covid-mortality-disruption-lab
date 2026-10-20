@@ -169,7 +169,9 @@ with results_tab:
     display = summary.sort_values("p_value").copy()
     if sensitivity_check_available():
         trend_shape = load_sensitivity_check()
-        trend_shape = trend_shape[trend_shape["check"] == "baseline_trend_shape (linear vs quadratic)"][["cause", "agrees"]]
+        trend_shape = trend_shape[trend_shape["check"].isin([
+            "baseline_trend_shape (linear vs quadratic)", "trend_scale (linear vs log-linear)",
+        ])].groupby("cause", as_index=False)["agrees"].all()
         display = display.merge(trend_shape, on="cause", how="left")
         display["agrees"] = display["agrees"].fillna(True)
     else:
@@ -186,8 +188,8 @@ with results_tab:
             "latest_pct_deviation": st.column_config.NumberColumn("2024 deviation", format="%+.1f%%"),
             "agrees": st.column_config.CheckboxColumn(
                 "Robust to trend shape",
-                help="False means this result loses significance if the pre-pandemic baseline is fit "
-                     "as a curve instead of a straight line. See Causes of death or Data Quality.",
+                help="Unchecked means this result loses significance if the pre-pandemic trend is fit "
+                     "as a curve or as a steady percentage change instead of a straight line. See Data quality.",
             ),
         },
         hide_index=True,
@@ -196,7 +198,8 @@ with results_tab:
     st.caption(
         "\"Deviation\" is the effect size, as a percent of the expected rate. Significant and large are "
         "different things: cancer is significant at under 2%. \"Robust to trend shape\" is unchecked for "
-        "stroke only, whose result weakens if the pre-pandemic trend is fit as a curve."
+        "stroke (not significant with a curved trend) and cancer (not significant with a steady-percentage "
+        "trend)."
     )
 
 with surprises_tab:
@@ -213,12 +216,13 @@ with surprises_tab:
         st.write(
             "The pre-registered prior was an explicit null, \"low\" confidence by design: delayed "
             "cancer screening was expected to take years longer than this 2024 data window to show up "
-            f"as excess mortality. Instead, cancer shows a real, FDR-significant "
+            f"as excess mortality. Instead, cancer shows an FDR-significant "
             f"**{cancer['persistence_class'].lower()}** disruption (p = {cancer['p_value']:.3g}), modest "
             f"in size ({cancer['acute_pct_deviation']:+.1f}% in 2020–21, "
             f"{cancer['latest_pct_deviation']:+.1f}% by 2024) next to the larger disruptions below. "
-            "Either the deferred-care effect moved faster than expected, or something else is "
-            "contributing; this analysis can't tell which, but the result itself is real."
+            "The result is fragile, though: with a trend that falls by a steady percentage each "
+            "year instead of a straight line, the 2020–21 gap is no longer significant, though cancer "
+            "is still above trend in 2024 either way."
         )
 
     with st.container(border=True):
@@ -268,6 +272,7 @@ with robustness_tab:
             ("baseline_window (1999 vs 2010)", "Other baseline window"),
             ("significance_threshold (0.05 vs 0.01)", "Stricter significance level (α = 0.01)"),
             ("baseline_trend_shape (linear vs quadratic)", "Curved instead of straight trend"),
+            ("trend_scale (linear vs log-linear)", "Steady-percentage instead of straight trend"),
         ]:
             rows = test_sens[test_sens["check"] == check_name]
             off = rows.loc[~rows["agrees"], "cause"].map(display_cause).tolist()

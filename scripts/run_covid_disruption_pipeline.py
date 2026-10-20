@@ -56,8 +56,8 @@ POST_ACUTE_YEARS = (2022, 2024)
 # acute-only (2020-2021) p-value undercounts disruption that keeps evolving
 # after the acute window, since COVID's effects on other causes plausibly
 # don't stop after two years. Pooling all of 2020-2024 does surface a real
-# case the acute-only test misses (Alzheimer's disease: p=0.81 acute-only vs
-# p=0.0019 full-period, driven by a decline that only became individually
+# case the acute-only test misses (Alzheimer's disease: p=0.82 acute-only vs
+# p=0.016 full-period, driven by a decline that only became individually
 # significant in 2023-2024) -- but it is NOT used to replace ACUTE_YEARS as
 # the classification gate or the FDR family, because averaging 5 years can
 # just as easily hide a real reversal (drug overdose spikes +40.9% acutely
@@ -385,7 +385,7 @@ def main():
     # and WONDER only reports it to 1 decimal, which makes the OLS baseline
     # fit artificially tight and the gate oversensitive to rounding noise
     # (confirmed on the discarded drowning control, and again here: rate-based
-    # p=0.013/"Persisted" vs. counts-based p=0.68/"No significant disruption" --
+    # p=0.020/"Persisted" vs. counts-based p=0.71/"No significant disruption" --
     # see research_protocol.md's 2026-09-01 addendum). The 6 test causes don't
     # have this problem (all >20/100k), so only the negative control's gate
     # decision uses raw counts; its charted series still uses rate for visual

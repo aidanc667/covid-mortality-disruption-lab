@@ -53,7 +53,7 @@ with overview:
             (":material/edit_note:", "Locked before looking",
              "Hypotheses and confidence levels for each cause were written down before any 2020–2024 data was analyzed."),
             (":material/verified:", "Tested, not assumed",
-             "A negative control, 3 independent sensitivity checks, and FDR correction: a passing grade wasn't assumed."),
+             "A negative control, 4 independent sensitivity checks, and FDR correction: a passing grade wasn't assumed."),
             (":material/travel_explore:", "Mapped and explained",
              "Results broken down by cause and by county, with research-grounded reasoning for what could explain each one."),
         ]:
@@ -144,7 +144,9 @@ with stats_tab:
         ("Excess-mortality test", ("Fit a straight-line trend to the pre-pandemic years (1999–2019, or "
          "2010–2019 for heart disease and stroke), project it forward with a 95% prediction interval, "
          "and flag a year as disrupted when the actual rate falls outside it. The breakpoint is fixed at "
-         "2020, not searched for. The primary test pools 2020 and 2021.")),
+         "2020, not searched for. The primary test averages the 2020 and 2021 gaps and compares that "
+         "average against its exact standard error, which counts the trend line's own uncertainty once "
+         "(shared by both years) and the year-to-year noise averaged over two years.")),
         ("Persistence", ("For causes disrupted in 2020–21: *Persisted* if any 2022–2024 year is still "
          "significantly off trend in the same direction, *Reversed* if the opposite direction, and "
          "*Resolved* if none are. Persisted doesn't require 2024 itself to be off trend.")),
@@ -163,8 +165,13 @@ with stats_tab:
         ("Autocorrelation-robust p-value", ("The main test assumes each pre-pandemic year's gap from "
          "trend is independent. That's false for diabetes, drug overdose, Alzheimer's, and stroke "
          "(autocorrelation 0.50–0.82), so a Newey-West (HAC) version is also reported. It raises "
-         "diabetes's p-value about 80 times and drug overdose's about 400 times, and every significant "
+         "diabetes's p-value about 25 times and drug overdose's about 120 times, and every significant "
          "cause stays significant (research_protocol.md, 2026-09-02 addendum).")),
+        ("Sensitivity checks", ("The 2020–21 test is rerun four ways, changing one choice at a time: the "
+         "other baseline window, a stricter significance level (α = 0.01), a curved trend, and a trend "
+         "that changes by a steady percentage each year (a straight line in log rate). Stroke fails the "
+         "stricter level and the curved trend; cancer fails the steady-percentage trend. Everything else "
+         "holds (Data quality → Sensitivity).")),
     ]:
         st.markdown(f"**{title}.** {body}")
 
@@ -208,8 +215,9 @@ with limits_tab:
         "either COVID-19 or another cause.\n"
         "- **Two different CDC databases** cover the years before and after 2018. They match exactly in "
         "the overlap years (Data quality → Vintage bridging).\n"
-        "- **Stroke is the least certain result.** Its baseline was corrected to 2010–2019, and its "
-        "significance doesn't fully survive a curved-trend check (p = 0.096).\n"
+        "- **Stroke and cancer are the least certain results.** Stroke's baseline was corrected to "
+        "2010–2019, and its 2020–21 result doesn't survive a curved trend (p = 0.18). Cancer's small "
+        "2020–21 gap isn't significant with a steady-percentage trend (p = 0.43).\n"
         "- **Some 2024 results depend on the baseline window** (Findings → Robustness)."
     )
 
@@ -222,8 +230,8 @@ with limits_tab:
     # would be slow and fragile). Update by hand when tests/ changes;
     # verify with `.venv/bin/python -m pytest --collect-only -q | tail -1`.
     st.caption(
-        ":green-badge[220 automated tests] :blue-badge[Pre-registered protocol] "
-        ":violet-badge[Real CDC WONDER data] :orange-badge[3-axis sensitivity analysis]"
+        ":green-badge[228 automated tests] :blue-badge[Pre-registered protocol] "
+        ":violet-badge[Real CDC WONDER data] :orange-badge[4-axis sensitivity analysis]"
     )
 
 st.caption("See docs/research_protocol.md and docs/superpowers/specs/2026-08-31-covid-mortality-disruption-design.md for full detail.")

@@ -297,3 +297,43 @@ def test_compute_hac_pvalue_less_confident_than_classical_for_smooth_autocorrela
     p_classical = compute_acute_pvalue(trend, deviations, acute_years=(2020, 2021))
     p_hac = compute_hac_pvalue(years, values, post_years, post_values, (2020, 2021))
     assert p_hac > p_classical
+
+
+# --- Combined-window p-value: exact variance of the mean prediction error ---
+# Hand-worked example. Baseline x = 0..4, y = 2x + e with e = [1, -1, 0, -1, 1]
+# (orthogonal to 1 and x), so OLS recovers slope 2, intercept 0, SSE = 4,
+# sigma^2 = 4/3, x_mean = 2, Sxx = 10. Post years 5 and 6 sit `shift` above the
+# line, so the mean deviation is `shift`. The trend line is shared by both
+# years, so only the new-observation noise averages over k=2:
+#   Var = sigma^2 * (1/k + 1/n + (5.5 - 2)^2 / Sxx) = (4/3) * (0.5 + 0.2 + 1.225)
+_HAND_X = np.arange(5)
+_HAND_Y = 2.0 * _HAND_X + np.array([1.0, -1.0, 0.0, -1.0, 1.0])
+
+
+def test_compute_acute_pvalue_matches_hand_worked_exact_variance():
+    from scipy import stats
+    trend = fit_baseline_trend(_HAND_X, _HAND_Y)
+    shift = 5.0
+    deviations = compute_deviations(trend, np.array([5, 6]), np.array([10.0, 12.0]) + shift)
+    se = np.sqrt((4 / 3) * (0.5 + 0.2 + 1.225))
+    expected_p = 2 * stats.t.sf(shift / se, df=3)
+    assert compute_acute_pvalue(trend, deviations, acute_years=(5, 6)) == pytest.approx(expected_p, rel=1e-9)
+
+
+def test_compute_acute_pvalue_rejects_about_5_percent_under_no_disruption():
+    # Calibration: with a true straight-line trend and iid noise, a correct 5%-level
+    # test rejects ~5% of the time. The old formula (dividing the whole prediction
+    # SE by sqrt(k)) rejected ~8% for a 21-year baseline and a 2-year window, and far
+    # more for a 5-year window.
+    rng = np.random.default_rng(42)
+    years = np.arange(1999, 2020)
+    post_years = np.arange(2020, 2025)
+    for window in [(2020, 2021), (2020, 2024)]:
+        rejections, sims = 0, 4000
+        for _ in range(sims):
+            y = 50 - 0.8 * (years - 1999) + rng.normal(0, 1, len(years))
+            post = 50 - 0.8 * (post_years - 1999) + rng.normal(0, 1, len(post_years))
+            trend = fit_baseline_trend(years, y)
+            devs = compute_deviations(trend, post_years, post)
+            rejections += compute_acute_pvalue(trend, devs, acute_years=window) < 0.05
+        assert 0.04 <= rejections / sims <= 0.06, (window, rejections / sims)

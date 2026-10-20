@@ -302,3 +302,22 @@ def test_data_quality_window_disagreement_is_labeled_as_the_negative_control():
     # The only baseline-window disagreement is the negative control's rate-based row.
     labels = _expander_labels(_app_on("data_quality"))
     assert "1. Baseline window (1999–2019 vs. 2010–2019): 1 disagreement (negative control only)" in labels
+
+
+def test_findings_reports_the_steady_percentage_trend_check():
+    # sensitivity_check: cancer's 2020-21 result is not significant under a log-linear
+    # trend (p=0.43); every other test cause agrees.
+    text = _page_text(_app_on("findings"))
+    assert "**Steady-percentage instead of straight trend:** Cancer changes; the rest hold." in text
+
+
+@pytest.mark.parametrize("cause,expected", [
+    ("Malignant neoplasms", "the trend is fit as a steady percentage change per year"),
+    ("Cerebrovascular disease", "the pre-pandemic trend is fit as a curve"),
+])
+def test_causes_robustness_flag_names_the_check_each_cause_fails(cause, expected):
+    at = _app_on("causes")
+    at.button_group[0].set_value(cause).run()
+    warnings = " ".join(w.value for w in at.warning)
+    assert expected in warnings
+    assert "single most uncertain" not in warnings

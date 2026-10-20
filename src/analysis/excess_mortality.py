@@ -170,10 +170,16 @@ def compute_acute_pvalue(
     trend: BaselineTrend, deviations: list[DeviationResult], acute_years: tuple[int, int]
 ) -> float:
     """Two-tailed p-value testing whether the mean deviation across
-    acute_years is significantly different from zero, via a one-sample
-    t-test against the trend's model-based prediction standard error
-    (averaged across the acute years, since extrapolation distance
-    varies slightly year to year). This is what feeds
+    acute_years is significantly different from zero. The standard error
+    is the exact one for the mean of k prediction errors from one fitted
+    line:  Var = sigma^2 * (1/k + 1/n + (avg_year - x_mean)^2 / Sxx).
+    Only the k new observations' own noise averages down by k; the fitted
+    line's uncertainty is shared by every year in the window, so it doesn't.
+    (Before 2026-10-19 this divided the whole single-year prediction
+    variance by k, which understated the SE and made p-values 2-3x too
+    small for a 2-year window and more for a 5-year one; see
+    research_protocol.md's 2026-10-19 p-value correction addendum.)
+    This is what feeds
     src.analysis.excess_mortality.benjamini_hochberg for the 6-cause FDR
     correction (design spec section 5.5) -- compute_deviations only
     flags per-year significance, it doesn't produce a single per-cause
@@ -192,10 +198,9 @@ def compute_acute_pvalue(
 
     mean_deviation = float(np.mean([d.deviation for d in acute]))
     avg_year = float(np.mean([d.year for d in acute]))
-    se_pred = trend.residual_std * np.sqrt(
-        1 + 1 / trend.n + (avg_year - trend.x_mean) ** 2 / trend.sxx
+    se_of_mean = trend.residual_std * np.sqrt(
+        1 / len(acute) + 1 / trend.n + (avg_year - trend.x_mean) ** 2 / trend.sxx
     )
-    se_of_mean = se_pred / np.sqrt(len(acute))
     if se_of_mean == 0:
         return 0.0 if mean_deviation != 0 else 1.0
 
@@ -214,7 +219,7 @@ def compute_hac_pvalue(
     OLS prediction-interval formula, which assumes independent residuals
     year to year -- research_protocol.md #12 documents this as a real,
     likely understated limitation: measured lag-1 autocorrelation is
-    0.50-0.82 for half the test causes (diabetes, drug overdose,
+    0.50-0.82 for four of the six test causes (diabetes, drug overdose,
     Alzheimer's, cerebrovascular disease), not the near-zero the classical
     formula effectively assumes.
 

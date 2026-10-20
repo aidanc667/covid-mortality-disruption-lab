@@ -388,7 +388,10 @@ def build(data: dict) -> list:
     national_series = data["national_series"]
     deviations = data["deviations"]
     baseline_fitted = data["baseline_fitted"]
-    trend_shape_robust = sens[sens["check"] == "baseline_trend_shape (linear vs quadratic)"].set_index("cause")["agrees"].to_dict()
+    trend_shape_robust = (
+        sens[sens["check"].isin(["baseline_trend_shape (linear vs quadratic)", "trend_scale (linear vs log-linear)"])]
+        .groupby("cause")["agrees"].all().to_dict()
+    )
 
     # Where each disrupted cause stood in the latest year, so the summary
     # can't claim more persistence than the data shows (a cause can be
@@ -455,9 +458,9 @@ def build(data: dict) -> list:
     ))
     story.append(Paragraph(
         "Two results went against what I predicted before looking at the data. Cancer was expected "
-        "to show nothing in this time window and showed a small but real increase. Alzheimer's "
+        "to show nothing in this time window and showed a small increase, though that result depends on the shape of the trend. Alzheimer's "
         "disease was expected to show a large increase and showed none in 2020-21, though a "
-        "decline appears in later years. A negative control, three sensitivity checks, and a "
+        "decline appears in later years. A negative control, four sensitivity checks, and a "
         "multiple-testing correction were all run before any result was reported.", styles["Body"]
     ))
     story.append(Paragraph(
@@ -569,7 +572,8 @@ def build(data: dict) -> list:
     story.append(Paragraph(
         "\"Dev.\" is the effect size: how far the observed rate sits from the expected trend, in "
         "percent. A result can be significant and still small. \"Robust?\" shows whether the result "
-        "survives a curved baseline in place of a straight one; only stroke doesn't (section 4).",
+        "survives a curved or steady-percentage trend in place of a straight line; stroke fails the curved "
+        "trend and cancer the steady-percentage one (section 4).",
         styles["Caption"]
     ))
     story.append(Spacer(1, 6))
@@ -597,7 +601,8 @@ def build(data: dict) -> list:
         f"screenings were thought to take longer than this data window to show up as deaths. Instead "
         f"cancer shows a significant disruption (p = {cancer['p_value']:.3g}, survives FDR correction), "
         f"though a small one: {cancer['acute_pct_deviation']:+.1f}% in 2020-21 and "
-        f"{cancer['latest_pct_deviation']:+.1f}% in {latest_year}. Other research doesn't settle "
+        f"{cancer['latest_pct_deviation']:+.1f}% in {latest_year}. It's also fragile: with a trend that "
+        f"falls by a steady percentage each year, the 2020-21 gap is no longer significant. Other research doesn't settle "
         f"this either. Early models predicted large increases in cancer deaths from delayed "
         f"screening, while later work using English data found lung and breast cancer deaths came in "
         f"below pre-pandemic trends.",
@@ -659,13 +664,14 @@ def build(data: dict) -> list:
         styles["Body"]
     ))
     story.append(Paragraph(
-        "With that correction in place, three sensitivity checks re-run the main test with one "
+        "With that correction in place, four sensitivity checks re-run the main test with one "
         "modeling choice changed at a time.", styles["Body"]
     ))
     axis_labels = {
         "baseline_window (1999 vs 2010)": "Baseline window (1999-2019 vs. 2010-2019)",
         "significance_threshold (0.05 vs 0.01)": "Significance threshold (α=0.05 vs. α=0.01)",
         "baseline_trend_shape (linear vs quadratic)": "Baseline shape (straight vs. curved)",
+        "trend_scale (linear vs log-linear)": "Trend scale (steady amount vs. steady percentage per year)",
     }
     test_causes = list(s["cause"])
     for check_key, label in axis_labels.items():
@@ -679,11 +685,11 @@ def build(data: dict) -> list:
         )
         story.append(Paragraph(f"<b>{label}.</b> {verdict}", styles["Body"]))
     story.append(Paragraph(
-        "The baseline-shape check matters most. Heart disease now passes it and stays significant "
-        "under either a straight or curved baseline. Stroke improves but doesn't fully pass: its "
-        "p-value under a curved baseline went from 0.37 with the old baseline to 0.096 with the "
-        "corrected one, still above 0.05. That makes stroke the least certain \"Persisted\" result in "
-        "this report. Diabetes, drug overdose, and cancer pass every check.", styles["Callout"]
+        "The trend-shape checks matter most. Heart disease passes both. Stroke doesn't survive a "
+        "curved baseline (p = 0.18) and also changes at the stricter significance level, which makes it "
+        "the least certain \"Persisted\" result in this report. Cancer's small 2020-21 gap isn't "
+        "significant with a steady-percentage trend (p = 0.43), though cancer is still above trend in "
+        "2024 under it. Diabetes and drug overdose pass every check.", styles["Callout"]
     ))
     story.append(Paragraph(
         f"<b>The {latest_year} status depends more on the baseline window.</b> The checks above test the "
@@ -709,8 +715,8 @@ def build(data: dict) -> list:
         "Heart disease and stroke had much higher values (0.92 and 0.93) on the old 1999-2019 "
         "baseline, which is another sign that a straight line was the wrong fit there. Because the "
         "standard test assumes no autocorrelation, the same test was rerun with Newey-West (HAC) "
-        "standard errors. That raises the p-values most for diabetes (about 80 times) and drug "
-        f"overdose (about 400 times), but all {n_disrupted} significant causes stay significant.",
+        "standard errors. That raises the p-values most for diabetes (about 25 times) and drug "
+        f"overdose (about 120 times), but all {n_disrupted} significant causes stay significant.",
         styles["Body"]
     ))
     hac_table_data = [["Cause", "Autocorrelation", "Classical p-value", "HAC p-value"]]
@@ -861,10 +867,11 @@ def build(data: dict) -> list:
         "0.12-0.19 for heart disease and cancer). The HAC version of the test accounts for this, "
         f"and all {n_disrupted} significant causes stay significant under it (section 4)."),
         ("Significant doesn't mean large. Drug overdose and diabetes had the biggest 2020-21 jumps "
-        "(roughly 27-41%), while cancer, heart disease, and stroke were real but much smaller (about 2-9%)."),
+        "(roughly 27-41%), while cancer, heart disease, and stroke were significant but much smaller (about 2-9%)."),
         ("Heart disease and stroke use a 2010-2019 baseline instead of 1999-2019 because the longer "
         "window didn't fit their pre-pandemic trend (section 4). Heart disease now holds up under "
-        "either baseline shape. Stroke remains the least certain result."),
+        "either baseline shape. Stroke and cancer are the least certain results: each loses "
+        "significance under one alternative trend shape."),
         ("County rates are crude, not age-adjusted, so some measured disruption may reflect each "
         "county's population getting older."),
         "Small counties are suppressed or unstable in the county data.",

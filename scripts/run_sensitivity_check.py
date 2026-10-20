@@ -1,22 +1,29 @@
 """Sensitivity analysis per research_protocol.md §8: re-fit the primary
-excess-mortality method with three alternate modeling choices and check
+excess-mortality method with four alternate modeling choices and check
 whether any of them change which causes are flagged as significantly
 disrupted. Does not modify or replace the primary results in
 disruption_summary.parquet -- writes a separate comparison output.
 
-Three axes, each independent of the others (only one choice is varied at
+Four axes, each independent of the others (only one choice is varied at
 a time, primary held fixed on the others):
 1. Baseline window: 1999-2019 (primary) vs. 2010-2019 (shorter, more recent).
 2. Significance threshold: alpha=0.05 (primary) vs. alpha=0.01 (stricter).
 3. Baseline trend shape: linear (primary) vs. quadratic (checks whether
    assuming a straight-line pre-pandemic trend, rather than a curved one,
    drives the results).
+4. Trend scale: straight line in the rate (primary) vs. straight line in
+   log(rate), i.e. a steady percentage change per year (added 2026-10-19).
 """
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-from src.analysis.excess_mortality import benjamini_hochberg
+from src.analysis.excess_mortality import (
+    benjamini_hochberg,
+    compute_acute_pvalue,
+    compute_deviations,
+    fit_baseline_trend,
+)
 from src.utils.config import OUTPUTS_MODELS
 from scripts.run_covid_disruption_pipeline import (
     ACUTE_YEARS, TEST_CAUSES, NEGATIVE_CONTROL, load_real_national_data, analyze_cause,
@@ -32,9 +39,11 @@ def fit_quadratic_and_test(baseline_years, baseline_values, post_years, post_val
     degree-2 (quadratic) baseline trend instead of linear -- checks
     whether the primary method's results depend on assuming a linear
     pre-pandemic trend. Implemented directly via the general polynomial
-    prediction-interval formula (SE_pred(x0) = residual_std * sqrt(1 +
-    x0_row @ inv(X'X) @ x0_row.T)), since BaselineTrend/compute_deviations
-    are linear-only by design. Returns (p_value, classification) where
+    formula for the mean of k prediction errors from one fitted curve,
+    SE = residual_std * sqrt(1/k + c @ inv(X'X) @ c) with c the mean of the
+    acute years' design rows, since BaselineTrend/compute_deviations are
+    linear-only by design. Years are centered on 2000 before squaring, which
+    gives the same fit with a far better-conditioned X'X. Returns (p_value, classification) where
     classification is binary ("Significant disruption" / "No significant
     disruption") -- re-deriving the full 3-way Persisted/Resolved/Reversed
     scheme under a quadratic baseline is out of scope for this check."""
@@ -44,6 +53,7 @@ def fit_quadratic_and_test(baseline_years, baseline_values, post_years, post_val
     years, values = years[mask], values[mask]
     n = len(years)
 
+    years = years - 2000.0
     X = np.vstack([np.ones_like(years), years, years**2]).T
     beta, *_ = np.linalg.lstsq(X, values, rcond=None)
     resid = values - X @ beta
@@ -59,12 +69,11 @@ def fit_quadratic_and_test(baseline_years, baseline_values, post_years, post_val
     if len(acute_years_arr) == 0:
         return 1.0, "No significant disruption"
 
-    expected = beta[0] + beta[1] * acute_years_arr + beta[2] * acute_years_arr**2
-    mean_deviation = float(np.mean(acute_values_arr - expected))
-    avg_year = float(np.mean(acute_years_arr))
-    row = np.array([1, avg_year, avg_year**2])
-    se_pred = residual_std * np.sqrt(1 + row @ xtx_inv @ row)
-    se_of_mean = se_pred / np.sqrt(len(acute_years_arr))
+    acute_x = acute_years_arr - 2000.0
+    rows = np.vstack([np.ones_like(acute_x), acute_x, acute_x**2]).T
+    mean_deviation = float(np.mean(acute_values_arr - rows @ beta))
+    c = rows.mean(axis=0)
+    se_of_mean = residual_std * np.sqrt(1 / len(acute_x) + c @ xtx_inv @ c)
 
     if se_of_mean == 0:
         p_value = 0.0 if mean_deviation != 0 else 1.0
@@ -72,6 +81,22 @@ def fit_quadratic_and_test(baseline_years, baseline_values, post_years, post_val
         t_stat = mean_deviation / se_of_mean
         p_value = float(2 * (1 - stats.t.cdf(abs(t_stat), df=dof)))
 
+    classification = "Significant disruption" if p_value < 0.05 else "No significant disruption"
+    return p_value, classification
+
+
+def fit_loglinear_and_test(baseline_years, baseline_values, post_years, post_values, acute_years):
+    """Same acute-window test as the primary method, but with a straight
+    line fit to log(rate) instead of the rate itself: a trend that falls (or
+    rises) by a steady percentage each year rather than a steady amount.
+    Added 2026-10-19 as a fourth sensitivity axis (research_protocol.md's
+    p-value correction addendum). Returns (p_value, binary classification),
+    like fit_quadratic_and_test."""
+    baseline_values = np.asarray(baseline_values, dtype=float)
+    post_values = np.asarray(post_values, dtype=float)
+    trend = fit_baseline_trend(baseline_years, np.log(baseline_values))
+    deviations = compute_deviations(trend, np.asarray(post_years), np.log(post_values))
+    p_value = compute_acute_pvalue(trend, deviations, acute_years)
     classification = "Significant disruption" if p_value < 0.05 else "No significant disruption"
     return p_value, classification
 
@@ -160,6 +185,26 @@ def main():
             "primary_classification": primary_binary, "primary_p_value": primary["p_value"],
             "alt_classification": quad_class, "alt_p_value": quad_p,
             "agrees": primary_binary == quad_class,
+        })
+
+    # Axis 4: trend scale (straight line in the rate vs. in log(rate)). Same
+    # baseline window as primary, like axis 3, so only the trend's scale varies.
+    print("Axis 4: trend scale (linear vs log-linear)...")
+    for cause in TEST_CAUSES:
+        primary_start = BASELINE_START_YEAR_OVERRIDES.get(cause, 1999)
+        primary = analyze_cause(d76_df, d158_df, cause, baseline_start_year=primary_start)
+        baseline = d76_df[(d76_df["cause"] == cause) & (d76_df["year"] >= primary_start) & (d76_df["year"] <= 2019)].sort_values("year")
+        post = d158_df[(d158_df["cause"] == cause) & (d158_df["year"] >= 2020)].sort_values("year")
+        log_p, log_class = fit_loglinear_and_test(
+            baseline["year"].to_numpy(), baseline["age_adjusted_rate"].to_numpy(),
+            post["year"].to_numpy(), post["age_adjusted_rate"].to_numpy(), ACUTE_YEARS,
+        )
+        primary_binary = "No significant disruption" if primary["persistence_class"] == "No significant disruption" else "Significant disruption"
+        rows.append({
+            "cause": cause, "check": "trend_scale (linear vs log-linear)",
+            "primary_classification": primary_binary, "primary_p_value": primary["p_value"],
+            "alt_classification": log_class, "alt_p_value": log_p,
+            "agrees": primary_binary == log_class,
         })
 
     comparison_df = pd.DataFrame(rows)

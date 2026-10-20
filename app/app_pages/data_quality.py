@@ -26,7 +26,7 @@ if not data_available():
 
 st.html(takeaway_html(
     "Every check is shown here, including the ones that flagged problems: the negative control, "
-    "multiple-testing correction, the database-vintage seam, and three sensitivity checks."
+    "multiple-testing correction, the database-vintage seam, and four sensitivity checks."
 ))
 
 neg_tab, testing_tab, bridging_tab, sensitivity_tab = st.tabs(
@@ -164,8 +164,8 @@ with bridging_tab:
 with sensitivity_tab:
     if not sensitivity_check_available():
         st.info(
-            "Not yet run. `python -m scripts.run_sensitivity_check` re-fits the primary method three "
-            "different ways (baseline window, significance threshold, baseline trend shape) to check "
+            "Not yet run. `python -m scripts.run_sensitivity_check` re-fits the primary method four "
+            "different ways (baseline window, significance threshold, curved trend, steady-percentage trend) to check "
             "whether results depend on those choices.",
             icon=":material/info:",
         )
@@ -173,21 +173,20 @@ with sensitivity_tab:
         sens = load_sensitivity_check()
         test_cause_checks = sens[sens["cause"].isin(TEST_CAUSES)]
 
-        quad_check = test_cause_checks[test_cause_checks["check"] == "baseline_trend_shape (linear vs quadratic)"]
-        quad_disagree = quad_check.loc[~quad_check["agrees"], "cause"].tolist()
-        if quad_disagree:
-            verb = "loses" if len(quad_disagree) == 1 else "lose"
-            pronoun = "this cause" if len(quad_disagree) == 1 else "these causes"
-            possessive = "its" if len(quad_disagree) == 1 else "their"
+        shape_checks = {
+            "baseline_trend_shape (linear vs quadratic)": "fit as a curve",
+            "trend_scale (linear vs log-linear)": "fit as a steady percentage change per year",
+        }
+        shape_rows = test_cause_checks[test_cause_checks["check"].isin(shape_checks) & ~test_cause_checks["agrees"]]
+        if len(shape_rows):
+            parts = [f"{display_cause(r['cause'])} when the pre-pandemic trend is {shape_checks[r['check']]}"
+                     for _, r in shape_rows.iterrows()]
+            n = shape_rows["cause"].nunique()
             st.error(
-                f"**{len(quad_disagree)} of 6 test causes {'is' if len(quad_disagree) == 1 else 'are'} "
-                f"not robust to baseline trend shape:** {', '.join(display_cause(c) for c in quad_disagree)} "
-                f"{verb} significance when the pre-pandemic baseline is fit as a curve instead of a "
-                f"straight line. Part of what the primary method reads as a 2020 disruption could "
-                f"instead be the natural curvature of {possessive} pre-existing trend, poorly "
-                "extrapolated by a straight line. A real, material limitation, not smoothed over. See "
-                "`research_protocol.md`'s 2026-09-01 baseline-correction addendum for the full "
-                "investigation.",
+                f"**{n} of 6 test causes {'is' if n == 1 else 'are'} not robust to the trend's shape.** "
+                f"The 2020–21 result loses significance for {'; and for '.join(parts)}. Part of what the "
+                "straight-line method reads as a 2020 disruption could instead come from the shape of the "
+                "pre-existing trend.",
                 icon=":material/warning:",
             )
         for check_name, check_label, description in [
@@ -197,6 +196,8 @@ with sensitivity_tab:
              "Does a stricter significance bar change the result?"),
             ("baseline_trend_shape (linear vs quadratic)", "3. Baseline trend shape (linear vs. quadratic)",
              "Does allowing the pre-pandemic trend to curve, instead of forcing a straight line, change the result?"),
+            ("trend_scale (linear vs log-linear)", "4. Trend scale (linear vs. log-linear)",
+             "Does a trend that changes by a steady percentage each year, instead of a steady amount, change the result?"),
         ]:
             check_rows = sens[sens["check"] == check_name]
             disagree = check_rows.loc[~check_rows["agrees"], "cause"]

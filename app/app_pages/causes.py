@@ -34,21 +34,26 @@ baseline_fitted = load_baseline_fitted_trend()
 sens = load_sensitivity_check() if sensitivity_check_available() else None
 window_check = load_latest_year_window_check().set_index("cause")
 
-TREND_SHAPE_CHECK = "baseline_trend_shape (linear vs quadratic)"
+# Each trend-shape check and how to describe a failure of it.
+TREND_SHAPE_CHECKS = {
+    "baseline_trend_shape (linear vs quadratic)": "the pre-pandemic trend is fit as a curve",
+    "trend_scale (linear vs log-linear)": "the trend is fit as a steady percentage change per year",
+}
+
+
+def _trend_shape_failures(cause: str) -> list[str]:
+    """Descriptions of the trend-shape checks under which this cause's
+    2020-21 result loses significance: currently stroke (curved trend) and
+    cancer (log-linear trend). Empty when the sensitivity check hasn't been
+    run yet."""
+    if sens is None:
+        return []
+    rows = sens[(sens["cause"] == cause) & (sens["check"].isin(TREND_SHAPE_CHECKS))]
+    return [TREND_SHAPE_CHECKS[c] for c in rows.loc[~rows["agrees"], "check"]]
 
 
 def _trend_shape_robust(cause: str) -> bool:
-    """False only when this cause's sensitivity check found the result
-    flips under a curved baseline instead of the primary straight-line
-    fit -- currently heart disease and cerebrovascular disease, whose
-    straight-line baseline fit was already diverging from their actual
-    1999-2019 trajectory before 2020 (see the trajectory chart's now
-    fully-drawn dashed line). Defaults to True (don't flag) when the
-    sensitivity check hasn't been run yet."""
-    if sens is None:
-        return True
-    row = sens[(sens["cause"] == cause) & (sens["check"] == TREND_SHAPE_CHECK)]
-    return bool(row.iloc[0]["agrees"]) if len(row) else True
+    return not _trend_shape_failures(cause)
 
 
 def _delayed_disruption(r: pd.Series) -> bool:
@@ -159,8 +164,8 @@ with trend_tab:
     # what compute_deviations tests against). Drawing only the 2020+ segment,
     # as this chart used to, hid exactly the evidence a reader would need to
     # judge whether the straight-line assumption tracks the real pre-pandemic
-    # trajectory -- for heart disease and cerebrovascular disease it visibly
-    # doesn't (see the "Not robust to trend shape" flag above).
+    # trajectory (the "Not robust to trend shape" flag above marks causes
+    # whose result depends on that assumption).
     expected_full = pd.concat([
         fitted.rename(columns={"fitted": "value"})[["year", "value"]],
         dev[["year", "expected"]].rename(columns={"expected": "value"}),
@@ -300,12 +305,10 @@ with trend_tab:
 
     if not _trend_shape_robust(cause):
         st.warning(
-            "**Robustness flag:** this is this project's single most uncertain \"Persisted\" result. "
-            "Its baseline was already corrected once, from the full 1999–2019 range to the shorter "
-            "window shown dashed above, after the original fit was found to badly misdescribe the "
-            "real pre-pandemic trend (research_protocol.md's 2026-09-01 addendum). That correction "
-            "made the result more defensible, but its significance still doesn't fully survive an "
-            "alternate curved-trend check. See Data Quality for the full breakdown.", icon=":material/warning:",
+            f"**Robustness flag:** this 2020–21 result loses significance when "
+            f"{' or when '.join(_trend_shape_failures(cause))}. Part of what the straight-line method reads "
+            "as a pandemic disruption could come from the shape of the pre-2020 trend instead. See Data "
+            "quality → Sensitivity.", icon=":material/warning:",
         )
 
 with robustness_tab:

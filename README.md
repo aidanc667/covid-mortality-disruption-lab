@@ -16,16 +16,16 @@ The expected direction and confidence for every cause were written down before I
 
 - **Five of six causes rose significantly above trend in 2020–21.** Drug overdose (+41%) and diabetes (+27%) had the biggest jumps.
 - **Most of it has faded.** By 2024, only diabetes (+15%) and cancer (+5%) were still above trend. Heart disease, stroke, and drug overdose were back in their normal range.
-- **Two results went against my predictions.** I expected cancer to show nothing this soon, but it rose a small, real amount. I expected a large rise for Alzheimer's, but it didn't move in 2020–21 and then fell well below trend by 2024 (−19%).
+- **Two results went against my predictions.** I expected cancer to show nothing this soon, but it rose a small amount, though that depends on how the pre-2020 trend is modeled. I expected a large rise for Alzheimer's, but it didn't move in 2020–21 and then fell well below trend by 2024 (−19%).
 - **Some 2024 results depend on the baseline.** The 2020–21 jumps hold no matter which pre-pandemic years the trend is fit to, but the 2024 status of four causes doesn't. For example, diabetes is +15% against a 1999–2019 trend and about 0% against a 2010–2019 one. The app's Robustness tab shows both.
 - **Counties with more smokers and more uninsured people were hit harder** for all five disrupted causes. Rurality is mixed: more rural counties saw bigger effects for heart disease, overdose, and cancer, but not for stroke or diabetes.
 
 ## Checks
 
 - A negative control: a cause with no direct link to COVID (birth defects) run through the same pipeline. It came back clean.
-- Sensitivity checks with a different baseline window, a stricter significance level, and a curved trend.
+- Sensitivity checks with a different baseline window, a stricter significance level, a curved trend, and a trend that falls by a steady percentage each year. Stroke and cancer are the two results that don't pass every one.
 - Correction for testing six causes at once, and an autocorrelation-robust version of the main test.
-- 220 automated tests.
+- 228 automated tests.
 
 ## Data
 
